@@ -39,6 +39,11 @@ export default {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
+        "ai-green": "hsl(var(--ai-green))",
+        "mancity-blue": "hsl(var(--mancity-blue))",
+        "tottenham-purple": "hsl(var(--tottenham-purple))",
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
