@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { LiveMatch } from "@/components/LiveMatch";
-import { PredictionCard } from "@/components/PredictionCard";
+import { EnhancedPrediction } from "@/components/EnhancedPrediction";
 import { SentimentMeter } from "@/components/SentimentMeter";
+import { AIAnalytics } from "@/components/AIAnalytics";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Zap, Users, Target, TrendingUp } from "lucide-react";
+import { RefreshCw, Zap, Users, Target, TrendingUp, MessageCircle, Brain } from "lucide-react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
@@ -29,22 +30,114 @@ const Index = () => {
     }
   ];
 
-  const predictions = {
-    homeTeam: "Manchester City",
-    awayTeam: "Tottenham",
-    homeWin: 65,
-    draw: 20,
-    awayWin: 15,
-    confidence: 87,
-    aiInsight: "City's superior home form and recent tactical adjustments give them a significant edge. Spurs' defensive vulnerabilities against possession-heavy teams favor the home side."
-  };
-
   const sentiment = {
     positive: 68,
     neutral: 22,
     negative: 10,
     totalMentions: 24673,
     trending: ["MCITOT", "Haaland", "Kane", "PremierLeague", "Pep"]
+  };
+
+  const aiAnalytics = {
+    tweets: [
+      {
+        id: "1",
+        text: "Haaland's form has been absolutely incredible this season! City looking unstoppable at home 🔥⚽",
+        author: "FootballFan2024",
+        engagement: 1240,
+        sentiment: "positive" as const,
+        influence_score: 85
+      },
+      {
+        id: "2", 
+        text: "Spurs defense looking shaky again. Need to step up big time against City's attack",
+        author: "COYSForever",
+        engagement: 892,
+        sentiment: "negative" as const,
+        influence_score: 67
+      },
+      {
+        id: "3",
+        text: "This should be a great tactical battle between Pep and Ange. Excited for kickoff! #MCITOT",
+        author: "TacticsExpert",
+        engagement: 2150,
+        sentiment: "neutral" as const,
+        influence_score: 92
+      }
+    ],
+    keyInsights: [
+      "Haaland sentiment is 89% positive, indicating strong fan confidence in his performance",
+      "Tottenham's defensive concerns mentioned in 34% of negative posts",
+      "Pep Guardiola's tactical approach generates 67% more engagement than average",
+      "Home advantage sentiment for City is at season-high 78%"
+    ],
+    trendingTopics: [
+      { topic: "Haaland", volume: 12400, sentiment: 89 },
+      { topic: "MCITOT", volume: 8900, sentiment: 72 },
+      { topic: "PepGuardiola", volume: 6700, sentiment: 81 },
+      { topic: "Kane", volume: 5500, sentiment: 65 }
+    ],
+    influencerActivity: [
+      { name: "GaryLineker", followers: 8500000, recent_posts: 3 },
+      { name: "rioferdy5", followers: 4200000, recent_posts: 5 }
+    ]
+  };
+
+  const enhancedPredictions = {
+    homeTeam: "Manchester City",
+    awayTeam: "Tottenham",
+    homeWin: 65,
+    draw: 20,
+    awayWin: 15,
+    confidence: 87,
+    aiInsight: "City's superior home form and recent tactical adjustments give them a significant edge. Spurs' defensive vulnerabilities against possession-heavy teams favor the home side.",
+    historical: {
+      head_to_head: { home_wins: 15, away_wins: 8, draws: 4, total_games: 27 },
+      recent_form: { home_form: 85, away_form: 62 },
+      home_advantage: 73
+    },
+    newsImpacts: [
+      {
+        headline: "Haaland back to full fitness after minor knock, expected to start",
+        impact: "positive" as const,
+        team: "home" as const,
+        confidence: 78
+      },
+      {
+        headline: "Tottenham's key defender Romero ruled out with injury",
+        impact: "negative" as const,
+        team: "away" as const,
+        confidence: 65
+      },
+      {
+        headline: "Pep Guardiola praises team's recent training sessions",
+        impact: "positive" as const,
+        team: "home" as const,
+        confidence: 45
+      }
+    ],
+    keyFactors: [
+      {
+        factor: "Home Form",
+        impact: 15,
+        description: "City has won 8 of their last 10 home matches"
+      },
+      {
+        factor: "Head-to-Head",
+        impact: 12,
+        description: "City leads recent encounters 4-1 in last 5 meetings"
+      },
+      {
+        factor: "Injury Impact",
+        impact: -8,
+        description: "Spurs missing key defensive players"
+      },
+      {
+        factor: "Squad Depth",
+        impact: 10,
+        description: "City's rotation options provide tactical flexibility"
+      }
+    ]
   };
 
   const handleRefresh = async () => {
@@ -59,9 +152,15 @@ const Index = () => {
       case "home":
         return (
           <div className="space-y-6">
+            {/* Fan Pulse at the top */}
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-3">Fan Pulse</h2>
+              <SentimentMeter {...sentiment} />
+            </div>
+            
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-foreground">Live Matches</h2>
+                <h2 className="text-xl font-bold text-foreground">Live Matches</h2>
                 <p className="text-sm text-muted-foreground">Real-time football analytics</p>
               </div>
               <Button
@@ -107,11 +206,11 @@ const Index = () => {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">AI Predictions</h2>
-              <p className="text-sm text-muted-foreground">Advanced analytics & forecasting</p>
+              <h2 className="text-2xl font-bold text-foreground">Enhanced AI Predictions</h2>
+              <p className="text-sm text-muted-foreground">Advanced analytics, historical data & news impact</p>
             </div>
             
-            <PredictionCard {...predictions} />
+            <EnhancedPrediction {...enhancedPredictions} />
             
             <div className="grid grid-cols-2 gap-4">
               <StatCard
@@ -138,28 +237,28 @@ const Index = () => {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Fan Pulse</h2>
-              <p className="text-sm text-muted-foreground">Social media sentiment analysis</p>
+              <h2 className="text-2xl font-bold text-foreground">AI Social Analytics</h2>
+              <p className="text-sm text-muted-foreground">Real-time tweet analysis & sentiment tracking</p>
             </div>
             
-            <SentimentMeter {...sentiment} />
+            <AIAnalytics {...aiAnalytics} />
             
             <div className="grid grid-cols-2 gap-4">
               <StatCard
                 title="Mentions/Hour"
                 value="2.4K"
                 subtitle="Peak activity"
-                icon={TrendingUp}
+                icon={MessageCircle}
                 color="text-accent"
                 trend="up"
               />
               <StatCard
-                title="Influencer Posts"
+                title="AI Insights"
                 value="127"
-                subtitle="Verified accounts"
-                icon={Users}
-                color="text-warning"
-                trend="neutral"
+                subtitle="Generated today"
+                icon={Brain}
+                color="text-ai-green"
+                trend="up"
               />
             </div>
           </div>
