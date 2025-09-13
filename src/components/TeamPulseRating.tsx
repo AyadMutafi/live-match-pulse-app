@@ -52,6 +52,15 @@ export function TeamPulseRating({
     }
   };
 
+  const getPlayerRatingEmoji = (rating: number) => {
+    if (rating >= 9) return "🔥"; // On fire
+    if (rating >= 8) return "⭐"; // Star performance
+    if (rating >= 7) return "👍"; // Good
+    if (rating >= 6) return "😐"; // Average
+    if (rating >= 4) return "👎"; // Poor
+    return "💔"; // Terrible
+  };
+
   return (
     <Card className="p-4 bg-card border-border">
       <div className="flex items-center justify-between mb-4">
@@ -107,8 +116,8 @@ export function TeamPulseRating({
           <div key={player.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
             <div className="flex items-center space-x-3">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getPulseBackground(player.pulseScore)}`}>
-                <span className={`text-xs font-bold ${getPulseColor(player.pulseScore)}`}>
-                  {player.rating}
+                <span className="text-lg">
+                  {getPlayerRatingEmoji(player.rating)}
                 </span>
               </div>
               <div>
