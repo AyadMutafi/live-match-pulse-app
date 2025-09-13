@@ -237,62 +237,171 @@ const Index = () => {
     }
   ];
 
-  const enhancedPredictions = {
-    homeTeam: "Manchester City",
-    awayTeam: "Tottenham",
-    homeWin: 65,
-    draw: 20,
-    awayWin: 15,
-    confidence: 87,
-    aiInsight: "City's superior home form and recent tactical adjustments give them a significant edge. Spurs' defensive vulnerabilities against possession-heavy teams favor the home side.",
-    historical: {
-      head_to_head: { home_wins: 15, away_wins: 8, draws: 4, total_games: 27 },
-      recent_form: { home_form: 85, away_form: 62 },
-      home_advantage: 73
+  // AI Predictions for each major team's next match
+  const teamPredictions = [
+    {
+      homeTeam: "FC Barcelona",
+      awayTeam: "Atletico Madrid",
+      homeWin: 58,
+      draw: 25,
+      awayWin: 17,
+      confidence: 82,
+      aiInsight: "Barcelona's attacking prowess at home vs Atletico's defensive solidity creates an interesting tactical battle. Recent form favors Barca.",
+      historical: {
+        head_to_head: { home_wins: 12, away_wins: 8, draws: 6, total_games: 26 },
+        recent_form: { home_form: 78, away_form: 71 },
+        home_advantage: 68
+      },
+      newsImpacts: [
+        {
+          headline: "Lewandowski returns from injury, ready to face Atletico",
+          impact: "positive" as const,
+          team: "home" as const,
+          confidence: 75
+        }
+      ],
+      keyFactors: [
+        { factor: "Attack vs Defense", impact: 12, description: "Classic Barcelona attack vs Atletico defense matchup" },
+        { factor: "Home Form", impact: 10, description: "Barcelona strong at Camp Nou this season" }
+      ]
     },
-    newsImpacts: [
-      {
-        headline: "Haaland back to full fitness after minor knock, expected to start",
-        impact: "positive" as const,
-        team: "home" as const,
-        confidence: 78
+    {
+      homeTeam: "Real Madrid",
+      awayTeam: "Valencia",
+      homeWin: 72,
+      draw: 18,
+      awayWin: 10,
+      confidence: 89,
+      aiInsight: "Madrid's Bernabeu fortress and Valencia's away struggles make this a clear favorite for Los Blancos. Vinicius Jr. key threat.",
+      historical: {
+        head_to_head: { home_wins: 18, away_wins: 5, draws: 7, total_games: 30 },
+        recent_form: { home_form: 85, away_form: 55 },
+        home_advantage: 78
       },
-      {
-        headline: "Tottenham's key defender Romero ruled out with injury",
-        impact: "negative" as const,
-        team: "away" as const,
-        confidence: 65
+      newsImpacts: [
+        {
+          headline: "Bellingham extends contract, motivated for weekend clash",
+          impact: "positive" as const,
+          team: "home" as const,
+          confidence: 68
+        }
+      ],
+      keyFactors: [
+        { factor: "Home Dominance", impact: 18, description: "Madrid unbeaten at home in La Liga this season" },
+        { factor: "Quality Gap", impact: 15, description: "Significant squad depth advantage for Madrid" }
+      ]
+    },
+    {
+      homeTeam: "Manchester City",
+      awayTeam: "Arsenal",
+      homeWin: 55,
+      draw: 28,
+      awayWin: 17,
+      confidence: 76,
+      aiInsight: "Title rivals clash at Etihad. City's experience in big games vs Arsenal's improved mentality creates fascinating encounter.",
+      historical: {
+        head_to_head: { home_wins: 15, away_wins: 8, draws: 4, total_games: 27 },
+        recent_form: { home_form: 82, away_form: 74 },
+        home_advantage: 65
       },
-      {
-        headline: "Pep Guardiola praises team's recent training sessions",
-        impact: "positive" as const,
-        team: "home" as const,
-        confidence: 45
-      }
-    ],
-    keyFactors: [
-      {
-        factor: "Home Form",
-        impact: 15,
-        description: "City has won 8 of their last 10 home matches"
+      newsImpacts: [
+        {
+          headline: "Haaland fit and ready for Arsenal showdown",
+          impact: "positive" as const,
+          team: "home" as const,
+          confidence: 78
+        },
+        {
+          headline: "Arsenal's Saka doubtful with minor injury concern",
+          impact: "negative" as const,
+          team: "away" as const,
+          confidence: 62
+        }
+      ],
+      keyFactors: [
+        { factor: "Big Game Experience", impact: 12, description: "City's proven track record in title races" },
+        { factor: "Tactical Battle", impact: 8, description: "Pep vs Arteta adds extra dimension" }
+      ]
+    },
+    {
+      homeTeam: "Liverpool",
+      awayTeam: "Manchester United",
+      homeWin: 48,
+      draw: 26,
+      awayWin: 26,
+      confidence: 71,
+      aiInsight: "Classic rivalry at Anfield. Both teams need points - Liverpool's home record vs United's counter-attacking threat creates open game.",
+      historical: {
+        head_to_head: { home_wins: 13, away_wins: 9, draws: 8, total_games: 30 },
+        recent_form: { home_form: 75, away_form: 68 },
+        home_advantage: 70
       },
-      {
-        factor: "Head-to-Head",
-        impact: 12,
-        description: "City leads recent encounters 4-1 in last 5 meetings"
+      newsImpacts: [
+        {
+          headline: "Salah in red-hot form ahead of United clash",
+          impact: "positive" as const,
+          team: "home" as const,
+          confidence: 82
+        }
+      ],
+      keyFactors: [
+        { factor: "Rivalry Intensity", impact: 5, description: "Form often goes out the window in this fixture" },
+        { factor: "Anfield Atmosphere", impact: 12, description: "Kop creates hostile environment for United" }
+      ]
+    },
+    {
+      homeTeam: "AC Milan",
+      awayTeam: "Juventus",
+      homeWin: 42,
+      draw: 32,
+      awayWin: 26,
+      confidence: 69,
+      aiInsight: "Derby d'Italia at San Siro promises tactical chess match. Milan's attacking intent vs Juventus' defensive organization.",
+      historical: {
+        head_to_head: { home_wins: 11, away_wins: 10, draws: 9, total_games: 30 },
+        recent_form: { home_form: 71, away_form: 66 },
+        home_advantage: 58
       },
-      {
-        factor: "Injury Impact",
-        impact: -8,
-        description: "Spurs missing key defensive players"
+      newsImpacts: [
+        {
+          headline: "Milan's Leao back from suspension for big match",
+          impact: "positive" as const,
+          team: "home" as const,
+          confidence: 71
+        }
+      ],
+      keyFactors: [
+        { factor: "Serie A Prestige", impact: 8, description: "Both teams fighting for top 4 position" },
+        { factor: "San Siro Factor", impact: 10, description: "Milan's fortress advantage at home" }
+      ]
+    },
+    {
+      homeTeam: "Inter Milan",
+      awayTeam: "Napoli",
+      homeWin: 52,
+      draw: 28,
+      awayWin: 20,
+      confidence: 74,
+      aiInsight: "Inter's home strength meets Napoli's inconsistent away form. Nerazzurri's tactical discipline should prevail at San Siro.",
+      historical: {
+        head_to_head: { home_wins: 14, away_wins: 8, draws: 8, total_games: 30 },
+        recent_form: { home_form: 79, away_form: 61 },
+        home_advantage: 72
       },
-      {
-        factor: "Squad Depth",
-        impact: 10,
-        description: "City's rotation options provide tactical flexibility"
-      }
-    ]
-  };
+      newsImpacts: [
+        {
+          headline: "Lautaro Martinez extends Inter contract, boosting morale",
+          impact: "positive" as const,
+          team: "home" as const,
+          confidence: 66
+        }
+      ],
+      keyFactors: [
+        { factor: "Home Record", impact: 14, description: "Inter's impressive home form this season" },
+        { factor: "Squad Stability", impact: 9, description: "Inter's consistent lineup vs Napoli's rotation" }
+      ]
+    }
+  ];
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -382,11 +491,15 @@ const Index = () => {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Enhanced AI Predictions</h2>
-              <p className="text-sm text-muted-foreground">Advanced analytics, historical data & news impact</p>
+              <h2 className="text-2xl font-bold text-foreground">AI Team Predictions</h2>
+              <p className="text-sm text-muted-foreground">Next match predictions for major European clubs</p>
             </div>
             
-            <EnhancedPrediction {...enhancedPredictions} />
+            <div className="space-y-4">
+              {teamPredictions.map((prediction, index) => (
+                <EnhancedPrediction key={index} {...prediction} />
+              ))}
+            </div>
             
             <div className="grid grid-cols-2 gap-4">
               <StatCard
