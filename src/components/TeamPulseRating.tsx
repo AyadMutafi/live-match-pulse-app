@@ -53,12 +53,11 @@ export function TeamPulseRating({
   };
 
   const getPlayerRatingEmoji = (rating: number) => {
-    if (rating >= 9) return "🔥"; // On fire
-    if (rating >= 8) return "⭐"; // Star performance
-    if (rating >= 7) return "👍"; // Good
-    if (rating >= 6) return "😐"; // Average
-    if (rating >= 4) return "👎"; // Poor
-    return "💔"; // Terrible
+    if (rating >= 9) return "🔥"; // Top player
+    if (rating >= 7) return "😍"; // Good
+    if (rating >= 5) return "😐"; // Just okay
+    if (rating >= 3) return "😑"; // Bad day
+    return "🤬"; // Awful performance
   };
 
   return (
