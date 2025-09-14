@@ -7,6 +7,7 @@ import { BottomNavigation } from "@/components/BottomNavigation";
 import { StatCard } from "@/components/StatCard";
 import { TeamPulseRating } from "@/components/TeamPulseRating";
 import { MultiLanguageSentiment } from "@/components/MultiLanguageSentiment";
+import { MatchPulse } from "@/components/MatchPulse";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Zap, Users, Target, TrendingUp, MessageCircle, Brain } from "lucide-react";
 
@@ -403,6 +404,94 @@ const Index = () => {
     }
   ];
 
+  // Mock data for live match pulse
+  const liveMatchPulse = {
+    matchId: "bcn_vs_getafe_2024",
+    homeTeam: {
+      name: "FC Barcelona",
+      pulse: 89,
+      trend: "up" as const,
+      sentiment: "on_fire" as const,
+      recentMentions: 4280
+    },
+    awayTeam: {
+      name: "Getafe CF",
+      pulse: 42,
+      trend: "down" as const,
+      sentiment: "bad" as const,
+      recentMentions: 1120
+    },
+    matchTime: "67'",
+    status: "LIVE" as const,
+    totalEngagement: 18420,
+    topReactions: ["🔥", "⚽", "👑", "💙", "😍", "🎯", "⭐"],
+    trendingHashtags: ["ElClasico", "Lewandowski", "LaLiga", "FCB", "BarcaOn"],
+    liveUpdates: [
+      {
+        text: "Lewandowski scores again! Barcelona fans going absolutely wild! 🔥⚽",
+        sentiment: "positive" as const,
+        team: "home" as const,
+        timestamp: "65'"
+      },
+      {
+        text: "Getafe looking completely outplayed here. No answer to Barca's attack",
+        sentiment: "negative" as const,
+        team: "away" as const,
+        timestamp: "63'"
+      },
+      {
+        text: "This Barcelona team is absolutely on fire tonight! What a performance! 😍",
+        sentiment: "positive" as const,
+        team: "home" as const,
+        timestamp: "61'"
+      }
+    ]
+  };
+
+  // Champions League match pulse
+  const championsLeaguePulse = {
+    matchId: "liv_vs_psg_ucl_2024",
+    homeTeam: {
+      name: "Liverpool",
+      pulse: 76,
+      trend: "stable" as const,
+      sentiment: "good" as const,
+      recentMentions: 3650
+    },
+    awayTeam: {
+      name: "Paris Saint-Germain",
+      pulse: 68,
+      trend: "up" as const,
+      sentiment: "okay" as const,
+      recentMentions: 2890
+    },
+    matchTime: "34'",
+    status: "LIVE" as const,
+    totalEngagement: 22540,
+    topReactions: ["⚽", "🔴", "💙", "🏆", "⭐", "🚀", "👑"],
+    trendingHashtags: ["UCL", "LIVPSG", "ChampionsLeague", "Anfield", "YNWA"],
+    liveUpdates: [
+      {
+        text: "Salah nearly breaks the deadlock! Anfield is electric tonight ⚡",
+        sentiment: "positive" as const,
+        team: "home" as const,
+        timestamp: "32'"
+      },
+      {
+        text: "PSG showing much better in the last 10 minutes. Mbappe threat growing",
+        sentiment: "positive" as const,
+        team: "away" as const,
+        timestamp: "28'"
+      },
+      {
+        text: "This Champions League atmosphere is absolutely insane! 🏆",
+        sentiment: "positive" as const,
+        team: "both" as const,
+        timestamp: "25'"
+      }
+    ]
+  };
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     // Simulate API call
@@ -415,7 +504,19 @@ const Index = () => {
       case "home":
         return (
           <div className="space-y-6">
-            {/* Fan Pulse Section at the top */}
+            {/* Live Match Pulse Section */}
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-4 flex items-center space-x-2">
+                <span>🔥 Live Match Pulse</span>
+                <span className="text-sm font-normal text-muted-foreground">(Real-time fan reactions)</span>
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                <MatchPulse matchData={liveMatchPulse} />
+                <MatchPulse matchData={championsLeaguePulse} />
+              </div>
+            </div>
+
+            {/* Fan Pulse Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <SentimentMeter {...sentiment} />
               <MultiLanguageSentiment 
