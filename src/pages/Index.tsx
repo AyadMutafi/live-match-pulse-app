@@ -8,6 +8,7 @@ import { StatCard } from "@/components/StatCard";
 import { TeamPulseRating } from "@/components/TeamPulseRating";
 import { MultiLanguageSentiment } from "@/components/MultiLanguageSentiment";
 import { MatchPulse } from "@/components/MatchPulse";
+import { AIPreMatchAnalysis } from "@/components/AIPreMatchAnalysis";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Zap, Users, Target, TrendingUp, MessageCircle, Brain } from "lucide-react";
 
@@ -492,6 +493,100 @@ const Index = () => {
     ]
   };
 
+  // Mock data for AI Pre-Match Analysis
+  const preMatchAnalysis = {
+    homeTeam: {
+      teamName: "Manchester City",
+      teamColor: "#6CABDD",
+      overallForm: 87,
+      keyPlayers: [
+        {
+          name: "Erling Haaland",
+          position: "ST",
+          formRating: 94,
+          keyStrengths: ["Clinical finishing", "Aerial dominance", "Off-ball movement"],
+          concerns: ["Link-up play under pressure"],
+          mediaScore: 89
+        },
+        {
+          name: "Kevin De Bruyne",
+          position: "CAM",
+          formRating: 91,
+          keyStrengths: ["Vision", "Set pieces", "Long-range passing"],
+          concerns: ["Injury concerns"],
+          mediaScore: 88
+        }
+      ],
+      tactics: {
+        formation: "4-3-3 False 9",
+        style: "High possession, progressive build-up",
+        effectiveness: 89
+      },
+      strengths: ["Midfield creativity", "Squad depth", "Home form"],
+      weaknesses: ["Defensive transitions", "Set-piece defending"],
+      expertOpinions: [
+        {
+          source: "Sky Sports",
+          quote: "City's midfield dominance will be crucial against Tottenham's high press",
+          sentiment: "positive" as const
+        },
+        {
+          source: "BBC Sport",
+          quote: "Haaland's form suggests another goalscoring masterclass is imminent",
+          sentiment: "positive" as const
+        }
+      ],
+      webSources: 47,
+      analysisConfidence: 92
+    },
+    awayTeam: {
+      teamName: "Tottenham",
+      teamColor: "#132257",
+      overallForm: 72,
+      keyPlayers: [
+        {
+          name: "Harry Kane",
+          position: "ST",
+          formRating: 86,
+          keyStrengths: ["Movement in box", "Leadership", "Penalty taking"],
+          concerns: ["Service from midfield", "Big game mentality"],
+          mediaScore: 81
+        },
+        {
+          name: "Son Heung-min",
+          position: "LW",
+          formRating: 78,
+          keyStrengths: ["Pace on counter", "Left foot finishing"],
+          concerns: ["Consistency in away games"],
+          mediaScore: 75
+        }
+      ],
+      tactics: {
+        formation: "3-5-2 Counter",
+        style: "Direct transitions, wing-back overlap",
+        effectiveness: 74
+      },
+      strengths: ["Counter-attacking speed", "Set-piece threat", "Defensive organization"],
+      weaknesses: ["Away form", "Midfield physicality", "Squad depth"],
+      expertOpinions: [
+        {
+          source: "The Guardian",
+          quote: "Spurs must exploit City's high line with Kane and Son's pace",
+          sentiment: "neutral" as const
+        },
+        {
+          source: "ESPN",
+          quote: "Tottenham's defensive frailties could be exposed by City's fluid attack",
+          sentiment: "negative" as const
+        }
+      ],
+      webSources: 38,
+      analysisConfidence: 87
+    },
+    matchDate: "March 15, 2024",
+    competition: "Premier League"
+  };
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     // Simulate API call
@@ -630,6 +725,8 @@ const Index = () => {
               <h2 className="text-2xl font-bold text-foreground">AI Social Analytics</h2>
               <p className="text-sm text-muted-foreground">Real-time tweet analysis & sentiment tracking</p>
             </div>
+            
+            <AIPreMatchAnalysis {...preMatchAnalysis} />
             
             <AIAnalytics {...aiAnalytics} />
             
