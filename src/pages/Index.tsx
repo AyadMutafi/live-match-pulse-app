@@ -9,6 +9,7 @@ import { TeamPulseRating } from "@/components/TeamPulseRating";
 import { MultiLanguageSentiment } from "@/components/MultiLanguageSentiment";
 import { MatchPulse } from "@/components/MatchPulse";
 import { AIPreMatchAnalysis } from "@/components/AIPreMatchAnalysis";
+import { TeamOfTheWeek } from "@/components/TeamOfTheWeek";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Zap, Users, Target, TrendingUp, MessageCircle, Brain } from "lucide-react";
 
@@ -725,6 +726,8 @@ const Index = () => {
               <h2 className="text-2xl font-bold text-foreground">AI Social Analytics</h2>
               <p className="text-sm text-muted-foreground">Real-time tweet analysis & sentiment tracking</p>
             </div>
+            
+            <TeamOfTheWeek />
             
             <AIPreMatchAnalysis {...preMatchAnalysis} />
             
