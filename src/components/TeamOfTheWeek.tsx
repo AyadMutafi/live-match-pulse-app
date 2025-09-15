@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Target, Star, TrendingUp, Users } from "lucide-react";
+import { Trophy, Target, Star, TrendingUp, Users, MessageCircle } from "lucide-react";
 
 interface PlayerOfWeek {
   name: string;
@@ -247,163 +247,249 @@ export function TeamOfTheWeek() {
   ];
 
   const getRatingColor = (rating: number) => {
-    if (rating >= 9.0) return "text-green-600";
-    if (rating >= 8.0) return "text-blue-600";
-    if (rating >= 7.0) return "text-yellow-600";
-    return "text-red-600";
+    if (rating >= 9.0) return "text-success";
+    if (rating >= 8.0) return "text-primary";
+    if (rating >= 7.0) return "text-warning";
+    return "text-destructive";
   };
 
   const getRatingBadge = (rating: number) => {
-    if (rating >= 9.0) return "bg-green-100 text-green-800";
-    if (rating >= 8.0) return "bg-blue-100 text-blue-800";
-    if (rating >= 7.0) return "bg-yellow-100 text-yellow-800";
-    return "bg-red-100 text-red-800";
+    if (rating >= 9.0) return "bg-success/10 text-success border-success/20";
+    if (rating >= 8.0) return "bg-primary/10 text-primary border-primary/20";
+    if (rating >= 7.0) return "bg-warning/10 text-warning border-warning/20";
+    return "bg-destructive/10 text-destructive border-destructive/20";
+  };
+
+  const getViralBadge = (score: number) => {
+    if (score >= 90) return "bg-gradient-to-r from-purple-500 to-pink-500 text-white";
+    if (score >= 80) return "bg-gradient-to-r from-blue-500 to-cyan-500 text-white";
+    if (score >= 70) return "bg-gradient-to-r from-green-500 to-emerald-500 text-white";
+    return "bg-gradient-to-r from-orange-500 to-red-500 text-white";
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Trophy className="h-6 w-6 text-yellow-600" />
-        <h2 className="text-2xl font-bold">Team of the Week</h2>
-        <Badge variant="secondary">Fan-Driven Analytics</Badge>
+    <div className="space-y-8 p-6 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 rounded-xl">
+      <div className="text-center space-y-4">
+        <div className="flex items-center justify-center gap-3">
+          <div className="p-3 bg-gradient-to-r from-primary to-secondary rounded-xl">
+            <Trophy className="h-8 w-8 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              Team of the Week
+            </h1>
+            <p className="text-muted-foreground">Powered by Fan Sentiment & Social Analytics</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center gap-4 flex-wrap">
+          <Badge variant="secondary" className="bg-success/10 text-success border-success/20">
+            <TrendingUp className="w-4 h-4 mr-1" />
+            Live Social Data
+          </Badge>
+          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+            <Users className="w-4 h-4 mr-1" />
+            Fan Voting Active
+          </Badge>
+          <Badge variant="secondary" className="bg-accent/10 text-accent border-accent/20">
+            <Target className="w-4 h-4 mr-1" />
+            Real-time Analytics
+          </Badge>
+        </div>
       </div>
 
       <Tabs defaultValue="EPL" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6 bg-muted/50 backdrop-blur">
           {leagues.map((league) => (
-            <TabsTrigger key={league.code} value={league.code}>
+            <TabsTrigger 
+              key={league.code} 
+              value={league.code}
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300"
+            >
               {league.code}
             </TabsTrigger>
           ))}
         </TabsList>
 
         {leagues.map((league) => (
-          <TabsContent key={league.code} value={league.code} className="space-y-6">
-            {/* League Header */}
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold">{league.name}</h3>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span>Total Votes: {league.teamOfWeek.totalFanVotes.toLocaleString()}</span>
-                <span>Avg Rating: {league.teamOfWeek.averageRating}</span>
+          <TabsContent key={league.code} value={league.code} className="space-y-8 animate-fade-in">
+            {/* Enhanced League Header */}
+            <div className="bg-gradient-to-r from-card via-muted/50 to-card p-6 rounded-xl border border-border/50 backdrop-blur">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-2xl font-bold text-foreground">{league.name}</h3>
+                  <p className="text-muted-foreground">Fan-voted selections based on social sentiment</p>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{league.teamOfWeek.totalFanVotes.toLocaleString()}</div>
+                    <div className="text-xs text-muted-foreground">Total Votes</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-secondary">{league.teamOfWeek.averageRating}</div>
+                    <div className="text-xs text-muted-foreground">Avg Rating</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-accent">{league.teamOfWeek.formation}</div>
+                    <div className="text-xs text-muted-foreground">Formation</div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Team of the Week */}
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Team of the Week ({league.teamOfWeek.formation})
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+              {/* Enhanced Team of the Week */}
+              <Card className="xl:col-span-2 bg-gradient-to-br from-card via-card to-muted/20 border-border/50 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-primary/10 to-secondary/10">
+                  <CardTitle className="flex items-center gap-3 text-xl">
+                    <div className="p-2 bg-primary/20 rounded-lg">
+                      <Users className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <div>Team of the Week</div>
+                      <div className="text-sm font-normal text-muted-foreground">Formation: {league.teamOfWeek.formation}</div>
+                    </div>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {league.teamOfWeek.players.map((playerData, index) => (
                       <div
                         key={index}
-                        className="p-3 border rounded-lg hover:shadow-md transition-shadow"
+                        className="group p-4 bg-gradient-to-br from-card to-muted/30 border border-border/50 rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-300 hover:border-primary/30"
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge variant="outline" className="text-xs">
+                        <div className="flex items-center justify-between mb-3">
+                          <Badge variant="outline" className="text-xs font-medium bg-primary/5 border-primary/20">
                             {playerData.position}
                           </Badge>
-                          <Badge className={getRatingBadge(playerData.player.rating)}>
-                            {playerData.player.rating}
+                          <Badge className={`${getRatingBadge(playerData.player.rating)} text-xs font-bold`}>
+                            ⭐ {playerData.player.rating}
                           </Badge>
                         </div>
-                        <h4 className="font-semibold text-sm truncate">
-                          {playerData.player.name}
-                        </h4>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          {playerData.player.team}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {playerData.player.keyStats}
-                        </p>
-                        <div className="flex items-center justify-between mt-2 text-xs">
-                          <span>👥 {(playerData.player.fanVotes / 1000).toFixed(0)}k</span>
-                          <span>🐦 {(playerData.player.tweetMentions / 1000).toFixed(0)}k</span>
+                        <div className="space-y-2">
+                          <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
+                            {playerData.player.name}
+                          </h4>
+                          <p className="text-xs text-muted-foreground font-medium">
+                            {playerData.player.team}
+                          </p>
+                          <p className="text-xs text-accent line-clamp-2">
+                            {playerData.player.keyStats}
+                          </p>
                         </div>
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/30">
+                          <div className="flex items-center gap-1 text-xs">
+                            <Users className="w-3 h-3 text-primary" />
+                            <span className="font-medium">{(playerData.player.fanVotes / 1000).toFixed(0)}k</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs">
+                            <MessageCircle className="w-3 h-3 text-accent" />
+                            <span className="font-medium">{(playerData.player.tweetMentions / 1000).toFixed(0)}k</span>
+                          </div>
+                        </div>
+                        <Progress 
+                          value={(playerData.player.fanVotes / Math.max(...league.teamOfWeek.players.map(p => p.player.fanVotes))) * 100}
+                          className="h-1.5 mt-2"
+                        />
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Player and Goal of the Week */}
+              {/* Enhanced Player and Goal Highlights */}
               <div className="space-y-6">
-                {/* Player of the Week */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Star className="h-5 w-5" />
-                      Player of the Week
+                {/* Enhanced Player of the Week */}
+                <Card className="bg-gradient-to-br from-success/5 via-card to-primary/5 border-success/20 shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-success/10 to-primary/10">
+                    <CardTitle className="flex items-center gap-3">
+                      <div className="p-2 bg-success/20 rounded-lg">
+                        <Star className="h-6 w-6 text-success" />
+                      </div>
+                      <div>
+                        <div className="text-lg">Player of the Week</div>
+                        <div className="text-sm font-normal text-muted-foreground">Fan Favorite Champion</div>
+                      </div>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-lg">{league.playerOfWeek.name}</h4>
-                        <Badge className={getRatingBadge(league.playerOfWeek.rating)}>
-                          {league.playerOfWeek.rating}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {league.playerOfWeek.team} • {league.playerOfWeek.position}
-                      </p>
-                      <p className="text-sm font-medium">{league.playerOfWeek.keyStats}</p>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>Fan Votes</span>
-                          <span>{league.playerOfWeek.fanVotes.toLocaleString()}</span>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="text-center p-4 bg-gradient-to-br from-success/10 to-primary/10 rounded-xl">
+                        <div className="flex items-center justify-center gap-3 mb-2">
+                          <h4 className="text-xl font-bold text-foreground">{league.playerOfWeek.name}</h4>
+                          <Badge className={`${getRatingBadge(league.playerOfWeek.rating)} text-sm font-bold`}>
+                            🏆 {league.playerOfWeek.rating}
+                          </Badge>
                         </div>
-                        <Progress 
-                          value={(league.playerOfWeek.fanVotes / 60000) * 100} 
-                          className="h-2"
-                        />
-                        <div className="flex items-center justify-between text-sm">
-                          <span>Tweet Mentions</span>
-                          <span>{league.playerOfWeek.tweetMentions.toLocaleString()}</span>
+                        <p className="text-sm text-muted-foreground font-medium">
+                          {league.playerOfWeek.team} • {league.playerOfWeek.position}
+                        </p>
+                        <p className="text-sm font-semibold text-accent mt-2">{league.playerOfWeek.keyStats}</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center p-3 bg-muted/50 rounded-lg">
+                          <div className="text-lg font-bold text-primary">{league.playerOfWeek.fanVotes.toLocaleString()}</div>
+                          <div className="text-xs text-muted-foreground">Fan Votes</div>
+                          <Progress 
+                            value={(league.playerOfWeek.fanVotes / 60000) * 100} 
+                            className="h-2 mt-2"
+                          />
+                        </div>
+                        <div className="text-center p-3 bg-muted/50 rounded-lg">
+                          <div className="text-lg font-bold text-secondary">{league.playerOfWeek.tweetMentions.toLocaleString()}</div>
+                          <div className="text-xs text-muted-foreground">Social Mentions</div>
+                          <Progress 
+                            value={(league.playerOfWeek.tweetMentions / 25000) * 100} 
+                            className="h-2 mt-2"
+                          />
                         </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Goal of the Week */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Target className="h-5 w-5" />
-                      Goal of the Week
+                {/* Enhanced Goal of the Week */}
+                <Card className="bg-gradient-to-br from-accent/5 via-card to-secondary/5 border-accent/20 shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-accent/10 to-secondary/10">
+                    <CardTitle className="flex items-center gap-3">
+                      <div className="p-2 bg-accent/20 rounded-lg">
+                        <Target className="h-6 w-6 text-accent" />
+                      </div>
+                      <div>
+                        <div className="text-lg">Goal of the Week</div>
+                        <div className="text-sm font-normal text-muted-foreground">Most Viral Moment</div>
+                      </div>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-bold">{league.goalOfWeek.player}</h4>
-                        <Badge variant="secondary">
-                          {league.goalOfWeek.viralScore}% viral
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {league.goalOfWeek.team} vs {league.goalOfWeek.opponent}
-                      </p>
-                      <p className="text-sm">{league.goalOfWeek.description}</p>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Fan Votes</p>
-                          <p className="font-semibold">{league.goalOfWeek.fanVotes.toLocaleString()}</p>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="text-center p-4 bg-gradient-to-br from-accent/10 to-secondary/10 rounded-xl">
+                        <div className="flex items-center justify-center gap-3 mb-2">
+                          <h4 className="text-lg font-bold text-foreground">{league.goalOfWeek.player}</h4>
+                          <Badge className={`${getViralBadge(league.goalOfWeek.viralScore)} text-sm font-bold border-0`}>
+                            🔥 {league.goalOfWeek.viralScore}% Viral
+                          </Badge>
                         </div>
-                        <div>
-                          <p className="text-muted-foreground">Video Views</p>
-                          <p className="font-semibold">{league.goalOfWeek.videoViews}</p>
+                        <p className="text-sm text-muted-foreground font-medium">
+                          {league.goalOfWeek.team} vs {league.goalOfWeek.opponent}
+                        </p>
+                        <p className="text-sm text-foreground mt-2 italic">"{league.goalOfWeek.description}"</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center p-3 bg-muted/50 rounded-lg">
+                          <div className="text-lg font-bold text-accent">{league.goalOfWeek.fanVotes.toLocaleString()}</div>
+                          <div className="text-xs text-muted-foreground">Fan Votes</div>
+                        </div>
+                        <div className="text-center p-3 bg-muted/50 rounded-lg">
+                          <div className="text-lg font-bold text-secondary">{league.goalOfWeek.videoViews}</div>
+                          <div className="text-xs text-muted-foreground">Video Views</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4 text-green-600" />
-                        <span className="text-sm text-green-600">Trending #1</span>
+                      
+                      <div className="flex items-center justify-center gap-2 p-3 bg-success/10 rounded-lg">
+                        <TrendingUp className="h-5 w-5 text-success" />
+                        <span className="text-sm font-semibold text-success">Trending #1 Worldwide</span>
                       </div>
                     </div>
                   </CardContent>

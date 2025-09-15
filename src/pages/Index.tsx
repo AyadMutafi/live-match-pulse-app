@@ -10,6 +10,7 @@ import { MultiLanguageSentiment } from "@/components/MultiLanguageSentiment";
 import { MatchPulse } from "@/components/MatchPulse";
 import { AIPreMatchAnalysis } from "@/components/AIPreMatchAnalysis";
 import { TeamOfTheWeek } from "@/components/TeamOfTheWeek";
+import { AIFixturesIntelligence } from "@/components/AIFixturesIntelligence";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Zap, Users, Target, TrendingUp, MessageCircle, Brain } from "lucide-react";
 

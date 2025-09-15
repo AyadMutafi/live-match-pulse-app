@@ -1,4 +1,4 @@
-import { Home, BarChart3, MessageSquare, Zap, Settings } from "lucide-react";
+import { Home, BarChart3, Users, Target, Trophy, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BottomNavigationProps {
@@ -9,9 +9,10 @@ interface BottomNavigationProps {
 const navItems = [
   { id: "home", icon: Home, label: "Live" },
   { id: "analytics", icon: BarChart3, label: "Analytics" },
-  { id: "pulse", icon: MessageSquare, label: "Pulse" },
-  { id: "predictions", icon: Zap, label: "Predictions" },
-  { id: "settings", icon: Settings, label: "Settings" },
+  { id: "team-of-week", icon: Trophy, label: "Team of Week" },
+  { id: "fixtures-intelligence", icon: Brain, label: "Fixtures AI" },
+  { id: "pulse", icon: Users, label: "Pulse" },
+  { id: "predictions", icon: Target, label: "Predict" },
 ];
 
 export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationProps) {
