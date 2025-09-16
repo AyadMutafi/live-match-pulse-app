@@ -221,6 +221,86 @@ export function TeamOfTheWeek() {
       }
     },
     {
+      name: "Europa League",
+      code: "EL",
+      teamOfWeek: {
+        formation: "4-3-3",
+        players: [
+          { position: "GK", player: { name: "Simon", team: "Athletic Bilbao", position: "GK", rating: 8.6, fanVotes: 32450, keyStats: "5 saves vs Roma", tweetMentions: 8120 } },
+          { position: "RB", player: { name: "Hakimi", team: "PSG", position: "RB", rating: 8.8, fanVotes: 36780, keyStats: "2 assists, pocket winger", tweetMentions: 9670 } },
+          { position: "CB", player: { name: "Marquinhos", team: "PSG", position: "CB", rating: 8.7, fanVotes: 34560, keyStats: "100% duels, 1 goal", tweetMentions: 9120 } },
+          { position: "CB", player: { name: "Smalling", team: "Roma", position: "CB", rating: 8.5, fanVotes: 30120, keyStats: "95% pass acc, clean sheet", tweetMentions: 7890 } },
+          { position: "LB", player: { name: "Spinazzola", team: "Roma", position: "LB", rating: 8.4, fanVotes: 28670, keyStats: "1 assist, 4 crosses", tweetMentions: 7450 } },
+          { position: "CM", player: { name: "Verratti", team: "PSG", position: "CM", rating: 8.9, fanVotes: 38920, keyStats: "94% pass acc, 2 key passes", tweetMentions: 10450 } },
+          { position: "CM", player: { name: "Pellegrini", team: "Roma", position: "CM", rating: 8.6, fanVotes: 33210, keyStats: "1 goal, captain's display", tweetMentions: 8670 } },
+          { position: "CM", player: { name: "Muani", team: "PSG", position: "CM", rating: 8.8, fanVotes: 35670, keyStats: "1 assist, 7 recoveries", tweetMentions: 9230 } },
+          { position: "RW", player: { name: "Williams", team: "Athletic Bilbao", position: "RW", rating: 9.0, fanVotes: 40230, keyStats: "2 goals vs Roma", tweetMentions: 11890 } },
+          { position: "ST", player: { name: "Mbappe", team: "PSG", position: "ST", rating: 9.2, fanVotes: 46780, keyStats: "Hat-trick in Europa", tweetMentions: 15230 } },
+          { position: "LW", player: { name: "Abraham", team: "Roma", position: "LW", rating: 8.7, fanVotes: 34890, keyStats: "2 goals, work rate", tweetMentions: 9670 } }
+        ],
+        totalFanVotes: 362283,
+        averageRating: 8.7
+      },
+      goalOfWeek: {
+        player: "Nico Williams",
+        team: "Athletic Bilbao",
+        opponent: "Roma",
+        description: "Lightning-fast counter-attack goal with a delightful chip over the goalkeeper after beating 3 defenders",
+        fanVotes: 67890,
+        viralScore: 86,
+        videoViews: "1.4M"
+      },
+      playerOfWeek: {
+        name: "Kylian Mbappe",
+        team: "PSG",
+        position: "ST",
+        rating: 9.2,
+        fanVotes: 46780,
+        keyStats: "Hat-trick in Europa League",
+        tweetMentions: 15230
+      }
+    },
+    {
+      name: "Conference League",
+      code: "CL",
+      teamOfWeek: {
+        formation: "4-4-2",
+        players: [
+          { position: "GK", player: { name: "Onana", team: "Lille", position: "GK", rating: 8.4, fanVotes: 28950, keyStats: "4 saves, penalty save", tweetMentions: 7450 } },
+          { position: "RB", player: { name: "Kristensen", team: "Leeds", position: "RB", rating: 8.3, fanVotes: 27120, keyStats: "1 assist, solid defending", tweetMentions: 6890 } },
+          { position: "CB", player: { name: "Andersen", team: "Crystal Palace", position: "CB", rating: 8.5, fanVotes: 30230, keyStats: "100% aerial duels won", tweetMentions: 7670 } },
+          { position: "CB", player: { name: "Vitik", team: "Slavia Prague", position: "CB", rating: 8.2, fanVotes: 25670, keyStats: "96% pass acc, 1 goal", tweetMentions: 6450 } },
+          { position: "LB", player: { name: "Mykolenko", team: "Everton", position: "LB", rating: 8.1, fanVotes: 24560, keyStats: "2 assists, 5 crosses", tweetMentions: 6120 } },
+          { position: "RM", player: { name: "Harrison", team: "Leeds", position: "RM", rating: 8.6, fanVotes: 32450, keyStats: "1 goal, 2 key passes", tweetMentions: 8120 } },
+          { position: "CM", player: { name: "Doucoure", team: "Everton", position: "CM", rating: 8.4, fanVotes: 29120, keyStats: "93% pass acc, 1 assist", tweetMentions: 7230 } },
+          { position: "CM", player: { name: "Krejci", team: "Slavia Prague", position: "CM", rating: 8.3, fanVotes: 27890, keyStats: "2 assists, box-to-box", tweetMentions: 6780 } },
+          { position: "LM", player: { name: "Zaha", team: "Crystal Palace", position: "LM", rating: 8.7, fanVotes: 34560, keyStats: "2 goals, 4 dribbles", tweetMentions: 8910 } },
+          { position: "ST", player: { name: "David", team: "Lille", position: "ST", rating: 8.8, fanVotes: 36120, keyStats: "Hat-trick vs Everton", tweetMentions: 9450 } },
+          { position: "ST", player: { name: "Bamford", team: "Leeds", position: "ST", rating: 8.5, fanVotes: 31230, keyStats: "2 goals comeback hero", tweetMentions: 8010 } }
+        ],
+        totalFanVotes: 327893,
+        averageRating: 8.4
+      },
+      goalOfWeek: {
+        player: "Jonathan David",
+        team: "Lille",
+        opponent: "Everton",
+        description: "Exquisite volley from outside the box that found the top corner with perfect technique",
+        fanVotes: 54320,
+        viralScore: 79,
+        videoViews: "890K"
+      },
+      playerOfWeek: {
+        name: "Jonathan David",
+        team: "Lille",
+        position: "ST",
+        rating: 8.8,
+        fanVotes: 36120,
+        keyStats: "Hat-trick vs Everton",
+        tweetMentions: 9450
+      }
+    },
+    {
       name: "Saudi Pro League",
       code: "SPL",
       teamOfWeek: {
