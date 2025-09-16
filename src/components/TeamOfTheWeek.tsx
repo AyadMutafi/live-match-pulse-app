@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy, Target, Star, TrendingUp, Users, MessageCircle } from "lucide-react";
+import { FieldFormation } from "./FieldFormation";
 
 interface PlayerOfWeek {
   name: string;
@@ -43,6 +44,21 @@ interface LeagueData {
 }
 
 export function TeamOfTheWeek() {
+  // Mock data for field formation team of the week
+  const fieldFormationTeam = [
+    { id: "gk1", name: "Alisson Becker", position: "Goalkeeper", rating: 9.2, emoji: "🧤", team: "Liverpool", league: "Premier League", stats: { saves: 8, cleanSheets: 12 } },
+    { id: "def1", name: "Virgil van Dijk", position: "Defender", rating: 9.0, emoji: "🛡️", team: "Liverpool", league: "Premier League", stats: { tackles: 45, passAccuracy: 91 } },
+    { id: "def2", name: "Ruben Dias", position: "Defender", rating: 8.8, emoji: "🔒", team: "Man City", league: "Premier League", stats: { tackles: 38, cleanSheets: 10 } },
+    { id: "def3", name: "Theo Hernandez", position: "Defender", rating: 8.7, emoji: "⚡", team: "AC Milan", league: "Serie A", stats: { assists: 6, tackles: 42 } },
+    { id: "def4", name: "Dani Carvajal", position: "Defender", rating: 8.6, emoji: "🚀", team: "Real Madrid", league: "La Liga", stats: { assists: 4, tackles: 35 } },
+    { id: "mid1", name: "Kevin De Bruyne", position: "Midfielder", rating: 9.4, emoji: "🎯", team: "Man City", league: "Premier League", stats: { assists: 15, goals: 8 } },
+    { id: "mid2", name: "Luka Modric", position: "Midfielder", rating: 9.1, emoji: "🧙", team: "Real Madrid", league: "La Liga", stats: { assists: 7, passAccuracy: 94 } },
+    { id: "mid3", name: "Pedri", position: "Midfielder", rating: 8.9, emoji: "💎", team: "Barcelona", league: "La Liga", stats: { assists: 6, passAccuracy: 89 } },
+    { id: "for1", name: "Erling Haaland", position: "Forward", rating: 9.8, emoji: "🤖", team: "Man City", league: "Premier League", stats: { goals: 28, assists: 5 } },
+    { id: "for2", name: "Kylian Mbappe", position: "Forward", rating: 9.6, emoji: "⚡", team: "Real Madrid", league: "La Liga", stats: { goals: 24, assists: 8 } },
+    { id: "for3", name: "Mohamed Salah", position: "Forward", rating: 9.3, emoji: "👑", team: "Liverpool", league: "Premier League", stats: { goals: 22, assists: 12 } }
+  ];
+
   const leagues: LeagueData[] = [
     {
       name: "Premier League",
@@ -281,6 +297,10 @@ export function TeamOfTheWeek() {
             <p className="text-muted-foreground">Powered by Fan Sentiment & Social Analytics</p>
           </div>
         </div>
+
+        {/* Field Formation */}
+        <FieldFormation teamOfWeek={fieldFormationTeam} formation="4-3-3" />
+        
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <Badge variant="secondary" className="bg-success/10 text-success border-success/20">
             <TrendingUp className="w-4 h-4 mr-1" />

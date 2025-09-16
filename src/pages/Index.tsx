@@ -720,17 +720,13 @@ const Index = () => {
           </div>
         );
         
-      case "pulse":
+      case "analytics":
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">AI Social Analytics</h2>
-              <p className="text-sm text-muted-foreground">Real-time tweet analysis & sentiment tracking</p>
+              <h2 className="text-2xl font-bold text-foreground">AI Analytics</h2>
+              <p className="text-sm text-muted-foreground">AI-powered social media insights & trending analysis</p>
             </div>
-            
-            <TeamOfTheWeek />
-            
-            <AIPreMatchAnalysis {...preMatchAnalysis} />
             
             <AIAnalytics {...aiAnalytics} />
             
@@ -749,6 +745,85 @@ const Index = () => {
                 subtitle="Generated today"
                 icon={Brain}
                 color="text-ai-green"
+                trend="up"
+              />
+            </div>
+          </div>
+        );
+
+      case "team-of-week":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Team of the Week</h2>
+              <p className="text-sm text-muted-foreground">Best players based on fan sentiment & performance</p>
+            </div>
+            
+            <TeamOfTheWeek />
+          </div>
+        );
+
+      case "fixtures-intelligence":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">AI Fixtures Intelligence</h2>
+              <p className="text-sm text-muted-foreground">Pre-match analysis & predictions powered by AI</p>
+            </div>
+            
+            <AIFixturesIntelligence />
+          </div>
+        );
+
+      case "pulse":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Live Fan Pulse</h2>
+              <p className="text-sm text-muted-foreground">Real-time fan sentiment & team pulse ratings</p>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <SentimentMeter {...sentiment} />
+              <MultiLanguageSentiment 
+                languages={languageSentiments}
+                totalMentions={languageSentiments.reduce((sum, lang) => sum + lang.totalPosts, 0)}
+              />
+            </div>
+
+            <div>
+              <h3 className="text-xl font-bold text-foreground mb-4">Team Pulse Ratings</h3>
+              <div className="grid grid-cols-1 gap-4">
+                {majorTeams.slice(0, 4).map((team, index) => (
+                  <TeamPulseRating 
+                    key={index}
+                    teamName={team.teamName}
+                    league={team.league}
+                    teamLogo={team.teamLogo}
+                    overallPulse={team.overallPulse}
+                    totalMentions={team.totalMentions}
+                    players={team.players}
+                    languages={team.languages}
+                  />
+                ))}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <StatCard
+                title="Active Teams"
+                value="64"
+                subtitle="Tracked teams"
+                icon={Users}
+                color="text-primary"
+                trend="up"
+              />
+              <StatCard
+                title="Live Pulse"
+                value="89.2"
+                subtitle="Average score"
+                icon={TrendingUp}
+                color="text-success"
                 trend="up"
               />
             </div>
