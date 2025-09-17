@@ -146,6 +146,33 @@ export type Database = {
         }
         Relationships: []
       }
+      match_reminders: {
+        Row: {
+          created_at: string
+          id: string
+          match_id: string
+          reminder_sent: boolean | null
+          scheduled_time: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_id: string
+          reminder_sent?: boolean | null
+          scheduled_time: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_id?: string
+          reminder_sent?: boolean | null
+          scheduled_time?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           api_match_id: string | null
@@ -203,6 +230,45 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          live_match_updates: boolean | null
+          match_result_notifications: boolean | null
+          pre_match_reminders: boolean | null
+          prediction_reminders: boolean | null
+          reminder_time_minutes: number | null
+          team_news_updates: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          live_match_updates?: boolean | null
+          match_result_notifications?: boolean | null
+          pre_match_reminders?: boolean | null
+          prediction_reminders?: boolean | null
+          reminder_time_minutes?: number | null
+          team_news_updates?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          live_match_updates?: boolean | null
+          match_result_notifications?: boolean | null
+          pre_match_reminders?: boolean | null
+          prediction_reminders?: boolean | null
+          reminder_time_minutes?: number | null
+          team_news_updates?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       players: {
         Row: {
           created_at: string
@@ -247,7 +313,6 @@ export type Database = {
           created_at: string
           display_name: string | null
           emotion_score: number | null
-          favorite_club_id: string | null
           id: string
           prediction_streak: number | null
           total_predictions: number | null
@@ -259,7 +324,6 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           emotion_score?: number | null
-          favorite_club_id?: string | null
           id?: string
           prediction_streak?: number | null
           total_predictions?: number | null
@@ -271,7 +335,6 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           emotion_score?: number | null
-          favorite_club_id?: string | null
           id?: string
           prediction_streak?: number | null
           total_predictions?: number | null
@@ -451,6 +514,30 @@ export type Database = {
           description?: string | null
           earned_at?: string
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_favorite_teams: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean | null
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          team_id?: string
           user_id?: string
         }
         Relationships: []
