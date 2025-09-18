@@ -1,6 +1,4 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
 import { LiveMatch } from "@/components/LiveMatch";
 import { EnhancedPrediction } from "@/components/EnhancedPrediction";
 import { SentimentMeter } from "@/components/SentimentMeter";
@@ -17,20 +15,11 @@ import { FavoriteTeamsDashboard } from "@/components/FavoriteTeamsDashboard";
 import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { PersonalizedFeed } from "@/components/PersonalizedFeed";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Zap, Users, Target, TrendingUp, MessageCircle, Brain, LogIn, LogOut, Settings, Heart } from "lucide-react";
+import { RefreshCw, Zap, Users, Target, TrendingUp, MessageCircle, Brain, Heart } from "lucide-react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { user, loading, signOut } = useAuth();
-  const navigate = useNavigate();
-
-  // Redirect to auth if not logged in
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
-  }, [user, loading, navigate]);
 
   // Mock data for the Live Fan Pulse platform
   const liveMatches = [
@@ -878,41 +867,6 @@ const Index = () => {
                 <p className="text-sm opacity-90">Football Analytics Platform</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {user && (
-                <>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => navigate("/auth")}
-                    className="text-white hover:bg-white/20"
-                  >
-                    <Settings className="w-4 h-4 mr-1" />
-                    Profile
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={signOut}
-                    className="text-white hover:bg-white/20"
-                  >
-                    <LogOut className="w-4 h-4 mr-1" />
-                    Sign Out
-                  </Button>
-                </>
-              )}
-              {!user && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => navigate("/auth")}
-                  className="text-white hover:bg-white/20"
-                >
-                  <LogIn className="w-4 h-4 mr-1" />
-                  Sign In
-                </Button>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -926,7 +880,6 @@ const Index = () => {
       <BottomNavigation 
         activeTab={activeTab} 
         onTabChange={setActiveTab} 
-        showPersonalized={!!user}
       />
     </div>
   );
