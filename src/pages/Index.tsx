@@ -14,6 +14,8 @@ import { AIFixturesIntelligence } from "@/components/AIFixturesIntelligence";
 import { FavoriteTeamsDashboard } from "@/components/FavoriteTeamsDashboard";
 import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { PersonalizedFeed } from "@/components/PersonalizedFeed";
+import { RealMatchDataLoader } from "@/components/RealMatchDataLoader";
+import { RealMatchList } from "@/components/RealMatchList";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Zap, Users, Target, TrendingUp, MessageCircle, Brain, Heart } from "lucide-react";
 
@@ -613,6 +615,15 @@ const Index = () => {
       case "home":
         return (
           <div className="space-y-6">
+            {/* Real Match Data Loader Section */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-foreground mb-4">
+                📊 Real Match Data (Sep 15-30, 2025)
+              </h2>
+              <RealMatchDataLoader />
+              <RealMatchList />
+            </div>
+
             {/* Live Match Pulse Section */}
             <div>
               <h2 className="text-xl font-bold text-foreground mb-4 flex items-center space-x-2">
