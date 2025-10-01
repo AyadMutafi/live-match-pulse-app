@@ -45,9 +45,18 @@ Deno.serve(async (req) => {
 
     console.log('Fetching matches from football-data.org API...');
 
-    // Fetch matches from Sep 15-30, 2025
+    // Fetch recent matches (last 10 days) - free tier supports this better
+    const today = new Date();
+    const tenDaysAgo = new Date(today);
+    tenDaysAgo.setDate(today.getDate() - 10);
+    
+    const dateFrom = tenDaysAgo.toISOString().split('T')[0];
+    const dateTo = today.toISOString().split('T')[0];
+    
+    console.log(`Fetching matches from ${dateFrom} to ${dateTo}`);
+
     const response = await fetch(
-      'https://api.football-data.org/v4/matches?dateFrom=2025-09-15&dateTo=2025-09-30',
+      `https://api.football-data.org/v4/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`,
       {
         headers: {
           'X-Auth-Token': footballDataApiKey,
@@ -56,7 +65,9 @@ Deno.serve(async (req) => {
     );
 
     if (!response.ok) {
-      throw new Error(`Football Data API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText);
+      throw new Error(`Football Data API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -171,7 +182,7 @@ Deno.serve(async (req) => {
         success: true,
         teamsProcessed: teamInserts.length,
         matchesInserted: matchInserts.length,
-        message: `Successfully populated ${matchInserts.length} matches from Sep 15-30, 2025`,
+        message: `Successfully populated ${matchInserts.length} matches from last 10 days`,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

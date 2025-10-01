@@ -33,9 +33,8 @@ export function useMatches() {
           home_team:teams!matches_home_team_id_fkey(name, league, country),
           away_team:teams!matches_away_team_id_fkey(name, league, country)
         `)
-        .gte("match_date", "2025-09-15")
-        .lte("match_date", "2025-09-30")
-        .order("match_date", { ascending: true });
+        .order("match_date", { ascending: false })
+        .limit(50);
 
       if (error) throw error;
       return data as Match[];

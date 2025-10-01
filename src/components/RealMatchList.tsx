@@ -31,7 +31,7 @@ export function RealMatchList() {
     return (
       <Card className="w-full">
         <CardContent className="py-8 text-center text-muted-foreground">
-          No matches found for Sep 15-30, 2025. Click "Fetch Real Match Data" to load them.
+          No matches found. Click "Fetch Real Match Data" to load recent matches.
         </CardContent>
       </Card>
     );
@@ -57,7 +57,7 @@ export function RealMatchList() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Real Matches (Sep 15-30, 2025)
+            Real Matches (Recent)
           </CardTitle>
         </CardHeader>
       </Card>

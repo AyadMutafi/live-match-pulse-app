@@ -45,7 +45,7 @@ export function RealMatchDataLoader() {
       <CardHeader>
         <CardTitle>Load Real Match Data</CardTitle>
         <CardDescription>
-          Fetch real football match data from Sep 15-30, 2025 and populate the database
+          Fetch real football match data from the last 10 days and populate the database
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
