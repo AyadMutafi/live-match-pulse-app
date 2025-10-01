@@ -16,12 +16,20 @@ import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { PersonalizedFeed } from "@/components/PersonalizedFeed";
 import { RealMatchDataLoader } from "@/components/RealMatchDataLoader";
 import { RealMatchList } from "@/components/RealMatchList";
+import { useMatchAnalytics } from "@/hooks/useMatchAnalytics";
+import { useTeamPulse } from "@/hooks/useTeamPulse";
+import { useMatchPulse } from "@/hooks/useMatchPulse";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Zap, Users, Target, TrendingUp, MessageCircle, Brain, Heart } from "lucide-react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Fetch real match data
+  const { analytics: realAnalytics } = useMatchAnalytics();
+  const { teamPulseData: realTeamPulse } = useTeamPulse();
+  const { liveMatchesData: realMatchPulse } = useMatchPulse();
 
   // Mock data for the Live Fan Pulse platform
   const liveMatches = [
@@ -625,16 +633,19 @@ const Index = () => {
             </div>
 
             {/* Live Match Pulse Section */}
-            <div>
-              <h2 className="text-xl font-bold text-foreground mb-4 flex items-center space-x-2">
-                <span>🔥 Live Match Pulse</span>
-                <span className="text-sm font-normal text-muted-foreground">(Real-time fan reactions)</span>
-              </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-                <MatchPulse matchData={liveMatchPulse} />
-                <MatchPulse matchData={championsLeaguePulse} />
+            {realMatchPulse && realMatchPulse.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold text-foreground mb-4 flex items-center space-x-2">
+                  <span>🔥 Live Match Pulse</span>
+                  <span className="text-sm font-normal text-muted-foreground">(Real-time fan reactions)</span>
+                </h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                  {realMatchPulse.slice(0, 2).map((matchData) => (
+                    <MatchPulse key={matchData.matchId} matchData={matchData} />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Fan Pulse Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -646,23 +657,25 @@ const Index = () => {
             </div>
 
             {/* Team Pulse Rating Section */}
-            <div>
-              <h2 className="text-xl font-bold text-foreground mb-4">Team Pulse Ratings</h2>
-              <div className="grid grid-cols-1 gap-4">
-                {majorTeams.slice(0, 4).map((team, index) => (
-                  <TeamPulseRating 
-                    key={index}
-                    teamName={team.teamName}
-                    league={team.league}
-                    teamLogo={team.teamLogo}
-                    overallPulse={team.overallPulse}
-                    totalMentions={team.totalMentions}
-                    players={team.players}
-                    languages={team.languages}
-                  />
-                ))}
+            {realTeamPulse && realTeamPulse.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold text-foreground mb-4">Team Pulse Ratings</h2>
+                <div className="grid grid-cols-1 gap-4">
+                  {realTeamPulse.slice(0, 4).map((team, index) => (
+                    <TeamPulseRating 
+                      key={index}
+                      teamName={team.teamName}
+                      league={team.league}
+                      teamLogo={team.teamLogo}
+                      overallPulse={team.overallPulse}
+                      totalMentions={team.totalMentions}
+                      players={team.players}
+                      languages={team.languages}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
             
             <div className="flex items-center justify-between">
               <div>
@@ -751,7 +764,7 @@ const Index = () => {
               <p className="text-sm text-muted-foreground">AI-powered social media insights & trending analysis</p>
             </div>
             
-            <AIAnalytics {...aiAnalytics} />
+            <AIAnalytics {...(realAnalytics || aiAnalytics)} />
             
             <div className="grid grid-cols-2 gap-4">
               <StatCard
@@ -814,28 +827,30 @@ const Index = () => {
               />
             </div>
 
-            <div>
-              <h3 className="text-xl font-bold text-foreground mb-4">Team Pulse Ratings</h3>
-              <div className="grid grid-cols-1 gap-4">
-                {majorTeams.slice(0, 4).map((team, index) => (
-                  <TeamPulseRating 
-                    key={index}
-                    teamName={team.teamName}
-                    league={team.league}
-                    teamLogo={team.teamLogo}
-                    overallPulse={team.overallPulse}
-                    totalMentions={team.totalMentions}
-                    players={team.players}
-                    languages={team.languages}
-                  />
-                ))}
+            {realTeamPulse && realTeamPulse.length > 0 && (
+              <div>
+                <h3 className="text-xl font-bold text-foreground mb-4">Team Pulse Ratings</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  {realTeamPulse.slice(0, 4).map((team, index) => (
+                    <TeamPulseRating 
+                      key={index}
+                      teamName={team.teamName}
+                      league={team.league}
+                      teamLogo={team.teamLogo}
+                      overallPulse={team.overallPulse}
+                      totalMentions={team.totalMentions}
+                      players={team.players}
+                      languages={team.languages}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
             
             <div className="grid grid-cols-2 gap-4">
               <StatCard
                 title="Active Teams"
-                value="64"
+                value={realTeamPulse?.length.toString() || "0"}
                 subtitle="Tracked teams"
                 icon={Users}
                 color="text-primary"
@@ -843,7 +858,9 @@ const Index = () => {
               />
               <StatCard
                 title="Live Pulse"
-                value="89.2"
+                value={realTeamPulse && realTeamPulse.length > 0 
+                  ? (realTeamPulse.reduce((sum, t) => sum + t.overallPulse, 0) / realTeamPulse.length).toFixed(1)
+                  : "0"}
                 subtitle="Average score"
                 icon={TrendingUp}
                 color="text-success"
