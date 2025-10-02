@@ -16,6 +16,9 @@ import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { PersonalizedFeed } from "@/components/PersonalizedFeed";
 import { RealMatchDataLoader } from "@/components/RealMatchDataLoader";
 import { RealMatchList } from "@/components/RealMatchList";
+import { FanDataGenerator } from "@/components/FanDataGenerator";
+import { AITeamOfWeek } from "@/components/AITeamOfWeek";
+import { AIMatchPrediction } from "@/components/AIMatchPrediction";
 import { useMatchAnalytics } from "@/hooks/useMatchAnalytics";
 import { useTeamPulse } from "@/hooks/useTeamPulse";
 import { useMatchPulse } from "@/hooks/useMatchPulse";
@@ -626,10 +629,18 @@ const Index = () => {
             {/* Real Match Data Loader Section */}
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-foreground mb-4">
-                📊 Real Match Data (Sep 15-30, 2025)
+                📊 Real Match Data (Sep 15 - Oct 2, 2025)
               </h2>
               <RealMatchDataLoader />
               <RealMatchList />
+            </div>
+
+            {/* Fan Data Generator - NEW */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-foreground mb-4">
+                🎭 Fan Reactions & Sentiment
+              </h2>
+              <FanDataGenerator />
             </div>
 
             {/* Live Match Pulse Section */}
@@ -725,9 +736,12 @@ const Index = () => {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">AI Team Predictions</h2>
-              <p className="text-sm text-muted-foreground">Next match predictions for major European clubs</p>
+              <h2 className="text-2xl font-bold text-foreground">AI Match Predictions</h2>
+              <p className="text-sm text-muted-foreground">AI-powered predictions for upcoming fixtures</p>
             </div>
+            
+            {/* AI-Powered Match Predictions */}
+            <AIMatchPrediction />
             
             <div className="space-y-4">
               {teamPredictions.map((prediction, index) => (
@@ -791,10 +805,14 @@ const Index = () => {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Team of the Week</h2>
-              <p className="text-sm text-muted-foreground">Best players based on fan sentiment & performance</p>
+              <h2 className="text-2xl font-bold text-foreground">AI Team of the Week</h2>
+              <p className="text-sm text-muted-foreground">AI-generated team based on real performance & fan sentiment</p>
             </div>
             
+            {/* AI-Generated Team of the Week */}
+            <AITeamOfWeek />
+            
+            {/* Traditional Team of the Week Display */}
             <TeamOfTheWeek />
           </div>
         );

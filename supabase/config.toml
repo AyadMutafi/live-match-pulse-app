@@ -2,3 +2,15 @@ project_id = "coagqeqodswmjeehvyod"
 
 [functions.fetch-matches]
 verify_jwt = false
+
+[functions.generate-fan-data]
+verify_jwt = false
+
+[functions.analyze-sentiment]
+verify_jwt = false
+
+[functions.generate-team-of-week]
+verify_jwt = false
+
+[functions.predict-match]
+verify_jwt = false
