@@ -7,11 +7,11 @@ interface BottomNavigationProps {
 }
 
 const navItems = [
-  { id: "home", icon: Home, label: "Live" },
+  { id: "home", icon: Home, label: "Match Pulse" },
   { id: "analytics", icon: BarChart3, label: "Analytics" },
   { id: "team-of-week", icon: Trophy, label: "Team of Week" },
   { id: "fixtures-intelligence", icon: Brain, label: "Fixtures AI" },
-  { id: "pulse", icon: Users, label: "Pulse" },
+  { id: "pulse", icon: Users, label: "Team Pulse" },
   { id: "predictions", icon: Target, label: "Predict" },
 ];
 

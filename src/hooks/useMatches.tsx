@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { isAllowedTeam } from "@/lib/constants";
 
 export interface Match {
   id: string;
@@ -34,10 +35,17 @@ export function useMatches() {
           away_team:teams!matches_away_team_id_fkey(name, league, country)
         `)
         .order("match_date", { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (error) throw error;
-      return data as Match[];
+      
+      // Filter for allowed teams only
+      const filteredData = (data as Match[])?.filter(match => 
+        isAllowedTeam(match.home_team?.name || "") || 
+        isAllowedTeam(match.away_team?.name || "")
+      );
+      
+      return filteredData;
     },
   });
 }

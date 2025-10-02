@@ -14,8 +14,6 @@ import { AIFixturesIntelligence } from "@/components/AIFixturesIntelligence";
 import { FavoriteTeamsDashboard } from "@/components/FavoriteTeamsDashboard";
 import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { PersonalizedFeed } from "@/components/PersonalizedFeed";
-import { RealMatchDataLoader } from "@/components/RealMatchDataLoader";
-import { RealMatchList } from "@/components/RealMatchList";
 import { FanDataGenerator } from "@/components/FanDataGenerator";
 import { AITeamOfWeek } from "@/components/AITeamOfWeek";
 import { AIMatchPrediction } from "@/components/AIMatchPrediction";
@@ -626,39 +624,40 @@ const Index = () => {
       case "home":
         return (
           <div className="space-y-6">
-            {/* Real Match Data Loader Section */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-foreground mb-4">
-                📊 Real Match Data (Sep 15 - Oct 2, 2025)
-              </h2>
-              <RealMatchDataLoader />
-              <RealMatchList />
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Match Pulse</h2>
+              <p className="text-sm text-muted-foreground">Real-time match sentiment & fan reactions</p>
             </div>
 
-            {/* Fan Data Generator - NEW */}
+            {/* Fan Data Generator */}
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-foreground mb-4">
-                🎭 Fan Reactions & Sentiment
-              </h2>
+              <h3 className="text-lg font-semibold text-foreground">
+                🎭 Generate Fan Reactions
+              </h3>
               <FanDataGenerator />
             </div>
 
             {/* Live Match Pulse Section */}
-            {realMatchPulse && realMatchPulse.length > 0 && (
-              <div>
-                <h2 className="text-xl font-bold text-foreground mb-4 flex items-center space-x-2">
+            {realMatchPulse && realMatchPulse.length > 0 ? (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-foreground flex items-center space-x-2">
                   <span>🔥 Live Match Pulse</span>
-                  <span className="text-sm font-normal text-muted-foreground">(Real-time fan reactions)</span>
-                </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-                  {realMatchPulse.slice(0, 2).map((matchData) => (
+                  <span className="text-sm font-normal text-muted-foreground">(Real-time reactions)</span>
+                </h3>
+                <div className="grid grid-cols-1 gap-4">
+                  {realMatchPulse.map((matchData) => (
                     <MatchPulse key={matchData.matchId} matchData={matchData} />
                   ))}
                 </div>
               </div>
+            ) : (
+              <div className="text-center py-8 bg-muted/50 rounded-lg">
+                <p className="text-muted-foreground">No live matches available for tracked teams</p>
+                <p className="text-sm text-muted-foreground mt-2">Generate fan data to see match pulse</p>
+              </div>
             )}
 
-            {/* Fan Pulse Section */}
+            {/* Fan Sentiment Overview */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <SentimentMeter {...sentiment} />
               <MultiLanguageSentiment 
@@ -666,64 +665,22 @@ const Index = () => {
                 totalMentions={languageSentiments.reduce((sum, lang) => sum + lang.totalPosts, 0)}
               />
             </div>
-
-            {/* Team Pulse Rating Section */}
-            {realTeamPulse && realTeamPulse.length > 0 && (
-              <div>
-                <h2 className="text-xl font-bold text-foreground mb-4">Team Pulse Ratings</h2>
-                <div className="grid grid-cols-1 gap-4">
-                  {realTeamPulse.slice(0, 4).map((team, index) => (
-                    <TeamPulseRating 
-                      key={index}
-                      teamName={team.teamName}
-                      league={team.league}
-                      teamLogo={team.teamLogo}
-                      overallPulse={team.overallPulse}
-                      totalMentions={team.totalMentions}
-                      players={team.players}
-                      languages={team.languages}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-foreground">Live Matches</h2>
-                <p className="text-sm text-muted-foreground">Real-time football analytics</p>
-              </div>
-              <Button
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                size="sm"
-                variant="outline"
-                className="flex items-center space-x-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
-                <span>Refresh</span>
-              </Button>
-            </div>
-            
-            <div className="grid gap-4">
-              {liveMatches.map((match, index) => (
-                <LiveMatch key={index} {...match} />
-              ))}
-            </div>
             
             <div className="grid grid-cols-2 gap-4">
               <StatCard
                 title="Active Matches"
-                value="12"
-                subtitle="Premier League"
+                value={realMatchPulse?.length.toString() || "0"}
+                subtitle="Tracked matches"
                 icon={Zap}
                 color="text-accent"
                 trend="up"
               />
               <StatCard
                 title="Fan Engagement"
-                value="98.2K"
-                subtitle="Live interactions"
+                value={realMatchPulse && realMatchPulse.length > 0 
+                  ? `${(realMatchPulse.reduce((sum, m) => sum + m.totalEngagement, 0) / 1000).toFixed(1)}K`
+                  : "0"}
+                subtitle="Total interactions"
                 icon={Users}
                 color="text-success"
                 trend="up"
@@ -833,23 +790,15 @@ const Index = () => {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Live Fan Pulse</h2>
-              <p className="text-sm text-muted-foreground">Real-time fan sentiment & team pulse ratings</p>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <SentimentMeter {...sentiment} />
-              <MultiLanguageSentiment 
-                languages={languageSentiments}
-                totalMentions={languageSentiments.reduce((sum, lang) => sum + lang.totalPosts, 0)}
-              />
+              <h2 className="text-2xl font-bold text-foreground">Team Pulse</h2>
+              <p className="text-sm text-muted-foreground">Real-time team performance & player ratings</p>
             </div>
 
-            {realTeamPulse && realTeamPulse.length > 0 && (
-              <div>
-                <h3 className="text-xl font-bold text-foreground mb-4">Team Pulse Ratings</h3>
+            {realTeamPulse && realTeamPulse.length > 0 ? (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-foreground">Top Performing Teams</h3>
                 <div className="grid grid-cols-1 gap-4">
-                  {realTeamPulse.slice(0, 4).map((team, index) => (
+                  {realTeamPulse.map((team, index) => (
                     <TeamPulseRating 
                       key={index}
                       teamName={team.teamName}
@@ -863,23 +812,36 @@ const Index = () => {
                   ))}
                 </div>
               </div>
+            ) : (
+              <div className="text-center py-8 bg-muted/50 rounded-lg">
+                <p className="text-muted-foreground">No team pulse data available</p>
+                <p className="text-sm text-muted-foreground mt-2">Team pulse is calculated from recent match results</p>
+              </div>
             )}
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <SentimentMeter {...sentiment} />
+              <MultiLanguageSentiment 
+                languages={languageSentiments}
+                totalMentions={languageSentiments.reduce((sum, lang) => sum + lang.totalPosts, 0)}
+              />
+            </div>
             
             <div className="grid grid-cols-2 gap-4">
               <StatCard
-                title="Active Teams"
+                title="Tracked Teams"
                 value={realTeamPulse?.length.toString() || "0"}
-                subtitle="Tracked teams"
+                subtitle="Active teams"
                 icon={Users}
                 color="text-primary"
                 trend="up"
               />
               <StatCard
-                title="Live Pulse"
+                title="Avg Pulse"
                 value={realTeamPulse && realTeamPulse.length > 0 
-                  ? (realTeamPulse.reduce((sum, t) => sum + t.overallPulse, 0) / realTeamPulse.length).toFixed(1)
+                  ? (realTeamPulse.reduce((sum, t) => sum + t.overallPulse, 0) / realTeamPulse.length).toFixed(0)
                   : "0"}
-                subtitle="Average score"
+                subtitle="Performance score"
                 icon={TrendingUp}
                 color="text-success"
                 trend="up"
