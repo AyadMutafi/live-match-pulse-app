@@ -46,17 +46,17 @@ interface LeagueData {
 export function TeamOfTheWeek() {
   // Mock data for field formation team of the week
   const fieldFormationTeam = [
-    { id: "gk1", name: "Alisson Becker", position: "Goalkeeper", rating: 9.2, emoji: "🧤", team: "Liverpool", league: "Premier League", stats: { saves: 8, cleanSheets: 12 } },
-    { id: "def1", name: "Virgil van Dijk", position: "Defender", rating: 9.0, emoji: "🛡️", team: "Liverpool", league: "Premier League", stats: { tackles: 45, passAccuracy: 91 } },
-    { id: "def2", name: "Ruben Dias", position: "Defender", rating: 8.8, emoji: "🔒", team: "Man City", league: "Premier League", stats: { tackles: 38, cleanSheets: 10 } },
-    { id: "def3", name: "Theo Hernandez", position: "Defender", rating: 8.7, emoji: "⚡", team: "AC Milan", league: "Serie A", stats: { assists: 6, tackles: 42 } },
-    { id: "def4", name: "Dani Carvajal", position: "Defender", rating: 8.6, emoji: "🚀", team: "Real Madrid", league: "La Liga", stats: { assists: 4, tackles: 35 } },
-    { id: "mid1", name: "Kevin De Bruyne", position: "Midfielder", rating: 9.4, emoji: "🎯", team: "Man City", league: "Premier League", stats: { assists: 15, goals: 8 } },
-    { id: "mid2", name: "Luka Modric", position: "Midfielder", rating: 9.1, emoji: "🧙", team: "Real Madrid", league: "La Liga", stats: { assists: 7, passAccuracy: 94 } },
-    { id: "mid3", name: "Pedri", position: "Midfielder", rating: 8.9, emoji: "💎", team: "Barcelona", league: "La Liga", stats: { assists: 6, passAccuracy: 89 } },
-    { id: "for1", name: "Erling Haaland", position: "Forward", rating: 9.8, emoji: "🤖", team: "Man City", league: "Premier League", stats: { goals: 28, assists: 5 } },
-    { id: "for2", name: "Kylian Mbappe", position: "Forward", rating: 9.6, emoji: "⚡", team: "Real Madrid", league: "La Liga", stats: { goals: 24, assists: 8 } },
-    { id: "for3", name: "Mohamed Salah", position: "Forward", rating: 9.3, emoji: "👑", team: "Liverpool", league: "Premier League", stats: { goals: 22, assists: 12 } }
+    { id: "gk1", name: "Alisson Becker", position: "GK", rating: 9.2, emoji: "🧤", team: "Liverpool", league: "Premier League", stats: { saves: 8, cleanSheets: 12 }, reason: "Outstanding performance with 8 crucial saves" },
+    { id: "def1", name: "Virgil van Dijk", position: "CB", rating: 9.0, emoji: "🛡️", team: "Liverpool", league: "Premier League", stats: { tackles: 45, passAccuracy: 91 }, reason: "Solid defense with 45 tackles and 91% pass accuracy" },
+    { id: "def2", name: "Ruben Dias", position: "CB", rating: 8.8, emoji: "🔒", team: "Man City", league: "Premier League", stats: { tackles: 38, cleanSheets: 10 }, reason: "Key defender with 10 clean sheets" },
+    { id: "def3", name: "Theo Hernandez", position: "LB", rating: 8.7, emoji: "⚡", team: "AC Milan", league: "Serie A", stats: { assists: 6, tackles: 42 }, reason: "Attacking full-back with 6 assists" },
+    { id: "def4", name: "Dani Carvajal", position: "RB", rating: 8.6, emoji: "🚀", team: "Real Madrid", league: "La Liga", stats: { assists: 4, tackles: 35 }, reason: "Consistent performances on the right flank" },
+    { id: "mid1", name: "Kevin De Bruyne", position: "CM", rating: 9.4, emoji: "🎯", team: "Man City", league: "Premier League", stats: { assists: 15, goals: 8 }, reason: "Playmaker with 15 assists and 8 goals" },
+    { id: "mid2", name: "Luka Modric", position: "LM", rating: 9.1, emoji: "🧙", team: "Real Madrid", league: "La Liga", stats: { assists: 7, passAccuracy: 94 }, reason: "Maestro in midfield with 94% pass accuracy" },
+    { id: "mid3", name: "Pedri", position: "RM", rating: 8.9, emoji: "💎", team: "Barcelona", league: "La Liga", stats: { assists: 6, passAccuracy: 89 }, reason: "Creative midfielder with excellent vision" },
+    { id: "for1", name: "Erling Haaland", position: "ST", rating: 9.8, emoji: "🤖", team: "Man City", league: "Premier League", stats: { goals: 28, assists: 5 }, reason: "Goal machine with 28 goals this season" },
+    { id: "for2", name: "Kylian Mbappe", position: "LW", rating: 9.6, emoji: "⚡", team: "Real Madrid", league: "La Liga", stats: { goals: 24, assists: 8 }, reason: "Lightning fast with 24 goals and 8 assists" },
+    { id: "for3", name: "Mohamed Salah", position: "RW", rating: 9.3, emoji: "👑", team: "Liverpool", league: "Premier League", stats: { goals: 22, assists: 12 }, reason: "Complete forward with 22 goals and 12 assists" }
   ];
 
   const leagues: LeagueData[] = [
@@ -379,7 +379,7 @@ export function TeamOfTheWeek() {
         </div>
 
         {/* Field Formation */}
-        <FieldFormation teamOfWeek={fieldFormationTeam} formation="4-3-3" />
+        <FieldFormation players={fieldFormationTeam} formation="4-3-3" />
         
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <Badge variant="secondary" className="bg-success/10 text-success border-success/20">

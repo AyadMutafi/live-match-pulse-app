@@ -1,215 +1,179 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Star, Target, Shield, Zap } from "lucide-react";
 
 interface Player {
-  id: string;
-  name: string;
   position: string;
-  rating: number;
-  photo?: string;
-  emoji: string;
-  stats: {
-    goals?: number;
-    assists?: number;
-    saves?: number;
-    cleanSheets?: number;
-    tackles?: number;
-    passAccuracy?: number;
-  };
+  name: string;
   team: string;
-  league: string;
+  rating: number;
+  reason: string;
 }
 
 interface FieldFormationProps {
-  teamOfWeek: Player[];
-  formation: string;
+  players: Player[];
+  formation?: string;
 }
 
-export function FieldFormation({ teamOfWeek, formation }: FieldFormationProps) {
-  // Formation layouts (4-3-3 example)
-  const getFormationLayout = (formation: string) => {
-    switch (formation) {
-      case "4-3-3":
-        return {
-          goalkeeper: [0],
-          defenders: [1, 2, 3, 4],
-          midfielders: [5, 6, 7],
-          forwards: [8, 9, 10]
-        };
-      case "4-4-2":
-        return {
-          goalkeeper: [0],
-          defenders: [1, 2, 3, 4],
-          midfielders: [5, 6, 7, 8],
-          forwards: [9, 10]
-        };
-      default:
-        return {
-          goalkeeper: [0],
-          defenders: [1, 2, 3, 4],
-          midfielders: [5, 6, 7],
-          forwards: [8, 9, 10]
-        };
-    }
+const getPlayerEmoji = (rating: number) => {
+  if (rating >= 9.5) return "🔥"; // World-class
+  if (rating >= 9.0) return "⭐"; // Excellent
+  if (rating >= 8.5) return "💎"; // Very good
+  if (rating >= 8.0) return "✨"; // Good
+  return "⚡"; // Solid
+};
+
+const getPositionCoordinates = (position: string) => {
+  const positions: Record<string, { x: string; y: string }> = {
+    // Goalkeeper
+    GK: { x: "50%", y: "90%" },
+    // Defenders (4)
+    LB: { x: "15%", y: "70%" },
+    CB: { x: "37%", y: "75%" },
+    RB: { x: "85%", y: "70%" },
+    // Midfielders (3)
+    LM: { x: "20%", y: "45%" },
+    CM: { x: "50%", y: "50%" },
+    RM: { x: "80%", y: "45%" },
+    // Forwards (3)
+    LW: { x: "20%", y: "20%" },
+    ST: { x: "50%", y: "15%" },
+    RW: { x: "80%", y: "20%" },
   };
+  return positions[position] || { x: "50%", y: "50%" };
+};
 
-  const layout = getFormationLayout(formation);
+export function FieldFormation({ players, formation = "4-3-3" }: FieldFormationProps) {
+  // Adjust positions for 4-3-3 formation
+  const sortedPlayers = [...players].sort((a, b) => {
+    const order = ["GK", "LB", "CB", "CB", "RB", "LM", "CM", "RM", "LW", "ST", "RW"];
+    const aIndex = order.indexOf(a.position);
+    const bIndex = order.indexOf(b.position);
+    return aIndex - bIndex;
+  });
 
-  const PlayerCard = ({ player, index }: { player: Player; index: number }) => {
-    const getPositionIcon = (position: string) => {
-      if (position.includes("Forward") || position.includes("Striker")) return Target;
-      if (position.includes("Midfielder")) return Zap;
-      if (position.includes("Defender")) return Shield;
-      return Star;
-    };
+  // Adjust CB positions
+  const adjustedPlayers = sortedPlayers.map((player, index) => {
+    if (player.position === "CB") {
+      const cbCount = sortedPlayers.filter((p, i) => i <= index && p.position === "CB").length;
+      return {
+        ...player,
+        adjustedPosition: cbCount === 1 ? "CB-L" : "CB-R",
+      };
+    }
+    return { ...player, adjustedPosition: player.position };
+  });
 
-    const Icon = getPositionIcon(player.position);
-
-    return (
-      <TooltipProvider key={player.id}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="relative flex flex-col items-center space-y-2 cursor-pointer group">
-              {/* Player Picture with Rating Circle */}
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center border-2 border-white shadow-lg group-hover:scale-110 transition-transform duration-200">
-                  {player.photo ? (
-                    <img 
-                      src={player.photo} 
-                      alt={player.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="text-2xl">{player.emoji}</div>
-                  )}
-                </div>
-                {/* Rating Badge */}
-                <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-md">
-                  {player.rating}
-                </div>
-              </div>
-              
-              {/* Player Name */}
-              <div className="text-center">
-                <div className="text-xs font-semibold text-foreground max-w-16 truncate">
-                  {player.name.split(' ').pop()}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {player.team}
-                </div>
-              </div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent className="w-64 p-4">
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
-                  <div className="text-2xl">{player.emoji}</div>
-                </div>
-                <div>
-                  <div className="font-semibold text-sm">{player.name}</div>
-                  <div className="text-xs text-muted-foreground">{player.position}</div>
-                  <Badge variant="outline" className="text-xs mt-1">
-                    {player.team} • {player.league}
-                  </Badge>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {player.stats.goals !== undefined && (
-                  <div className="flex items-center space-x-1">
-                    <Target className="w-3 h-3 text-primary" />
-                    <span>Goals: {player.stats.goals}</span>
-                  </div>
-                )}
-                {player.stats.assists !== undefined && (
-                  <div className="flex items-center space-x-1">
-                    <Zap className="w-3 h-3 text-secondary" />
-                    <span>Assists: {player.stats.assists}</span>
-                  </div>
-                )}
-                {player.stats.saves !== undefined && (
-                  <div className="flex items-center space-x-1">
-                    <Shield className="w-3 h-3 text-accent" />
-                    <span>Saves: {player.stats.saves}</span>
-                  </div>
-                )}
-                {player.stats.cleanSheets !== undefined && (
-                  <div className="flex items-center space-x-1">
-                    <Star className="w-3 h-3 text-success" />
-                    <span>Clean Sheets: {player.stats.cleanSheets}</span>
-                  </div>
-                )}
-                {player.stats.tackles !== undefined && (
-                  <div className="flex items-center space-x-1">
-                    <Shield className="w-3 h-3 text-destructive" />
-                    <span>Tackles: {player.stats.tackles}</span>
-                  </div>
-                )}
-                {player.stats.passAccuracy !== undefined && (
-                  <div className="flex items-center space-x-1">
-                    <Zap className="w-3 h-3 text-warning" />
-                    <span>Pass: {player.stats.passAccuracy}%</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
+  const getAdjustedCoordinates = (adjustedPosition: string) => {
+    if (adjustedPosition === "CB-L") return { x: "37%", y: "75%" };
+    if (adjustedPosition === "CB-R") return { x: "63%", y: "75%" };
+    return getPositionCoordinates(adjustedPosition);
   };
 
   return (
-    <Card className="p-6 bg-gradient-to-b from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20 border-green-200 dark:border-green-800">
-      <div className="text-center mb-6">
-        <h3 className="text-lg font-bold text-foreground mb-2">Team of the Week</h3>
-        <Badge variant="outline" className="bg-white/50 dark:bg-black/20">
-          Formation: {formation}
-        </Badge>
-      </div>
-      
-      {/* Football Field */}
-      <div className="relative bg-gradient-to-b from-green-400 to-green-500 rounded-lg p-4 min-h-80 overflow-hidden">
-        {/* Field Lines */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="w-full h-full border-2 border-white rounded-lg">
-            <div className="w-1/2 h-full border-r-2 border-white"></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 border-2 border-white rounded-full"></div>
-          </div>
+    <Card className="relative w-full bg-gradient-to-b from-emerald-600 to-emerald-700 overflow-hidden">
+      {/* Football pitch */}
+      <div className="relative w-full aspect-[3/4] min-h-[600px]">
+        {/* Pitch markings */}
+        <svg className="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 100 130">
+          {/* Outer boundary */}
+          <rect x="2" y="2" width="96" height="126" fill="none" stroke="white" strokeWidth="0.5" />
+          
+          {/* Center line */}
+          <line x1="2" y1="65" x2="98" y2="65" stroke="white" strokeWidth="0.5" />
+          
+          {/* Center circle */}
+          <circle cx="50" cy="65" r="10" fill="none" stroke="white" strokeWidth="0.5" />
+          <circle cx="50" cy="65" r="0.5" fill="white" />
+          
+          {/* Penalty areas */}
+          <rect x="20" y="2" width="60" height="18" fill="none" stroke="white" strokeWidth="0.5" />
+          <rect x="20" y="110" width="60" height="18" fill="none" stroke="white" strokeWidth="0.5" />
+          
+          {/* Goal areas */}
+          <rect x="35" y="2" width="30" height="8" fill="none" stroke="white" strokeWidth="0.5" />
+          <rect x="35" y="120" width="30" height="8" fill="none" stroke="white" strokeWidth="0.5" />
+          
+          {/* Penalty spots */}
+          <circle cx="50" cy="12" r="0.5" fill="white" />
+          <circle cx="50" cy="118" r="0.5" fill="white" />
+          
+          {/* Corner arcs */}
+          <path d="M 2 2 Q 7 2 7 7" fill="none" stroke="white" strokeWidth="0.5" />
+          <path d="M 98 2 Q 93 2 93 7" fill="none" stroke="white" strokeWidth="0.5" />
+          <path d="M 2 128 Q 7 128 7 123" fill="none" stroke="white" strokeWidth="0.5" />
+          <path d="M 98 128 Q 93 128 93 123" fill="none" stroke="white" strokeWidth="0.5" />
+        </svg>
+
+        {/* Grass pattern overlay */}
+        <div className="absolute inset-0 opacity-10">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-[10%] w-full"
+              style={{
+                backgroundColor: i % 2 === 0 ? "rgba(0,0,0,0.1)" : "transparent",
+              }}
+            />
+          ))}
         </div>
-        
-        {/* Players positioned on field */}
-        <div className="relative h-full flex flex-col justify-between py-4">
-          {/* Forwards */}
-          <div className="flex justify-center space-x-8">
-            {layout.forwards.map(index => 
-              teamOfWeek[index] && <PlayerCard key={index} player={teamOfWeek[index]} index={index} />
-            )}
-          </div>
+
+        {/* Players */}
+        {adjustedPlayers.map((player, index) => {
+          const coords = getAdjustedCoordinates(player.adjustedPosition);
+          const emoji = getPlayerEmoji(player.rating);
           
-          {/* Midfielders */}
-          <div className="flex justify-center space-x-6">
-            {layout.midfielders.map(index => 
-              teamOfWeek[index] && <PlayerCard key={index} player={teamOfWeek[index]} index={index} />
-            )}
-          </div>
-          
-          {/* Defenders */}
-          <div className="flex justify-center space-x-4">
-            {layout.defenders.map(index => 
-              teamOfWeek[index] && <PlayerCard key={index} player={teamOfWeek[index]} index={index} />
-            )}
-          </div>
-          
-          {/* Goalkeeper */}
-          <div className="flex justify-center">
-            {layout.goalkeeper.map(index => 
-              teamOfWeek[index] && <PlayerCard key={index} player={teamOfWeek[index]} index={index} />
-            )}
-          </div>
+          return (
+            <div
+              key={index}
+              className="absolute transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer animate-fade-in"
+              style={{
+                left: coords.x,
+                top: coords.y,
+                animationDelay: `${index * 100}ms`,
+              }}
+            >
+              {/* Player card */}
+              <div className="relative flex flex-col items-center">
+                {/* Player circle */}
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-full bg-white/95 border-4 border-primary shadow-lg flex flex-col items-center justify-center transform transition-transform group-hover:scale-110">
+                    <span className="text-2xl mb-0.5">{emoji}</span>
+                    <Badge 
+                      variant="secondary" 
+                      className="absolute -top-2 -right-2 text-xs font-bold px-1.5 py-0.5 bg-accent text-accent-foreground"
+                    >
+                      {player.rating.toFixed(1)}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Player name */}
+                <div className="mt-2 bg-white/95 px-2 py-1 rounded-md shadow-md text-center min-w-[100px]">
+                  <div className="text-xs font-bold text-foreground whitespace-nowrap">
+                    {player.name}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {player.team}
+                  </div>
+                </div>
+
+                {/* Hover tooltip */}
+                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-card p-3 rounded-lg shadow-xl border border-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-48">
+                  <div className="text-xs">
+                    <div className="font-semibold mb-1 text-foreground">{player.position}</div>
+                    <div className="text-muted-foreground">{player.reason}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Formation badge */}
+        <div className="absolute top-4 left-4">
+          <Badge className="bg-white/90 text-foreground text-sm font-bold px-3 py-1">
+            {formation}
+          </Badge>
         </div>
       </div>
     </Card>

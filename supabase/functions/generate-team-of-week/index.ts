@@ -77,7 +77,24 @@ Deno.serve(async (req) => {
           },
           {
             role: 'user',
-            content: `Based on these match results:\n${matchSummaries.join('\n')}\n\nGenerate a Team of the Week (4-3-3 formation). For each player, provide: Position, Name, Team, and Reason for selection. Format as JSON array.`,
+            content: `Based on these match results:\n${matchSummaries.join('\n')}\n\nGenerate a Team of the Week in a 4-3-3 formation. Return ONLY a valid JSON object with this exact structure:
+{
+  "formation": "4-3-3",
+  "players": [
+    {"position": "GK", "name": "Player Name", "team": "Team Name", "rating": 9.5, "reason": "Brief reason"},
+    {"position": "LB", "name": "Player Name", "team": "Team Name", "rating": 8.5, "reason": "Brief reason"},
+    {"position": "CB", "name": "Player Name", "team": "Team Name", "rating": 8.7, "reason": "Brief reason"},
+    {"position": "CB", "name": "Player Name", "team": "Team Name", "rating": 8.8, "reason": "Brief reason"},
+    {"position": "RB", "name": "Player Name", "team": "Team Name", "rating": 8.3, "reason": "Brief reason"},
+    {"position": "LM", "name": "Player Name", "team": "Team Name", "rating": 8.9, "reason": "Brief reason"},
+    {"position": "CM", "name": "Player Name", "team": "Team Name", "rating": 9.0, "reason": "Brief reason"},
+    {"position": "RM", "name": "Player Name", "team": "Team Name", "rating": 8.6, "reason": "Brief reason"},
+    {"position": "LW", "name": "Player Name", "team": "Team Name", "rating": 9.2, "reason": "Brief reason"},
+    {"position": "ST", "name": "Player Name", "team": "Team Name", "rating": 9.5, "reason": "Brief reason"},
+    {"position": "RW", "name": "Player Name", "team": "Team Name", "rating": 9.1, "reason": "Brief reason"}
+  ]
+}
+Ratings should be between 7.0 and 10.0. No markdown, no code blocks, just the JSON.`,
           },
         ],
       }),
@@ -90,7 +107,18 @@ Deno.serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
-    const teamOfWeek = aiData.choices[0].message.content;
+    const teamOfWeekContent = aiData.choices[0].message.content;
+    
+    // Parse the JSON from AI response
+    let teamOfWeek;
+    try {
+      // Remove markdown code blocks if present
+      const cleanContent = teamOfWeekContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      teamOfWeek = JSON.parse(cleanContent);
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', teamOfWeekContent);
+      throw new Error('Failed to parse AI response as JSON');
+    }
 
     return new Response(
       JSON.stringify({
