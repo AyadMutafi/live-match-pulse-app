@@ -89,11 +89,17 @@ export function useTeamPulse() {
       const goalDiffScore = Math.min(Math.max(goalDiff * 5 + 50, 0), 100);
       const pulseScore = Math.round((winRate * 0.6 + goalDiffScore * 0.4));
 
-      // Generate mock player data
+      // Generate mock player data with realistic names
       const positions = ["Forward", "Midfielder", "Defender", "Goalkeeper"];
+      const playerNames = [
+        "Marcus Silva", "David Torres", "Alex Johnson", "Roberto Gomez", "James Wilson",
+        "Lucas Martinez", "Carlos Rodriguez", "Michael Brown", "Antonio Lopez", "Daniel Garcia",
+        "Francisco Santos", "Thomas Anderson", "Diego Fernandez", "Kevin Martinez", "Pablo Ruiz"
+      ];
+      
       const players = Array.from({ length: 5 }, (_, i) => ({
         id: `${team.name}-player-${i}`,
-        name: `Player ${i + 1}`,
+        name: playerNames[Math.floor(Math.random() * playerNames.length)],
         position: positions[i % positions.length],
         rating: Math.random() * 2 + 7.5,
         pulseScore: Math.floor(Math.random() * 30) + 70,
