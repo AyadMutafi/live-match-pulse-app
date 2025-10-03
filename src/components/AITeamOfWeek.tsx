@@ -5,13 +5,14 @@ import { useTeamOfWeek } from "@/hooks/useTeamOfWeek";
 import { FieldFormation } from "./FieldFormation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const COMPETITION_WEEKS = [
-  { label: "Week 1 (Sep 15-22)", start: "2025-09-15", end: "2025-09-22" },
-  { label: "Week 2 (Sep 23-29)", start: "2025-09-23", end: "2025-09-29" },
-  { label: "Week 3 (Sep 30 - Oct 2)", start: "2025-09-30", end: "2025-10-02" },
+const COMPETITIONS = [
+  { label: "Premier League", start: "2025-09-15", end: "2025-10-02", icon: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+  { label: "La Liga", start: "2025-09-15", end: "2025-10-02", icon: "🇪🇸" },
+  { label: "Serie A", start: "2025-09-15", end: "2025-10-02", icon: "🇮🇹" },
+  { label: "Champions League", start: "2025-09-15", end: "2025-10-02", icon: "🏆" },
 ];
 
-function WeekTeamOfWeek({ weekStart, weekEnd, weekLabel }: { weekStart: string; weekEnd: string; weekLabel: string }) {
+function CompetitionTeamOfWeek({ competition, weekStart, weekEnd }: { competition: string; weekStart: string; weekEnd: string }) {
   const { data, isLoading, error } = useTeamOfWeek(weekStart, weekEnd);
 
   if (isLoading) {
@@ -19,6 +20,7 @@ function WeekTeamOfWeek({ weekStart, weekEnd, weekLabel }: { weekStart: string; 
       <Card className="p-6">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2 text-muted-foreground">Analyzing matches...</span>
         </div>
       </Card>
     );
@@ -38,8 +40,8 @@ function WeekTeamOfWeek({ weekStart, weekEnd, weekLabel }: { weekStart: string; 
     <div className="space-y-6">
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Calendar className="h-5 w-5 text-primary" />
-          <h3 className="text-xl font-bold">{weekLabel}</h3>
+          <Trophy className="h-5 w-5 text-yellow-500" />
+          <h3 className="text-xl font-bold">{competition}</h3>
           <Badge variant="secondary" className="ml-2">
             <Sparkles className="h-3 w-3 mr-1" />
             AI Powered
@@ -47,7 +49,7 @@ function WeekTeamOfWeek({ weekStart, weekEnd, weekLabel }: { weekStart: string; 
         </div>
 
         <div className="text-sm text-muted-foreground mb-4">
-          Based on {data?.matchesAnalyzed} matches analyzed
+          Based on {data?.matchesAnalyzed} matches analyzed (Sep 15 - Oct 2, 2025)
         </div>
       </Card>
 
@@ -64,7 +66,7 @@ function WeekTeamOfWeek({ weekStart, weekEnd, weekLabel }: { weekStart: string; 
             <span>📊</span>
             Analyzed Matches
           </h3>
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2 text-sm max-h-60 overflow-y-auto">
             {data.matchSummaries.map((summary: string, idx: number) => (
               <div key={idx} className="flex items-start gap-2">
                 <span className="text-muted-foreground mt-0.5">•</span>
@@ -86,23 +88,27 @@ export function AITeamOfWeek() {
           <Trophy className="h-6 w-6 text-yellow-500" />
           <h2 className="text-2xl font-bold">AI-Generated Team of the Week</h2>
         </div>
+        <p className="text-sm text-muted-foreground mt-2">
+          Select a competition to view the best performing players based on match data and fan sentiment
+        </p>
       </Card>
 
-      <Tabs defaultValue="week1" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          {COMPETITION_WEEKS.map((week, idx) => (
-            <TabsTrigger key={idx} value={`week${idx + 1}`}>
-              {week.label}
+      <Tabs defaultValue="premier-league" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+          {COMPETITIONS.map((comp, idx) => (
+            <TabsTrigger key={idx} value={comp.label.toLowerCase().replace(/\s+/g, '-')}>
+              <span className="mr-1">{comp.icon}</span>
+              {comp.label}
             </TabsTrigger>
           ))}
         </TabsList>
         
-        {COMPETITION_WEEKS.map((week, idx) => (
-          <TabsContent key={idx} value={`week${idx + 1}`}>
-            <WeekTeamOfWeek 
-              weekStart={week.start} 
-              weekEnd={week.end} 
-              weekLabel={week.label}
+        {COMPETITIONS.map((comp, idx) => (
+          <TabsContent key={idx} value={comp.label.toLowerCase().replace(/\s+/g, '-')}>
+            <CompetitionTeamOfWeek 
+              competition={comp.label}
+              weekStart={comp.start} 
+              weekEnd={comp.end}
             />
           </TabsContent>
         ))}
