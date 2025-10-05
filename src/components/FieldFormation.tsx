@@ -153,18 +153,15 @@ export function FieldFormation({ players, formation = "4-3-3" }: FieldFormationP
                   <div className="text-xs font-bold text-foreground whitespace-nowrap">
                     {player.name}
                   </div>
-                  <div className="flex items-center justify-center gap-1 mt-0.5">
+                  <div className="flex items-center justify-center mt-1">
                     <img 
                       src={getTeamLogo(player.team)} 
                       alt={player.team}
-                      className="w-3.5 h-3.5 object-contain"
+                      className="w-5 h-5 object-contain"
                       onError={(e) => {
                         e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(player.team)}&background=random&size=32`;
                       }}
                     />
-                    <span className="text-[10px] text-muted-foreground">
-                      {player.team}
-                    </span>
                   </div>
                 </div>
 
