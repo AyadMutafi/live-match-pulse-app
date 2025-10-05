@@ -16,10 +16,10 @@ Deno.serve(async (req) => {
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { weekStart, weekEnd } = await req.json();
+    const { weekStart, weekEnd, competition } = await req.json();
 
-    // Fetch matches for the week
-    const { data: matches, error: matchError } = await supabase
+    // Fetch matches for the week and competition
+    let query = supabase
       .from('matches')
       .select(`
         *,
@@ -28,8 +28,14 @@ Deno.serve(async (req) => {
       `)
       .gte('match_date', weekStart)
       .lte('match_date', weekEnd)
-      .eq('status', 'finished')
-      .order('match_date', { ascending: true });
+      .eq('status', 'finished');
+    
+    // Filter by competition if provided
+    if (competition) {
+      query = query.eq('competition', competition);
+    }
+    
+    const { data: matches, error: matchError } = await query.order('match_date', { ascending: true });
 
     if (matchError) throw matchError;
 

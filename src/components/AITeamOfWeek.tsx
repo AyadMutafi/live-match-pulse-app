@@ -6,14 +6,14 @@ import { FieldFormation } from "./FieldFormation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const COMPETITIONS = [
-  { label: "Premier League", start: "2025-09-15", end: "2025-10-02", icon: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
-  { label: "La Liga", start: "2025-09-15", end: "2025-10-02", icon: "🇪🇸" },
-  { label: "Serie A", start: "2025-09-15", end: "2025-10-02", icon: "🇮🇹" },
-  { label: "Champions League", start: "2025-09-15", end: "2025-10-02", icon: "🏆" },
+  { label: "Premier League", value: "Premier League", start: "2025-09-15", end: "2025-10-02", icon: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+  { label: "La Liga", value: "La Liga", start: "2025-09-15", end: "2025-10-02", icon: "🇪🇸" },
+  { label: "Serie A", value: "Serie A", start: "2025-09-15", end: "2025-10-02", icon: "🇮🇹" },
+  { label: "Champions League", value: "UEFA Champions League", start: "2025-09-15", end: "2025-10-02", icon: "🏆" },
 ];
 
-function CompetitionTeamOfWeek({ competition, weekStart, weekEnd }: { competition: string; weekStart: string; weekEnd: string }) {
-  const { data, isLoading, error } = useTeamOfWeek(weekStart, weekEnd);
+function CompetitionTeamOfWeek({ competition, competitionValue, weekStart, weekEnd }: { competition: string; competitionValue: string; weekStart: string; weekEnd: string }) {
+  const { data, isLoading, error } = useTeamOfWeek(weekStart, weekEnd, competitionValue);
 
   if (isLoading) {
     return (
@@ -107,6 +107,7 @@ export function AITeamOfWeek() {
           <TabsContent key={idx} value={comp.label.toLowerCase().replace(/\s+/g, '-')}>
             <CompetitionTeamOfWeek 
               competition={comp.label}
+              competitionValue={comp.value}
               weekStart={comp.start} 
               weekEnd={comp.end}
             />

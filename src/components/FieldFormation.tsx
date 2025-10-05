@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getTeamLogo } from "@/lib/teamLogos";
 
 interface Player {
   position: string;
@@ -152,8 +153,18 @@ export function FieldFormation({ players, formation = "4-3-3" }: FieldFormationP
                   <div className="text-xs font-bold text-foreground whitespace-nowrap">
                     {player.name}
                   </div>
-                  <div className="text-[10px] text-muted-foreground">
-                    {player.team}
+                  <div className="flex items-center justify-center gap-1 mt-0.5">
+                    <img 
+                      src={getTeamLogo(player.team)} 
+                      alt={player.team}
+                      className="w-3.5 h-3.5 object-contain"
+                      onError={(e) => {
+                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(player.team)}&background=random&size=32`;
+                      }}
+                    />
+                    <span className="text-[10px] text-muted-foreground">
+                      {player.team}
+                    </span>
                   </div>
                 </div>
 
