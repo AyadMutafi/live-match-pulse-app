@@ -14,7 +14,7 @@ import { AIFixturesIntelligence } from "@/components/AIFixturesIntelligence";
 import { FavoriteTeamsDashboard } from "@/components/FavoriteTeamsDashboard";
 import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { PersonalizedFeed } from "@/components/PersonalizedFeed";
-import { FanDataGenerator } from "@/components/FanDataGenerator";
+import { LiveFanReactions } from "@/components/LiveFanReactions";
 import { AITeamOfWeek } from "@/components/AITeamOfWeek";
 import { AIMatchPrediction } from "@/components/AIMatchPrediction";
 import { useMatchAnalytics } from "@/hooks/useMatchAnalytics";
@@ -629,12 +629,9 @@ const Index = () => {
               <p className="text-sm text-muted-foreground">Real-time match sentiment & fan reactions</p>
             </div>
 
-            {/* Fan Data Generator */}
+            {/* Live Fan Reactions */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-foreground">
-                🎭 Generate Fan Reactions
-              </h3>
-              <FanDataGenerator />
+              <LiveFanReactions />
             </div>
 
             {/* Live Match Pulse Section */}
