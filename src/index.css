@@ -104,6 +104,60 @@ All colors MUST be HSL.
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  /* Color Scheme Variations */
+  [data-color-scheme="vibrant"] {
+    --primary: 320 91% 59%;
+    --secondary: 280 80% 55%;
+    --accent: 200 91% 59%;
+  }
+
+  [data-color-scheme="calm"] {
+    --primary: 200 70% 50%;
+    --secondary: 180 60% 45%;
+    --accent: 160 65% 48%;
+  }
+
+  [data-color-scheme="neon"] {
+    --primary: 142 76% 45%;
+    --secondary: 52 98% 50%;
+    --accent: 332 91% 59%;
+  }
+
+  [data-color-scheme="sunset"] {
+    --primary: 25 95% 53%;
+    --secondary: 0 84% 60%;
+    --accent: 340 82% 52%;
+  }
+
+  /* Display Density */
+  [data-density="compact"] {
+    --spacing-unit: 0.75rem;
+  }
+
+  [data-density="comfortable"] {
+    --spacing-unit: 1rem;
+  }
+
+  [data-density="spacious"] {
+    --spacing-unit: 1.5rem;
+  }
+
+  /* Animation Speed */
+  [data-animation-speed="off"] * {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  [data-animation-speed="slow"] * {
+    transition-duration: 0.5s !important;
+    animation-duration: 0.8s !important;
+  }
+
+  [data-animation-speed="fast"] * {
+    transition-duration: 0.1s !important;
+    animation-duration: 0.2s !important;
+  }
 }
 
 @layer base {

@@ -4,6 +4,7 @@ import { EnhancedPrediction } from "@/components/EnhancedPrediction";
 import { SentimentMeter } from "@/components/SentimentMeter";
 import { AIAnalytics } from "@/components/AIAnalytics";
 import { BottomNavigation } from "@/components/BottomNavigation";
+import { AppHeader } from "@/components/AppHeader";
 import { StatCard } from "@/components/StatCard";
 import { TeamPulseRating } from "@/components/TeamPulseRating";
 import { MultiLanguageSentiment } from "@/components/MultiLanguageSentiment";
@@ -859,22 +860,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-secondary text-primary-foreground p-6 pb-8">
-        <div className="max-w-md mx-auto">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <Zap className="w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">Live Fan Pulse</h1>
-                <p className="text-sm opacity-90">Football Analytics Platform</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AppHeader />
 
       {/* Content */}
       <div className="max-w-md mx-auto px-4 pt-6 pb-24">
