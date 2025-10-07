@@ -18,6 +18,8 @@ import { PersonalizedFeed } from "@/components/PersonalizedFeed";
 import { LiveFanReactions } from "@/components/LiveFanReactions";
 import { AITeamOfWeek } from "@/components/AITeamOfWeek";
 import { AIMatchPrediction } from "@/components/AIMatchPrediction";
+import { FanProfileCard } from "@/components/FanProfileCard";
+import { TeamRivalryTracker } from "@/components/TeamRivalryTracker";
 import { useMatchAnalytics } from "@/hooks/useMatchAnalytics";
 import { useTeamPulse } from "@/hooks/useTeamPulse";
 import { useMatchPulse } from "@/hooks/useMatchPulse";
@@ -845,6 +847,34 @@ const Index = () => {
                 trend="up"
               />
             </div>
+          </div>
+        );
+
+      case "fan-zone":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <Heart className="w-6 h-6 text-primary" />
+                Fan Zone
+              </h2>
+              <p className="text-sm text-muted-foreground">Your personalized fan experience & team loyalty hub</p>
+            </div>
+
+            {/* Fan Profile & Rivalry Tracking */}
+            <div className="space-y-4">
+              <FanProfileCard />
+              <TeamRivalryTracker />
+            </div>
+
+            {/* Favorite Teams Management */}
+            <FavoriteTeamsDashboard />
+
+            {/* Personalized Feed */}
+            <PersonalizedFeed />
+
+            {/* Notification Preferences */}
+            <NotificationPreferences />
           </div>
         );
         

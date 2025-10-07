@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      fan_profiles: {
+        Row: {
+          correct_predictions: number | null
+          created_at: string | null
+          earned_badges: Json | null
+          engagement_streak: number | null
+          fan_level: number | null
+          fan_points: number | null
+          favorite_rivalry: Json | null
+          id: string
+          matches_watched: number | null
+          team_loyalty_score: number | null
+          team_theme_enabled: boolean | null
+          total_predictions: number | null
+          total_reactions: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          correct_predictions?: number | null
+          created_at?: string | null
+          earned_badges?: Json | null
+          engagement_streak?: number | null
+          fan_level?: number | null
+          fan_points?: number | null
+          favorite_rivalry?: Json | null
+          id?: string
+          matches_watched?: number | null
+          team_loyalty_score?: number | null
+          team_theme_enabled?: boolean | null
+          total_predictions?: number | null
+          total_reactions?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          correct_predictions?: number | null
+          created_at?: string | null
+          earned_badges?: Json | null
+          engagement_streak?: number | null
+          fan_level?: number | null
+          fan_points?: number | null
+          favorite_rivalry?: Json | null
+          id?: string
+          matches_watched?: number | null
+          team_loyalty_score?: number | null
+          team_theme_enabled?: boolean | null
+          total_predictions?: number | null
+          total_reactions?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       fan_reactions: {
         Row: {
           content: string | null
@@ -457,6 +511,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      team_rivalries: {
+        Row: {
+          created_at: string | null
+          draws: number | null
+          favorite_team_id: string
+          id: string
+          intensity_score: number | null
+          losses: number | null
+          rival_team_id: string
+          user_id: string
+          wins: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          draws?: number | null
+          favorite_team_id: string
+          id?: string
+          intensity_score?: number | null
+          losses?: number | null
+          rival_team_id: string
+          user_id: string
+          wins?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          draws?: number | null
+          favorite_team_id?: string
+          id?: string
+          intensity_score?: number | null
+          losses?: number | null
+          rival_team_id?: string
+          user_id?: string
+          wins?: number | null
+        }
+        Relationships: []
       }
       teams: {
         Row: {

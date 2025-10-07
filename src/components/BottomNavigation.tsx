@@ -1,4 +1,4 @@
-import { Home, BarChart3, Users, Target, Trophy, Brain } from "lucide-react";
+import { Home, BarChart3, Users, Target, Trophy, Brain, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BottomNavigationProps {
@@ -8,11 +8,11 @@ interface BottomNavigationProps {
 
 const navItems = [
   { id: "home", icon: Home, label: "Match Pulse" },
-  { id: "analytics", icon: BarChart3, label: "Analytics" },
-  { id: "team-of-week", icon: Trophy, label: "Team of Week" },
-  { id: "fixtures-intelligence", icon: Brain, label: "Fixtures AI" },
+  { id: "fan-zone", icon: Heart, label: "Fan Zone" },
   { id: "pulse", icon: Users, label: "Team Pulse" },
   { id: "predictions", icon: Target, label: "Predict" },
+  { id: "analytics", icon: BarChart3, label: "Analytics" },
+  { id: "team-of-week", icon: Trophy, label: "Team of Week" },
 ];
 
 export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationProps) {
