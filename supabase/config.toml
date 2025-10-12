@@ -1,5 +1,8 @@
 project_id = "coagqeqodswmjeehvyod"
 
+[functions.generate-prematch-analysis]
+verify_jwt = false
+
 [functions.fetch-matches]
 verify_jwt = false
 

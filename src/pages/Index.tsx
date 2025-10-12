@@ -20,20 +20,31 @@ import { AITeamOfWeek } from "@/components/AITeamOfWeek";
 import { AIMatchPrediction } from "@/components/AIMatchPrediction";
 import { FanProfileCard } from "@/components/FanProfileCard";
 import { TeamRivalryTracker } from "@/components/TeamRivalryTracker";
+import { AIEmojiSuggestionsBar } from "@/components/AIEmojiSuggestionsBar";
 import { useMatchAnalytics } from "@/hooks/useMatchAnalytics";
 import { useTeamPulse } from "@/hooks/useTeamPulse";
 import { useMatchPulse } from "@/hooks/useMatchPulse";
+import { useDynamicTheme } from "@/hooks/useDynamicTheme";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Zap, Users, Target, TrendingUp, MessageCircle, Brain, Heart } from "lucide-react";
+import { toast } from "sonner";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedMatchId, setSelectedMatchId] = useState<string | undefined>();
 
   // Fetch real match data
   const { analytics: realAnalytics } = useMatchAnalytics();
   const { teamPulseData: realTeamPulse } = useTeamPulse();
   const { liveMatchesData: realMatchPulse } = useMatchPulse();
+
+  // Enable dynamic theme based on first live match
+  const firstLiveMatch = realMatchPulse?.[0];
+  useDynamicTheme({ 
+    matchId: firstLiveMatch?.matchId,
+    enabled: !!firstLiveMatch && activeTab === "home"
+  });
 
   // Mock data for the Live Fan Pulse platform
   const liveMatches = [
@@ -632,6 +643,22 @@ const Index = () => {
               <p className="text-sm text-muted-foreground">Real-time match sentiment & fan reactions</p>
             </div>
 
+            {/* AI Emoji Intelligence Bar */}
+            {firstLiveMatch && (
+              <AIEmojiSuggestionsBar 
+                matchId={firstLiveMatch.matchId}
+                context="live"
+                teamName={firstLiveMatch.homeTeam.name}
+                currentScore={{ 
+                  home: firstLiveMatch.homeTeam.pulse, 
+                  away: firstLiveMatch.awayTeam.pulse 
+                }}
+                onEmojiSelect={(emoji, label) => {
+                  toast.success(`${emoji} ${label} reaction added!`);
+                }}
+              />
+            )}
+
             {/* Live Fan Reactions */}
             <div className="space-y-4">
               <LiveFanReactions />
@@ -696,6 +723,14 @@ const Index = () => {
               <h2 className="text-2xl font-bold text-foreground">AI Match Predictions</h2>
               <p className="text-sm text-muted-foreground">AI-powered predictions for upcoming fixtures</p>
             </div>
+
+            {/* AI Emoji Suggestions for Pre-Match */}
+            <AIEmojiSuggestionsBar 
+              context="pre-match"
+              onEmojiSelect={(emoji, label) => {
+                toast.success(`${emoji} ${label} - Great choice!`);
+              }}
+            />
             
             {/* AI-Powered Match Predictions */}
             <AIMatchPrediction />
