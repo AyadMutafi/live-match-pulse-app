@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
         const template = postTemplates[Math.floor(Math.random() * postTemplates.length)];
         
         socialPosts.push({
-          platform: ['twitter', 'instagram', 'tiktok'][Math.floor(Math.random() * 3)],
+          platform: ['twitter', 'instagram', 'facebook'][Math.floor(Math.random() * 3)],
           match_id: match.id,
           team_id: Math.random() > 0.5 ? homeTeam.id : awayTeam.id,
           post_id: `post_${match.id}_${i}`,
