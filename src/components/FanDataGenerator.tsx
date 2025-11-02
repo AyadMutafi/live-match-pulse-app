@@ -33,7 +33,7 @@ export function FanDataGenerator() {
             Generate Fan Reactions
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Generate realistic fan reactions and sentiment data for matches (Sept 15 - Oct 2)
+            Generate realistic fan reactions and sentiment data for matches (Nov 1-7, 2025)
           </p>
         </div>
         <Button onClick={generateFanData} disabled={loading}>

@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch matches from Sept 15 to Oct 2, 2025
+    // Fetch matches from Nov 1-7, 2025
     const { data: matches, error: matchError } = await supabase
       .from('matches')
       .select(`
@@ -23,8 +23,8 @@ Deno.serve(async (req) => {
         home_team:teams!matches_home_team_id_fkey(id, name, league, country),
         away_team:teams!matches_away_team_id_fkey(id, name, league, country)
       `)
-      .gte('match_date', '2025-09-15')
-      .lte('match_date', '2025-10-02')
+      .gte('match_date', '2025-11-01')
+      .lte('match_date', '2025-11-07')
       .order('match_date', { ascending: true });
 
     if (matchError) throw matchError;

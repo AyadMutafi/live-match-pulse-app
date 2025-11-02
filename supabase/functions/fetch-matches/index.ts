@@ -45,13 +45,9 @@ Deno.serve(async (req) => {
 
     console.log('Fetching matches from football-data.org API...');
 
-    // Fetch recent matches (last 10 days) - free tier supports this better
-    const today = new Date();
-    const tenDaysAgo = new Date(today);
-    tenDaysAgo.setDate(today.getDate() - 10);
-    
-    const dateFrom = tenDaysAgo.toISOString().split('T')[0];
-    const dateTo = today.toISOString().split('T')[0];
+    // Fetch matches for the week of Nov 1-7, 2025
+    const dateFrom = '2025-11-01';
+    const dateTo = '2025-11-07';
     
     console.log(`Fetching matches from ${dateFrom} to ${dateTo}`);
 
@@ -75,95 +71,70 @@ Deno.serve(async (req) => {
 
     console.log(`Found ${matches.length} matches`);
 
-    const processedTeams = new Set<number>();
+    const processedTeams = new Map<number, string>();
     const teamInserts = [];
-    const matchInserts = [];
 
+    // First pass: collect all unique teams
     for (const match of matches) {
-      // Process home team
       if (!processedTeams.has(match.homeTeam.id)) {
-        const { data: existingTeam } = await supabase
-          .from('teams')
-          .select('id')
-          .eq('name', match.homeTeam.name)
-          .maybeSingle();
-
-        if (!existingTeam) {
-          teamInserts.push({
-            name: match.homeTeam.name,
-            league: match.competition.name,
-            country: match.homeTeam.tla || 'Unknown',
-            colors: { primary: '#000000', secondary: '#FFFFFF' },
-            social_handles: { twitter: '', instagram: '' },
-          });
-        }
-        processedTeams.add(match.homeTeam.id);
+        processedTeams.set(match.homeTeam.id, match.homeTeam.name);
+        teamInserts.push({
+          name: match.homeTeam.name,
+          league: match.competition.name,
+          country: match.homeTeam.tla || 'Unknown',
+          colors: { primary: '#000000', secondary: '#FFFFFF' },
+          social_handles: { twitter: '', instagram: '' },
+        });
       }
-
-      // Process away team
+      
       if (!processedTeams.has(match.awayTeam.id)) {
-        const { data: existingTeam } = await supabase
-          .from('teams')
-          .select('id')
-          .eq('name', match.awayTeam.name)
-          .maybeSingle();
-
-        if (!existingTeam) {
-          teamInserts.push({
-            name: match.awayTeam.name,
-            league: match.competition.name,
-            country: match.awayTeam.tla || 'Unknown',
-            colors: { primary: '#000000', secondary: '#FFFFFF' },
-            social_handles: { twitter: '', instagram: '' },
-          });
-        }
-        processedTeams.add(match.awayTeam.id);
+        processedTeams.set(match.awayTeam.id, match.awayTeam.name);
+        teamInserts.push({
+          name: match.awayTeam.name,
+          league: match.competition.name,
+          country: match.awayTeam.tla || 'Unknown',
+          colors: { primary: '#000000', secondary: '#FFFFFF' },
+          social_handles: { twitter: '', instagram: '' },
+        });
       }
     }
 
-    // Insert teams
+    // Insert teams if needed
     if (teamInserts.length > 0) {
-      console.log(`Inserting ${teamInserts.length} teams...`);
-      const { error: teamError } = await supabase.from('teams').insert(teamInserts);
+      console.log(`Inserting ${teamInserts.length} new teams...`);
+      const { error: teamError } = await supabase
+        .from('teams')
+        .upsert(teamInserts, { onConflict: 'name', ignoreDuplicates: true });
+      
       if (teamError) {
         console.error('Error inserting teams:', teamError);
       }
     }
 
-    // Now process matches
+    // Fetch all teams to get their IDs
+    const { data: allTeams } = await supabase
+      .from('teams')
+      .select('id, name');
+    
+    const teamNameToId = new Map(allTeams?.map(t => [t.name, t.id]) || []);
+
+    // Prepare all match inserts
+    const matchInserts = [];
     for (const match of matches) {
-      // Get team IDs
-      const { data: homeTeam } = await supabase
-        .from('teams')
-        .select('id')
-        .eq('name', match.homeTeam.name)
-        .single();
+      const homeTeamId = teamNameToId.get(match.homeTeam.name);
+      const awayTeamId = teamNameToId.get(match.awayTeam.name);
 
-      const { data: awayTeam } = await supabase
-        .from('teams')
-        .select('id')
-        .eq('name', match.awayTeam.name)
-        .single();
-
-      if (homeTeam && awayTeam) {
-        const { data: existingMatch } = await supabase
-          .from('matches')
-          .select('id')
-          .eq('api_match_id', match.id.toString())
-          .maybeSingle();
-
-        if (!existingMatch) {
-          matchInserts.push({
-            home_team_id: homeTeam.id,
-            away_team_id: awayTeam.id,
-            match_date: match.utcDate,
-            competition: match.competition.name,
-            status: match.status.toLowerCase(),
-            home_score: match.score.fullTime.home || 0,
-            away_score: match.score.fullTime.away || 0,
-            api_match_id: match.id.toString(),
-          });
-        }
+      if (homeTeamId && awayTeamId) {
+        matchInserts.push({
+          home_team_id: homeTeamId,
+          away_team_id: awayTeamId,
+          match_date: match.utcDate,
+          competition: match.competition.name,
+          status: match.status.toLowerCase(),
+          home_score: match.score.fullTime.home || 0,
+          away_score: match.score.fullTime.away || 0,
+          api_match_id: match.id.toString(),
+        });
       }
     }
 
@@ -182,7 +153,7 @@ Deno.serve(async (req) => {
         success: true,
         teamsProcessed: teamInserts.length,
         matchesInserted: matchInserts.length,
-        message: `Successfully populated ${matchInserts.length} matches from last 10 days`,
+        message: `Successfully populated ${matchInserts.length} matches for Nov 1-7, 2025`,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
