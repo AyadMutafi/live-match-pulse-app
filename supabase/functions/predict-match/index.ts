@@ -50,18 +50,96 @@ Deno.serve(async (req) => {
 
     if (homeError || awayError) throw homeError || awayError;
 
-    // Calculate recent form
-    const calculateForm = (matches: any[], teamId: string) => {
-      return matches.map(m => {
+    // Calculate recent form with detailed stats
+    const calculateTeamCondition = (matches: any[], teamId: string) => {
+      let wins = 0, draws = 0, losses = 0;
+      let goalsScored = 0, goalsConceded = 0;
+      let homeWins = 0, awayWins = 0;
+      
+      const form = matches.map(m => {
         const isHome = m.home_team_id === teamId;
         const teamScore = isHome ? m.home_score : m.away_score;
         const oppScore = isHome ? m.away_score : m.home_score;
-        return teamScore > oppScore ? 'W' : teamScore === oppScore ? 'D' : 'L';
+        
+        goalsScored += teamScore;
+        goalsConceded += oppScore;
+        
+        if (teamScore > oppScore) {
+          wins++;
+          if (isHome) homeWins++; else awayWins++;
+          return 'W';
+        } else if (teamScore === oppScore) {
+          draws++;
+          return 'D';
+        } else {
+          losses++;
+          return 'L';
+        }
       }).join('');
+      
+      return {
+        form,
+        wins,
+        draws,
+        losses,
+        goalsScored,
+        goalsConceded,
+        goalDifference: goalsScored - goalsConceded,
+        homeWins,
+        awayWins,
+        avgGoalsScored: (goalsScored / matches.length).toFixed(1),
+        avgGoalsConceded: (goalsConceded / matches.length).toFixed(1)
+      };
     };
 
-    const homeForm = calculateForm(homeHistory || [], match.home_team_id);
-    const awayForm = calculateForm(awayHistory || [], match.away_team_id);
+    const homeCondition = calculateTeamCondition(homeHistory || [], match.home_team_id);
+    const awayCondition = calculateTeamCondition(awayHistory || [], match.away_team_id);
+
+    // Fetch fan reactions for both teams
+    const { data: homeFanReactions } = await supabase
+      .from('fan_reactions')
+      .select('*')
+      .eq('team_id', match.home_team_id)
+      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+    const { data: awayFanReactions } = await supabase
+      .from('fan_reactions')
+      .select('*')
+      .eq('team_id', match.away_team_id)
+      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+    // Calculate fan pulse (average intensity and sentiment)
+    const calculateFanPulse = (reactions: any[]) => {
+      if (!reactions || reactions.length === 0) return { avgIntensity: 50, totalReactions: 0, sentiment: 'neutral' };
+      
+      const avgIntensity = reactions.reduce((sum, r) => sum + (r.intensity || 50), 0) / reactions.length;
+      const positiveEmojis = ['😍', '🔥', '⚡', '💪', '🎯', '👑'];
+      const positiveCount = reactions.filter(r => positiveEmojis.includes(r.emoji)).length;
+      const sentiment = positiveCount / reactions.length > 0.6 ? 'positive' : 
+                        positiveCount / reactions.length < 0.4 ? 'negative' : 'neutral';
+      
+      return {
+        avgIntensity: Math.round(avgIntensity),
+        totalReactions: reactions.length,
+        sentiment
+      };
+    };
+
+    const homeFanPulse = calculateFanPulse(homeFanReactions || []);
+    const awayFanPulse = calculateFanPulse(awayFanReactions || []);
+
+    // Fetch fan predictions for this match
+    const { data: fanPredictions } = await supabase
+      .from('match_predictions')
+      .select('predicted_winner')
+      .eq('match_id', matchId);
+
+    const predictionStats = {
+      homeWinPredictions: fanPredictions?.filter(p => p.predicted_winner === 'home').length || 0,
+      awayWinPredictions: fanPredictions?.filter(p => p.predicted_winner === 'away').length || 0,
+      drawPredictions: fanPredictions?.filter(p => p.predicted_winner === 'draw').length || 0,
+      totalPredictions: fanPredictions?.length || 0
+    };
 
     // Use AI to predict match outcome
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -79,7 +157,43 @@ Deno.serve(async (req) => {
           },
           {
             role: 'user',
-            content: `Predict the outcome of:\n${match.home_team.name} (Recent form: ${homeForm}) vs ${match.away_team.name} (Recent form: ${awayForm})\n\nProvide:\n1) Win probabilities (home/draw/away as percentages)\n2) Predicted score\n3) Confidence level (0-100)\n4) 3 key insights\n\nFormat as JSON: {homeWin: number, draw: number, awayWin: number, predictedScore: string, confidence: number, insights: string[]}`,
+            content: `Predict the outcome of: ${match.home_team.name} vs ${match.away_team.name}
+
+**TEAM CONDITION ANALYSIS:**
+${match.home_team.name}:
+- Recent form: ${homeCondition.form} (${homeCondition.wins}W-${homeCondition.draws}D-${homeCondition.losses}L)
+- Goals: ${homeCondition.goalsScored} scored, ${homeCondition.goalsConceded} conceded (${homeCondition.goalDifference > 0 ? '+' : ''}${homeCondition.goalDifference} GD)
+- Average: ${homeCondition.avgGoalsScored} goals/game scored, ${homeCondition.avgGoalsConceded} conceded/game
+- Home record: ${homeCondition.homeWins} wins in last 5 home games
+
+${match.away_team.name}:
+- Recent form: ${awayCondition.form} (${awayCondition.wins}W-${awayCondition.draws}D-${awayCondition.losses}L)
+- Goals: ${awayCondition.goalsScored} scored, ${awayCondition.goalsConceded} conceded (${awayCondition.goalDifference > 0 ? '+' : ''}${awayCondition.goalDifference} GD)
+- Average: ${awayCondition.avgGoalsScored} goals/game scored, ${awayCondition.avgGoalsConceded} conceded/game
+- Away record: ${awayCondition.awayWins} wins in last 5 away games
+
+**FAN PULSE & PREDICTIONS:**
+${match.home_team.name} Fans:
+- Pulse: ${homeFanPulse.avgIntensity}/100 intensity, ${homeFanPulse.sentiment} sentiment
+- Total reactions: ${homeFanPulse.totalReactions}
+
+${match.away_team.name} Fans:
+- Pulse: ${awayFanPulse.avgIntensity}/100 intensity, ${awayFanPulse.sentiment} sentiment
+- Total reactions: ${awayFanPulse.totalReactions}
+
+Fan Predictions (${predictionStats.totalPredictions} total):
+- Home win: ${predictionStats.homeWinPredictions} (${predictionStats.totalPredictions > 0 ? Math.round(predictionStats.homeWinPredictions/predictionStats.totalPredictions*100) : 0}%)
+- Draw: ${predictionStats.drawPredictions} (${predictionStats.totalPredictions > 0 ? Math.round(predictionStats.drawPredictions/predictionStats.totalPredictions*100) : 0}%)
+- Away win: ${predictionStats.awayWinPredictions} (${predictionStats.totalPredictions > 0 ? Math.round(predictionStats.awayWinPredictions/predictionStats.totalPredictions*100) : 0}%)
+
+**REQUIRED OUTPUT:**
+Analyze both team condition and fan sentiment/predictions to provide:
+1) Win probabilities (home/draw/away as percentages - consider both team form AND fan pulse)
+2) Predicted score
+3) Confidence level (0-100)
+4) 3 key insights (mention how fan sentiment aligns or contrasts with team form)
+
+Format as JSON: {homeWin: number, draw: number, awayWin: number, predictedScore: string, confidence: number, insights: string[]}`,
           },
         ],
       }),
@@ -110,8 +224,15 @@ Deno.serve(async (req) => {
         matchId,
         homeTeam: match.home_team.name,
         awayTeam: match.away_team.name,
-        homeForm,
-        awayForm,
+        teamCondition: {
+          home: homeCondition,
+          away: awayCondition
+        },
+        fanPulse: {
+          home: homeFanPulse,
+          away: awayFanPulse
+        },
+        fanPredictions: predictionStats,
         prediction: parsedPrediction || prediction,
         rawPrediction: prediction,
       }),

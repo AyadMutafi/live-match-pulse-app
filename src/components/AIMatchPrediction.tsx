@@ -51,22 +51,85 @@ export function AIMatchPrediction() {
 
         {prediction && !isLoading && (
           <div className="space-y-4">
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <h3 className="font-semibold mb-2">
-                {prediction.homeTeam} vs {prediction.awayTeam}
-              </h3>
-              <div className="text-sm text-muted-foreground mb-2">
-                Recent form: {prediction.homeTeam} ({prediction.homeForm}) vs {prediction.awayTeam} ({prediction.awayForm})
+            {/* Team Condition */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-3">{prediction.homeTeam}</h4>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Form:</span> 
+                    <span className="ml-2 font-mono">{prediction.teamCondition?.home?.form || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Record:</span> 
+                    <span className="ml-2">{prediction.teamCondition?.home?.wins}W-{prediction.teamCondition?.home?.draws}D-{prediction.teamCondition?.home?.losses}L</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Goals:</span> 
+                    <span className="ml-2">{prediction.teamCondition?.home?.avgGoalsScored} scored, {prediction.teamCondition?.home?.avgGoalsConceded} conceded/game</span>
+                  </div>
+                  <div className="pt-2 border-t border-border">
+                    <span className="text-muted-foreground">Fan Pulse:</span> 
+                    <span className="ml-2">{prediction.fanPulse?.home?.avgIntensity}/100 ({prediction.fanPulse?.home?.sentiment})</span>
+                  </div>
+                </div>
               </div>
-              
-              <div className="mt-4">
-                <h4 className="font-medium mb-2">AI Prediction:</h4>
-                <pre className="whitespace-pre-wrap text-sm bg-background p-3 rounded">
-                  {typeof prediction.prediction === 'string' 
-                    ? prediction.prediction 
-                    : JSON.stringify(prediction.prediction, null, 2)}
-                </pre>
+
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-3">{prediction.awayTeam}</h4>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Form:</span> 
+                    <span className="ml-2 font-mono">{prediction.teamCondition?.away?.form || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Record:</span> 
+                    <span className="ml-2">{prediction.teamCondition?.away?.wins}W-{prediction.teamCondition?.away?.draws}D-{prediction.teamCondition?.away?.losses}L</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Goals:</span> 
+                    <span className="ml-2">{prediction.teamCondition?.away?.avgGoalsScored} scored, {prediction.teamCondition?.away?.avgGoalsConceded} conceded/game</span>
+                  </div>
+                  <div className="pt-2 border-t border-border">
+                    <span className="text-muted-foreground">Fan Pulse:</span> 
+                    <span className="ml-2">{prediction.fanPulse?.away?.avgIntensity}/100 ({prediction.fanPulse?.away?.sentiment})</span>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            {/* Fan Predictions */}
+            {prediction.fanPredictions?.totalPredictions > 0 && (
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-3">Fan Predictions ({prediction.fanPredictions.totalPredictions} fans)</h4>
+                <div className="grid grid-cols-3 gap-2 text-sm text-center">
+                  <div>
+                    <div className="text-muted-foreground">Home Win</div>
+                    <div className="text-lg font-bold">{Math.round(prediction.fanPredictions.homeWinPredictions / prediction.fanPredictions.totalPredictions * 100)}%</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Draw</div>
+                    <div className="text-lg font-bold">{Math.round(prediction.fanPredictions.drawPredictions / prediction.fanPredictions.totalPredictions * 100)}%</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Away Win</div>
+                    <div className="text-lg font-bold">{Math.round(prediction.fanPredictions.awayWinPredictions / prediction.fanPredictions.totalPredictions * 100)}%</div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* AI Prediction */}
+            <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                AI Prediction
+              </h4>
+              <pre className="whitespace-pre-wrap text-sm bg-background/50 p-3 rounded">
+                {typeof prediction.prediction === 'string' 
+                  ? prediction.prediction 
+                  : JSON.stringify(prediction.prediction, null, 2)}
+              </pre>
             </div>
           </div>
         )}
