@@ -1,10 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Settings2, Sparkles } from "lucide-react";
+import { Settings2, Sparkles, HelpCircle } from "lucide-react";
 import { DisplaySettingsPanel } from "./DisplaySettingsPanel";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function AppHeader() {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
+
+  useEffect(() => {
+    const hasSeenOnboarding = localStorage.getItem("fanpulse_onboarding_complete");
+    setIsNewUser(!hasSeenOnboarding);
+  }, []);
+
+  const resetOnboarding = () => {
+    localStorage.removeItem("fanpulse_onboarding_complete");
+    window.location.reload();
+  };
 
   return (
     <>
@@ -17,15 +33,34 @@ export function AppHeader() {
             </h1>
           </div>
           
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSettingsOpen(true)}
-            className="relative"
-          >
-            <Settings2 className="w-5 h-5" />
-            <span className="sr-only">Display Settings</span>
-          </Button>
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={resetOnboarding}
+                  className="relative"
+                >
+                  <HelpCircle className="w-5 h-5" />
+                  <span className="sr-only">Help</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View tutorial again</p>
+              </TooltipContent>
+            </Tooltip>
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSettingsOpen(true)}
+              className="relative"
+            >
+              <Settings2 className="w-5 h-5" />
+              <span className="sr-only">Display Settings</span>
+            </Button>
+          </div>
         </div>
       </header>
 

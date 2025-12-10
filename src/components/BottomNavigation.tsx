@@ -1,4 +1,4 @@
-import { Home, BarChart3, Users, Target, Trophy, Brain, Heart } from "lucide-react";
+import { Home, Brain, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BottomNavigationProps {
@@ -6,13 +6,11 @@ interface BottomNavigationProps {
   onTabChange: (tab: string) => void;
 }
 
+// Simplified navigation: 3 main sections
 const navItems = [
-  { id: "home", icon: Home, label: "Match Pulse" },
-  { id: "fan-zone", icon: Heart, label: "Fan Zone" },
-  { id: "pulse", icon: Users, label: "Team Pulse" },
-  { id: "predictions", icon: Target, label: "Predict" },
-  { id: "analytics", icon: BarChart3, label: "Analytics" },
-  { id: "team-of-week", icon: Trophy, label: "Team of Week" },
+  { id: "home", icon: Home, label: "Home", description: "Live matches & updates" },
+  { id: "insights", icon: Brain, label: "Insights", description: "AI predictions & analytics" },
+  { id: "my-zone", icon: User, label: "My Zone", description: "Your favorites & profile" },
 ];
 
 export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationProps) {
