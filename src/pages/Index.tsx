@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
 import { LiveMatch } from "@/components/LiveMatch";
 import { EnhancedPrediction } from "@/components/EnhancedPrediction";
 import { SentimentMeter } from "@/components/SentimentMeter";
@@ -21,18 +22,36 @@ import { AIMatchPrediction } from "@/components/AIMatchPrediction";
 import { FanProfileCard } from "@/components/FanProfileCard";
 import { TeamRivalryTracker } from "@/components/TeamRivalryTracker";
 import { AIEmojiSuggestionsBar } from "@/components/AIEmojiSuggestionsBar";
+import { WelcomeOnboarding } from "@/components/WelcomeOnboarding";
+import { QuickInsightCard } from "@/components/QuickInsightCard";
+import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { useMatchAnalytics } from "@/hooks/useMatchAnalytics";
 import { useTeamPulse } from "@/hooks/useTeamPulse";
 import { useMatchPulse } from "@/hooks/useMatchPulse";
 import { useDynamicTheme } from "@/hooks/useDynamicTheme";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Zap, Users, Target, TrendingUp, MessageCircle, Brain, Heart } from "lucide-react";
+import { RefreshCw, Zap, Users, Target, TrendingUp, MessageCircle, Brain, Heart, Trophy, BarChart3, Flame, Globe } from "lucide-react";
 import { toast } from "sonner";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState<string | undefined>();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Check for first-time user
+  useEffect(() => {
+    const hasSeenOnboarding = localStorage.getItem("fanpulse_onboarding_complete");
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem("fanpulse_onboarding_complete", "true");
+    setShowOnboarding(false);
+    toast.success("Welcome to Fan Pulse AI! Explore your dashboard.");
+  };
 
   // Fetch real match data
   const { analytics: realAnalytics } = useMatchAnalytics();
@@ -619,28 +638,34 @@ const Index = () => {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     setIsRefreshing(false);
   };
 
   const renderContent = () => {
     switch (activeTab) {
-      case "personalized":
-        return <PersonalizedFeed />;
-        
-      case "favorites":
-        return <FavoriteTeamsDashboard />;
-        
-      case "notifications":
-        return <NotificationPreferences />;
-        
       case "home":
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Match Pulse</h2>
-              <p className="text-sm text-muted-foreground">Real-time match sentiment & fan reactions</p>
+            {/* Quick Stats Overview */}
+            <div className="grid grid-cols-2 gap-3">
+              <QuickInsightCard
+                icon={Flame}
+                title="Live Matches"
+                value={realMatchPulse?.length || 0}
+                subtitle="Happening now"
+                variant="highlight"
+              />
+              <QuickInsightCard
+                icon={Users}
+                title="Fan Activity"
+                value={realMatchPulse?.reduce((sum, m) => sum + m.totalEngagement, 0) 
+                  ? `${((realMatchPulse?.reduce((sum, m) => sum + m.totalEngagement, 0) || 0) / 1000).toFixed(1)}K`
+                  : "0"}
+                subtitle="Reactions today"
+                trend="up"
+                trendValue="12%"
+              />
             </div>
 
             {/* AI Emoji Intelligence Bar */}
@@ -659,180 +684,118 @@ const Index = () => {
               />
             )}
 
-            {/* Live Fan Reactions */}
-            <div className="space-y-4">
-              <LiveFanReactions />
-            </div>
-
-            {/* Live Match Pulse Section */}
-            {realMatchPulse && realMatchPulse.length > 0 ? (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground flex items-center space-x-2">
-                  <span>🔥 Live Match Pulse</span>
-                  <span className="text-sm font-normal text-muted-foreground">(Real-time reactions)</span>
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
+            {/* Live Matches Section */}
+            <CollapsibleSection
+              title="Live Matches"
+              icon={<Zap className="w-5 h-5 text-primary" />}
+              badge={realMatchPulse?.length ? `${realMatchPulse.length} live` : undefined}
+              defaultOpen={true}
+            >
+              {realMatchPulse && realMatchPulse.length > 0 ? (
+                <div className="space-y-3">
                   {realMatchPulse.map((matchData) => (
                     <MatchPulse key={matchData.matchId} matchData={matchData} />
                   ))}
                 </div>
-              </div>
-            ) : (
-              <div className="text-center py-8 bg-muted/50 rounded-lg">
-                <p className="text-muted-foreground">No live matches available for tracked teams</p>
-                <p className="text-sm text-muted-foreground mt-2">Generate fan data to see match pulse</p>
-              </div>
-            )}
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  <p>No live matches right now</p>
+                  <p className="text-sm mt-1">Check back during match times</p>
+                </div>
+              )}
+            </CollapsibleSection>
 
-            {/* Fan Sentiment Overview */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <SentimentMeter {...sentiment} />
-              <MultiLanguageSentiment 
-                languages={languageSentiments}
-                totalMentions={languageSentiments.reduce((sum, lang) => sum + lang.totalPosts, 0)}
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <StatCard
-                title="Active Matches"
-                value={realMatchPulse?.length.toString() || "0"}
-                subtitle="Tracked matches"
-                icon={Zap}
-                color="text-accent"
-                trend="up"
-              />
-              <StatCard
-                title="Fan Engagement"
-                value={realMatchPulse && realMatchPulse.length > 0 
-                  ? `${(realMatchPulse.reduce((sum, m) => sum + m.totalEngagement, 0) / 1000).toFixed(1)}K`
-                  : "0"}
-                subtitle="Total interactions"
-                icon={Users}
-                color="text-success"
-                trend="up"
-              />
-            </div>
+            {/* Fan Reactions */}
+            <CollapsibleSection
+              title="Live Fan Reactions"
+              icon={<Heart className="w-5 h-5 text-accent" />}
+              defaultOpen={false}
+            >
+              <LiveFanReactions />
+            </CollapsibleSection>
+
+            {/* Sentiment Overview */}
+            <CollapsibleSection
+              title="Fan Sentiment"
+              icon={<Globe className="w-5 h-5 text-muted-foreground" />}
+              defaultOpen={false}
+            >
+              <div className="space-y-4">
+                <SentimentMeter {...sentiment} />
+                <MultiLanguageSentiment 
+                  languages={languageSentiments}
+                  totalMentions={languageSentiments.reduce((sum, lang) => sum + lang.totalPosts, 0)}
+                />
+              </div>
+            </CollapsibleSection>
           </div>
         );
-        
-      case "predictions":
+
+      case "insights":
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">AI Match Predictions</h2>
-              <p className="text-sm text-muted-foreground">AI-powered predictions for upcoming fixtures</p>
-            </div>
-
-            {/* AI Emoji Suggestions for Pre-Match */}
-            <AIEmojiSuggestionsBar 
-              context="pre-match"
-              onEmojiSelect={(emoji, label) => {
-                toast.success(`${emoji} ${label} - Great choice!`);
-              }}
-            />
-            
-            {/* AI-Powered Match Predictions */}
-            <AIMatchPrediction />
-            
-            <div className="space-y-4">
-              {teamPredictions.map((prediction, index) => (
-                <EnhancedPrediction key={index} {...prediction} />
-              ))}
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <StatCard
-                title="Accuracy Rate"
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 gap-3">
+              <QuickInsightCard
+                icon={Target}
+                title="AI Accuracy"
                 value="84.3%"
                 subtitle="Last 30 days"
-                icon={Target}
-                color="text-ai-green"
+                variant="highlight"
                 trend="up"
+                trendValue="2.1%"
               />
-              <StatCard
-                title="Model Score"
-                value="9.2/10"
-                subtitle="Confidence level"
-                icon={TrendingUp}
-                color="text-primary"
-                trend="up"
-              />
-            </div>
-          </div>
-        );
-        
-      case "analytics":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">AI Analytics</h2>
-              <p className="text-sm text-muted-foreground">AI-powered social media insights & trending analysis</p>
-            </div>
-            
-            <AIAnalytics {...(realAnalytics || aiAnalytics)} />
-            
-            <div className="grid grid-cols-2 gap-4">
-              <StatCard
-                title="Mentions/Hour"
-                value="2.4K"
-                subtitle="Peak activity"
-                icon={MessageCircle}
-                color="text-accent"
-                trend="up"
-              />
-              <StatCard
-                title="AI Insights"
-                value="127"
-                subtitle="Generated today"
+              <QuickInsightCard
                 icon={Brain}
-                color="text-ai-green"
-                trend="up"
+                title="Insights Today"
+                value="127"
+                subtitle="AI-generated"
               />
             </div>
-          </div>
-        );
 
-      case "team-of-week":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">AI Team of the Week</h2>
-              <p className="text-sm text-muted-foreground">AI-generated team based on real performance & fan sentiment</p>
-            </div>
-            
-            {/* AI-Generated Team of the Week */}
-            <AITeamOfWeek />
-            
-            {/* Traditional Team of the Week Display */}
-            <TeamOfTheWeek />
-          </div>
-        );
-
-      case "fixtures-intelligence":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">AI Fixtures Intelligence</h2>
-              <p className="text-sm text-muted-foreground">Pre-match analysis & predictions powered by AI</p>
-            </div>
-            
-            <AIFixturesIntelligence />
-          </div>
-        );
-
-      case "pulse":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Team Pulse</h2>
-              <p className="text-sm text-muted-foreground">Real-time team performance & player ratings</p>
-            </div>
-
-            {realTeamPulse && realTeamPulse.length > 0 ? (
+            {/* AI Predictions */}
+            <CollapsibleSection
+              title="AI Predictions"
+              icon={<Target className="w-5 h-5 text-primary" />}
+              badge="Featured"
+              defaultOpen={true}
+            >
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground">Top Performing Teams</h3>
-                <div className="grid grid-cols-1 gap-4">
+                <AIMatchPrediction />
+                <div className="space-y-3">
+                  {teamPredictions.slice(0, 3).map((prediction, index) => (
+                    <EnhancedPrediction key={index} {...prediction} />
+                  ))}
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* Team of the Week */}
+            <CollapsibleSection
+              title="Team of the Week"
+              icon={<Trophy className="w-5 h-5 text-[hsl(var(--warning))]" />}
+              defaultOpen={false}
+            >
+              <AITeamOfWeek />
+            </CollapsibleSection>
+
+            {/* Analytics */}
+            <CollapsibleSection
+              title="Social Analytics"
+              icon={<BarChart3 className="w-5 h-5 text-muted-foreground" />}
+              defaultOpen={false}
+            >
+              <AIAnalytics {...(realAnalytics || aiAnalytics)} />
+            </CollapsibleSection>
+
+            {/* Team Pulse */}
+            <CollapsibleSection
+              title="Team Performance"
+              icon={<TrendingUp className="w-5 h-5 text-[hsl(var(--success))]" />}
+              defaultOpen={false}
+            >
+              {realTeamPulse && realTeamPulse.length > 0 ? (
+                <div className="space-y-3">
                   {realTeamPulse.map((team, index) => (
                     <TeamPulseRating 
                       key={index}
@@ -846,70 +809,56 @@ const Index = () => {
                     />
                   ))}
                 </div>
-              </div>
-            ) : (
-              <div className="text-center py-8 bg-muted/50 rounded-lg">
-                <p className="text-muted-foreground">No team pulse data available</p>
-                <p className="text-sm text-muted-foreground mt-2">Team pulse is calculated from recent match results</p>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <SentimentMeter {...sentiment} />
-              <MultiLanguageSentiment 
-                languages={languageSentiments}
-                totalMentions={languageSentiments.reduce((sum, lang) => sum + lang.totalPosts, 0)}
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <StatCard
-                title="Tracked Teams"
-                value={realTeamPulse?.length.toString() || "0"}
-                subtitle="Active teams"
-                icon={Users}
-                color="text-primary"
-                trend="up"
-              />
-              <StatCard
-                title="Avg Pulse"
-                value={realTeamPulse && realTeamPulse.length > 0 
-                  ? (realTeamPulse.reduce((sum, t) => sum + t.overallPulse, 0) / realTeamPulse.length).toFixed(0)
-                  : "0"}
-                subtitle="Performance score"
-                icon={TrendingUp}
-                color="text-success"
-                trend="up"
-              />
-            </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  <p>No team data available</p>
+                </div>
+              )}
+            </CollapsibleSection>
           </div>
         );
 
-      case "fan-zone":
+      case "my-zone":
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <Heart className="w-6 h-6 text-primary" />
-                Fan Zone
-              </h2>
-              <p className="text-sm text-muted-foreground">Your personalized fan experience & team loyalty hub</p>
-            </div>
+            {/* Fan Profile */}
+            <FanProfileCard />
 
-            {/* Fan Profile & Rivalry Tracking */}
-            <div className="space-y-4">
-              <FanProfileCard />
-              <TeamRivalryTracker />
-            </div>
-
-            {/* Favorite Teams Management */}
-            <FavoriteTeamsDashboard />
+            {/* Favorite Teams */}
+            <CollapsibleSection
+              title="My Favorite Teams"
+              icon={<Heart className="w-5 h-5 text-accent" />}
+              defaultOpen={true}
+            >
+              <FavoriteTeamsDashboard />
+            </CollapsibleSection>
 
             {/* Personalized Feed */}
-            <PersonalizedFeed />
+            <CollapsibleSection
+              title="My Feed"
+              icon={<Zap className="w-5 h-5 text-primary" />}
+              defaultOpen={false}
+            >
+              <PersonalizedFeed />
+            </CollapsibleSection>
 
-            {/* Notification Preferences */}
-            <NotificationPreferences />
+            {/* Rivalries */}
+            <CollapsibleSection
+              title="Team Rivalries"
+              icon={<Flame className="w-5 h-5 text-[hsl(var(--warning))]" />}
+              defaultOpen={false}
+            >
+              <TeamRivalryTracker />
+            </CollapsibleSection>
+
+            {/* Settings */}
+            <CollapsibleSection
+              title="Notification Settings"
+              icon={<MessageCircle className="w-5 h-5 text-muted-foreground" />}
+              defaultOpen={false}
+            >
+              <NotificationPreferences />
+            </CollapsibleSection>
           </div>
         );
         
@@ -925,6 +874,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Onboarding for first-time users */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <WelcomeOnboarding onComplete={handleOnboardingComplete} />
+        )}
+      </AnimatePresence>
+
       <AppHeader />
 
       {/* Content */}
