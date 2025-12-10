@@ -9,29 +9,29 @@ const COMPETITIONS = [
   { 
     label: "Premier League", 
     value: "Premier League", 
-    start: "2025-09-15", 
-    end: "2025-10-02", 
+    start: "2025-11-01", 
+    end: "2025-11-07", 
     logo: "https://resources.premierleague.com/premierleague/photo/2023/11/14/1a1c7fbb-eca8-46aa-bb3e-80af61ec852c/Premier-League-Logo-2016.png"
   },
   { 
     label: "La Liga", 
     value: "La Liga", 
-    start: "2025-09-15", 
-    end: "2025-10-02", 
+    start: "2025-11-01", 
+    end: "2025-11-07", 
     logo: "https://assets.laliga.com/assets/logos/laliga-v/laliga-v-300x300.png"
   },
   { 
     label: "Serie A", 
     value: "Serie A", 
-    start: "2025-09-15", 
-    end: "2025-10-02", 
+    start: "2025-11-01", 
+    end: "2025-11-07", 
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Lega_Serie_A_logo_2019.svg/200px-Lega_Serie_A_logo_2019.svg.png"
   },
   { 
     label: "Champions League", 
     value: "UEFA Champions League", 
-    start: "2025-09-15", 
-    end: "2025-10-02", 
+    start: "2025-11-01", 
+    end: "2025-11-07", 
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/UEFA_Champions_League_logo_2.svg/200px-UEFA_Champions_League_logo_2.svg.png"
   },
 ];
@@ -77,7 +77,7 @@ function CompetitionTeamOfWeek({ competition, competitionValue, weekStart, weekE
         </div>
 
         <div className="text-sm text-muted-foreground mb-4">
-          Based on {data?.matchesAnalyzed} matches analyzed (Sep 15 - Oct 2, 2025)
+          Based on {data?.matchesAnalyzed} matches analyzed (Nov 1 - 7, 2025)
         </div>
       </Card>
 
