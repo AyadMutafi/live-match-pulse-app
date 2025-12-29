@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Brain, TrendingUp } from "lucide-react";
+import { SocialShareButtons } from "./SocialShareButtons";
 
 interface PredictionCardProps {
   homeTeam: string;
@@ -69,6 +70,14 @@ export function PredictionCard({
       <div className="mt-3 text-center">
         <span className="text-sm text-muted-foreground">Most Likely: </span>
         <span className="font-bold text-primary">{prediction}</span>
+      </div>
+      
+      <div className="mt-4 pt-4 border-t border-border">
+        <SocialShareButtons 
+          title={`${homeTeam} vs ${awayTeam} - AI Prediction`}
+          text={`🤖 AI predicts ${prediction} for ${homeTeam} vs ${awayTeam}! ${confidence}% confidence. Check out the full analysis on Match Pulse!`}
+          hashtags={["MatchPulse", "Football", "AIPrediction", homeTeam.replace(/\s+/g, ''), awayTeam.replace(/\s+/g, '')]}
+        />
       </div>
     </Card>
   );
