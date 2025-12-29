@@ -1,9 +1,10 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Trophy, Sparkles, Calendar } from "lucide-react";
+import { Loader2, Trophy, Sparkles } from "lucide-react";
 import { useTeamOfWeek } from "@/hooks/useTeamOfWeek";
 import { FieldFormation } from "./FieldFormation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SocialShareButtons } from "./SocialShareButtons";
 
 const COMPETITIONS = [
   { 
@@ -104,6 +105,18 @@ function CompetitionTeamOfWeek({ competition, competitionValue, weekStart, weekE
           </div>
         </Card>
       )}
+
+      {/* Share buttons */}
+      <Card className="p-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <span className="text-sm font-medium">Share this Team of the Week</span>
+          <SocialShareButtons 
+            title={`${competition} Team of the Week`}
+            text={`🏆 Check out the AI-generated ${competition} Team of the Week! Based on ${data?.matchesAnalyzed || 0} matches analyzed. Who do you think deserved a spot?`}
+            hashtags={["MatchPulse", "TeamOfTheWeek", competition.replace(/\s+/g, ''), "Football"]}
+          />
+        </div>
+      </Card>
     </div>
   );
 }
