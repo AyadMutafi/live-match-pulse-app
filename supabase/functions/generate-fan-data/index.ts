@@ -15,6 +15,7 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // This function generates sample data and doesn't accept user input
     // Fetch matches from Nov 1-7, 2025
     const { data: matches, error: matchError } = await supabase
       .from('matches')
@@ -27,7 +28,13 @@ Deno.serve(async (req) => {
       .lte('match_date', '2025-11-07')
       .order('match_date', { ascending: true });
 
-    if (matchError) throw matchError;
+    if (matchError) {
+      console.error('Match fetch error:', matchError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch matches' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     console.log(`Found ${matches?.length || 0} matches to generate fan data for`);
 
@@ -47,7 +54,6 @@ Deno.serve(async (req) => {
       // Determine winner and sentiment
       const homeWin = homeScore > awayScore;
       const draw = homeScore === awayScore;
-      const awayWin = awayScore > homeScore;
 
       const postTemplates = [
         `What a match! ${homeTeam.name} ${homeScore}-${awayScore} ${awayTeam.name}! 🔥⚽`,
@@ -114,7 +120,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error generating fan data:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'An unexpected error occurred' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

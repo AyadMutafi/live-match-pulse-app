@@ -1,10 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const inputSchema = z.object({
+  matchId: z.string().uuid({ message: 'Invalid match ID format' }),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -17,7 +23,21 @@ serve(async (req) => {
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const { matchId } = await req.json();
+    
+    // Validate input
+    let validatedInput;
+    try {
+      const body = await req.json();
+      validatedInput = inputSchema.parse(body);
+    } catch (validationError) {
+      console.error('Validation error:', validationError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid input parameters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { matchId } = validatedInput;
 
     // Fetch match details
     const { data: match, error: matchError } = await supabase
@@ -30,7 +50,13 @@ serve(async (req) => {
       .eq('id', matchId)
       .single();
 
-    if (matchError) throw matchError;
+    if (matchError) {
+      console.error('Match fetch error:', matchError);
+      return new Response(
+        JSON.stringify({ error: 'Match not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Fetch recent matches for both teams (last 5)
     const [homeTeamMatches, awayTeamMatches] = await Promise.all([
@@ -96,6 +122,14 @@ Format as JSON with this structure:
       })
     });
 
+    if (!aiResponse.ok) {
+      console.error('AI API error:', aiResponse.status);
+      return new Response(
+        JSON.stringify({ error: 'Failed to generate analysis' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const aiData = await aiResponse.json();
     const analysisText = aiData.choices[0].message.content;
     
@@ -140,7 +174,7 @@ Format as JSON with this structure:
   } catch (error) {
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'An unexpected error occurred' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

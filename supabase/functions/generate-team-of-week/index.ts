@@ -1,9 +1,22 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema with date range limit
+const inputSchema = z.object({
+  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/, { message: 'Invalid date format for weekStart' }),
+  weekEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/, { message: 'Invalid date format for weekEnd' }),
+  competition: z.string().max(100).optional(),
+}).refine(data => {
+  const start = new Date(data.weekStart);
+  const end = new Date(data.weekEnd);
+  const daysDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+  return daysDiff <= 30 && daysDiff >= 0;
+}, { message: 'Date range must be between 0 and 30 days' });
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -16,7 +29,20 @@ Deno.serve(async (req) => {
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { weekStart, weekEnd, competition } = await req.json();
+    // Validate input
+    let validatedInput;
+    try {
+      const body = await req.json();
+      validatedInput = inputSchema.parse(body);
+    } catch (validationError) {
+      console.error('Validation error:', validationError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid input parameters. Ensure valid date formats and range within 30 days.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { weekStart, weekEnd, competition } = validatedInput;
 
     // Fetch matches for the week and competition
     let query = supabase
@@ -37,7 +63,13 @@ Deno.serve(async (req) => {
     
     const { data: matches, error: matchError } = await query.order('match_date', { ascending: true });
 
-    if (matchError) throw matchError;
+    if (matchError) {
+      console.error('Match fetch error:', matchError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch matches' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!matches || matches.length === 0) {
       return new Response(
@@ -53,7 +85,9 @@ Deno.serve(async (req) => {
       .select('match_id, team_id, sentiment_score, emotions')
       .in('match_id', matchIds);
 
-    if (sentimentError) throw sentimentError;
+    if (sentimentError) {
+      console.error('Sentiment fetch error:', sentimentError);
+    }
 
     // Prepare match summaries for AI
     const matchSummaries = matches.map(m => {
@@ -107,9 +141,11 @@ Ratings should be between 7.0 and 10.0. No markdown, no code blocks, just the JS
     });
 
     if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
+      console.error('AI API error:', aiResponse.status);
+      return new Response(
+        JSON.stringify({ error: 'Failed to generate Team of the Week' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const aiData = await aiResponse.json();
@@ -123,7 +159,10 @@ Ratings should be between 7.0 and 10.0. No markdown, no code blocks, just the JS
       teamOfWeek = JSON.parse(cleanContent);
     } catch (parseError) {
       console.error('Failed to parse AI response:', teamOfWeekContent);
-      throw new Error('Failed to parse AI response as JSON');
+      return new Response(
+        JSON.stringify({ error: 'Failed to parse AI response' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     return new Response(
@@ -139,7 +178,7 @@ Ratings should be between 7.0 and 10.0. No markdown, no code blocks, just the JS
   } catch (error) {
     console.error('Error generating team of week:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'An unexpected error occurred' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
