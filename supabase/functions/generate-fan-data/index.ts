@@ -16,7 +16,13 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // This function generates sample data and doesn't accept user input
-    // Fetch matches from Nov 1-7, 2025
+    // Fetch matches from last 60 days (rolling window for fresh data)
+    const now = new Date();
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString();
+    const endDate = now.toISOString();
+    
+    console.log(`Fetching matches from ${sixtyDaysAgo} to ${endDate}`);
+    
     const { data: matches, error: matchError } = await supabase
       .from('matches')
       .select(`
@@ -24,9 +30,11 @@ Deno.serve(async (req) => {
         home_team:teams!matches_home_team_id_fkey(id, name, league, country),
         away_team:teams!matches_away_team_id_fkey(id, name, league, country)
       `)
-      .gte('match_date', '2025-11-01')
-      .lte('match_date', '2025-11-07')
-      .order('match_date', { ascending: true });
+      .eq('status', 'finished')
+      .gte('match_date', sixtyDaysAgo)
+      .lte('match_date', endDate)
+      .order('match_date', { ascending: false })
+      .limit(50);
 
     if (matchError) {
       console.error('Match fetch error:', matchError);
