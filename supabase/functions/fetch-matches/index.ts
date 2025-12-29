@@ -45,10 +45,12 @@ Deno.serve(async (req) => {
 
     console.log('Fetching matches from football-data.org API...');
 
-    // This function fetches from a trusted external API with hardcoded date range
-    // No user input is accepted - the date range is fixed for demo purposes
-    const dateFrom = '2025-11-01';
-    const dateTo = '2025-11-07';
+    // This function fetches from a trusted external API with dynamic date range
+    // No user input is accepted - uses last 7 days for reliable data
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const dateFrom = sevenDaysAgo.toISOString().split('T')[0];
+    const dateTo = now.toISOString().split('T')[0];
     
     console.log(`Fetching matches from ${dateFrom} to ${dateTo}`);
 
@@ -141,14 +143,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Insert matches
+    // Upsert matches (update if exists, insert if not)
     if (matchInserts.length > 0) {
-      console.log(`Inserting ${matchInserts.length} matches...`);
-      const { error: matchError } = await supabase.from('matches').insert(matchInserts);
+      console.log(`Upserting ${matchInserts.length} matches...`);
+      const { error: matchError } = await supabase
+        .from('matches')
+        .upsert(matchInserts, { onConflict: 'api_match_id' });
       if (matchError) {
-        console.error('Error inserting matches:', matchError);
+        console.error('Error upserting matches:', matchError);
         return new Response(
-          JSON.stringify({ error: 'Failed to insert matches' }),
+          JSON.stringify({ error: 'Failed to upsert matches', details: matchError.message }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -158,8 +162,8 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         teamsProcessed: teamInserts.length,
-        matchesInserted: matchInserts.length,
-        message: `Successfully populated ${matchInserts.length} matches for Nov 1-7, 2025`,
+        matchesUpserted: matchInserts.length,
+        message: `Successfully populated ${matchInserts.length} matches for ${dateFrom} to ${dateTo}`,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
