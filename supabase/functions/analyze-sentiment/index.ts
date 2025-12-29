@@ -1,9 +1,15 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const inputSchema = z.object({
+  matchId: z.string().uuid({ message: 'Invalid match ID format' }),
+});
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -16,7 +22,20 @@ Deno.serve(async (req) => {
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { matchId } = await req.json();
+    // Validate input
+    let validatedInput;
+    try {
+      const body = await req.json();
+      validatedInput = inputSchema.parse(body);
+    } catch (validationError) {
+      console.error('Validation error:', validationError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid input parameters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { matchId } = validatedInput;
 
     // Fetch social posts for the match
     const { data: posts, error: postsError } = await supabase
@@ -25,7 +44,13 @@ Deno.serve(async (req) => {
       .eq('match_id', matchId)
       .limit(50);
 
-    if (postsError) throw postsError;
+    if (postsError) {
+      console.error('Posts fetch error:', postsError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch social posts' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!posts || posts.length === 0) {
       return new Response(
@@ -57,9 +82,11 @@ Deno.serve(async (req) => {
     });
 
     if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
+      console.error('AI API error:', aiResponse.status);
+      return new Response(
+        JSON.stringify({ error: 'Failed to analyze sentiment' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const aiData = await aiResponse.json();
@@ -81,7 +108,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error analyzing sentiment:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'An unexpected error occurred' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

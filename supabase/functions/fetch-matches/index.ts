@@ -45,7 +45,8 @@ Deno.serve(async (req) => {
 
     console.log('Fetching matches from football-data.org API...');
 
-    // Fetch matches for the week of Nov 1-7, 2025
+    // This function fetches from a trusted external API with hardcoded date range
+    // No user input is accepted - the date range is fixed for demo purposes
     const dateFrom = '2025-11-01';
     const dateTo = '2025-11-07';
     
@@ -61,9 +62,11 @@ Deno.serve(async (req) => {
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error Response:', errorText);
-      throw new Error(`Football Data API error: ${response.status} ${response.statusText} - ${errorText}`);
+      console.error('API Error:', response.status, response.statusText);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch matches from external API' }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const data = await response.json();
@@ -144,7 +147,10 @@ Deno.serve(async (req) => {
       const { error: matchError } = await supabase.from('matches').insert(matchInserts);
       if (matchError) {
         console.error('Error inserting matches:', matchError);
-        throw matchError;
+        return new Response(
+          JSON.stringify({ error: 'Failed to insert matches' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
 
@@ -162,10 +168,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in fetch-matches function:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message,
-      }),
+      JSON.stringify({ error: 'An unexpected error occurred' }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

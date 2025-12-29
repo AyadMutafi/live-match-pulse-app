@@ -1,9 +1,15 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const inputSchema = z.object({
+  matchId: z.string().uuid({ message: 'Invalid match ID format' }),
+});
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -16,7 +22,20 @@ Deno.serve(async (req) => {
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { matchId } = await req.json();
+    // Validate input
+    let validatedInput;
+    try {
+      const body = await req.json();
+      validatedInput = inputSchema.parse(body);
+    } catch (validationError) {
+      console.error('Validation error:', validationError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid input parameters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { matchId } = validatedInput;
 
     // Fetch the match
     const { data: match, error: matchError } = await supabase
@@ -29,7 +48,13 @@ Deno.serve(async (req) => {
       .eq('id', matchId)
       .single();
 
-    if (matchError) throw matchError;
+    if (matchError) {
+      console.error('Match fetch error:', matchError);
+      return new Response(
+        JSON.stringify({ error: 'Match not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Fetch recent matches for both teams
     const { data: homeHistory, error: homeError } = await supabase
@@ -48,7 +73,13 @@ Deno.serve(async (req) => {
       .order('match_date', { ascending: false })
       .limit(5);
 
-    if (homeError || awayError) throw homeError || awayError;
+    if (homeError || awayError) {
+      console.error('History fetch error:', homeError || awayError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch team history' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Calculate recent form with detailed stats
     const calculateTeamCondition = (matches: any[], teamId: string) => {
@@ -200,9 +231,11 @@ Format as JSON: {homeWin: number, draw: number, awayWin: number, predictedScore:
     });
 
     if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
+      console.error('AI API error:', aiResponse.status);
+      return new Response(
+        JSON.stringify({ error: 'Failed to generate prediction' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const aiData = await aiResponse.json();
@@ -241,7 +274,7 @@ Format as JSON: {homeWin: number, draw: number, awayWin: number, predictedScore:
   } catch (error) {
     console.error('Error predicting match:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'An unexpected error occurred' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
