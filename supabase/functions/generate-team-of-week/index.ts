@@ -80,28 +80,98 @@ Deno.serve(async (req) => {
 
     // Fetch sentiment data for these matches
     const matchIds = matches.map(m => m.id);
+    const teamIds = [...new Set(matches.flatMap(m => [m.home_team_id, m.away_team_id]))];
+    
     const { data: sentimentData, error: sentimentError } = await supabase
       .from('social_posts')
-      .select('match_id, team_id, sentiment_score, emotions')
+      .select('match_id, team_id, sentiment_score, emotions, content')
       .in('match_id', matchIds);
 
     if (sentimentError) {
       console.error('Sentiment fetch error:', sentimentError);
     }
 
-    // Prepare match summaries for AI
+    // Fetch match emotions data (aggregated sentiment per team)
+    const { data: matchEmotions, error: emotionsError } = await supabase
+      .from('match_emotions')
+      .select('match_id, team_id, emotion_distribution, total_posts, avg_sentiment, peak_moments')
+      .in('match_id', matchIds);
+
+    if (emotionsError) {
+      console.error('Match emotions fetch error:', emotionsError);
+    }
+
+    // Fetch fan reactions for more granular sentiment
+    const { data: fanReactions, error: reactionsError } = await supabase
+      .from('fan_reactions')
+      .select('match_id, team_id, player_id, reaction_type, emoji, intensity, content')
+      .in('match_id', matchIds);
+
+    if (reactionsError) {
+      console.error('Fan reactions fetch error:', reactionsError);
+    }
+
+    // Build detailed sentiment analysis per team
+    const teamSentimentAnalysis = teamIds.map(teamId => {
+      const teamPosts = sentimentData?.filter(s => s.team_id === teamId) || [];
+      const teamEmotions = matchEmotions?.filter(e => e.team_id === teamId) || [];
+      const teamReactions = fanReactions?.filter(r => r.team_id === teamId) || [];
+      
+      const avgSentiment = teamPosts.length > 0
+        ? teamPosts.reduce((sum, s) => sum + (s.sentiment_score || 0), 0) / teamPosts.length
+        : 0;
+      
+      const totalEngagement = teamEmotions.reduce((sum, e) => sum + (e.total_posts || 0), 0);
+      const positiveReactions = teamReactions.filter(r => 
+        ['celebration', 'excitement', 'joy', 'love'].includes(r.reaction_type?.toLowerCase())
+      ).length;
+      
+      // Extract common emotions from posts
+      const emotionCounts: Record<string, number> = {};
+      teamPosts.forEach(post => {
+        if (post.emotions && typeof post.emotions === 'object') {
+          Object.entries(post.emotions).forEach(([emotion, count]) => {
+            emotionCounts[emotion] = (emotionCounts[emotion] || 0) + Number(count);
+          });
+        }
+      });
+      
+      // Get player mentions from reactions
+      const playerMentions = teamReactions
+        .filter(r => r.player_id)
+        .reduce((acc, r) => {
+          acc[r.player_id!] = (acc[r.player_id!] || 0) + (r.intensity || 1);
+          return acc;
+        }, {} as Record<string, number>);
+
+      return {
+        teamId,
+        avgSentiment,
+        totalEngagement,
+        positiveReactions,
+        negativeReactions: teamReactions.length - positiveReactions,
+        topEmotions: Object.entries(emotionCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([emotion]) => emotion),
+        playerMentions,
+        sampleFanComments: teamPosts.slice(0, 5).map(p => p.content).filter(Boolean),
+      };
+    });
+
+    // Prepare match summaries with fan sentiment focus
     const matchSummaries = matches.map(m => {
       const homeTeam = m.home_team;
       const awayTeam = m.away_team;
-      const sentiment = sentimentData?.filter(s => s.match_id === m.id) || [];
-      const avgSentiment = sentiment.length > 0
-        ? sentiment.reduce((sum, s) => sum + (s.sentiment_score || 0), 0) / sentiment.length
-        : 0;
+      const homeSentiment = teamSentimentAnalysis.find(t => t.teamId === m.home_team_id);
+      const awaySentiment = teamSentimentAnalysis.find(t => t.teamId === m.away_team_id);
 
-      return `${homeTeam.name} ${m.home_score}-${m.away_score} ${awayTeam.name} (Fan sentiment: ${(avgSentiment * 100).toFixed(0)}% positive)`;
+      return `${homeTeam.name} vs ${awayTeam.name} (Score: ${m.home_score}-${m.away_score})
+  - ${homeTeam.name} fan sentiment: ${((homeSentiment?.avgSentiment || 0) * 100).toFixed(0)}% positive, ${homeSentiment?.totalEngagement || 0} posts, Top emotions: ${homeSentiment?.topEmotions?.join(', ') || 'N/A'}
+  - ${awayTeam.name} fan sentiment: ${((awaySentiment?.avgSentiment || 0) * 100).toFixed(0)}% positive, ${awaySentiment?.totalEngagement || 0} posts, Top emotions: ${awaySentiment?.topEmotions?.join(', ') || 'N/A'}`;
     });
 
-    // Use AI to generate Team of the Week
+    // Use AI to generate Team of the Week based on FAN SENTIMENT
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -113,28 +183,36 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a football analyst. Based on match results and fan sentiment, select a Team of the Week in a 4-3-3 formation with 11 players. Provide realistic player names and brief justifications.',
+            content: `You are a football analyst specializing in FAN SENTIMENT analysis. Your job is to select a Team of the Week based PRIMARILY on how fans reacted to players on social media - NOT on match statistics or scores.
+
+Key criteria for selection (in order of importance):
+1. POSITIVE FAN SENTIMENT - Players who generated the most positive fan reactions, excitement, and celebration
+2. FAN ENGAGEMENT - Players who fans talked about the most with positive emotions
+3. VIRAL MOMENTS - Players who created memorable moments that fans loved and shared
+4. EMOTIONAL IMPACT - Players who made fans feel joy, pride, and excitement
+
+You should select players that fans loved watching, talked about positively, and celebrated - regardless of the final score.`,
           },
           {
             role: 'user',
-            content: `Based on these match results:\n${matchSummaries.join('\n')}\n\nGenerate a Team of the Week in a 4-3-3 formation. Return ONLY a valid JSON object with this exact structure:
+            content: `Based on FAN SENTIMENT from these matches:\n${matchSummaries.join('\n\n')}\n\nGenerate a Team of the Week in a 4-3-3 formation based on which players fans reacted most positively to. Return ONLY a valid JSON object with this exact structure:
 {
   "formation": "4-3-3",
   "players": [
-    {"position": "GK", "name": "Player Name", "team": "Team Name", "rating": 9.5, "reason": "Brief reason"},
-    {"position": "LB", "name": "Player Name", "team": "Team Name", "rating": 8.5, "reason": "Brief reason"},
-    {"position": "CB", "name": "Player Name", "team": "Team Name", "rating": 8.7, "reason": "Brief reason"},
-    {"position": "CB", "name": "Player Name", "team": "Team Name", "rating": 8.8, "reason": "Brief reason"},
-    {"position": "RB", "name": "Player Name", "team": "Team Name", "rating": 8.3, "reason": "Brief reason"},
-    {"position": "LM", "name": "Player Name", "team": "Team Name", "rating": 8.9, "reason": "Brief reason"},
-    {"position": "CM", "name": "Player Name", "team": "Team Name", "rating": 9.0, "reason": "Brief reason"},
-    {"position": "RM", "name": "Player Name", "team": "Team Name", "rating": 8.6, "reason": "Brief reason"},
-    {"position": "LW", "name": "Player Name", "team": "Team Name", "rating": 9.2, "reason": "Brief reason"},
-    {"position": "ST", "name": "Player Name", "team": "Team Name", "rating": 9.5, "reason": "Brief reason"},
-    {"position": "RW", "name": "Player Name", "team": "Team Name", "rating": 9.1, "reason": "Brief reason"}
+    {"position": "GK", "name": "Player Name", "team": "Team Name", "rating": 9.5, "reason": "Fan sentiment reason - e.g., 'Fans celebrated crucial saves'"},
+    {"position": "LB", "name": "Player Name", "team": "Team Name", "rating": 8.5, "reason": "Fan sentiment reason"},
+    {"position": "CB", "name": "Player Name", "team": "Team Name", "rating": 8.7, "reason": "Fan sentiment reason"},
+    {"position": "CB", "name": "Player Name", "team": "Team Name", "rating": 8.8, "reason": "Fan sentiment reason"},
+    {"position": "RB", "name": "Player Name", "team": "Team Name", "rating": 8.3, "reason": "Fan sentiment reason"},
+    {"position": "LM", "name": "Player Name", "team": "Team Name", "rating": 8.9, "reason": "Fan sentiment reason"},
+    {"position": "CM", "name": "Player Name", "team": "Team Name", "rating": 9.0, "reason": "Fan sentiment reason"},
+    {"position": "RM", "name": "Player Name", "team": "Team Name", "rating": 8.6, "reason": "Fan sentiment reason"},
+    {"position": "LW", "name": "Player Name", "team": "Team Name", "rating": 9.2, "reason": "Fan sentiment reason"},
+    {"position": "ST", "name": "Player Name", "team": "Team Name", "rating": 9.5, "reason": "Fan sentiment reason"},
+    {"position": "RW", "name": "Player Name", "team": "Team Name", "rating": 9.1, "reason": "Fan sentiment reason"}
   ]
 }
-Ratings should be between 7.0 and 10.0. No markdown, no code blocks, just the JSON.`,
+Ratings should reflect FAN LOVE (7.0-10.0). Reasons MUST reference fan reactions, not match stats. No markdown, no code blocks, just the JSON.`,
           },
         ],
       }),
