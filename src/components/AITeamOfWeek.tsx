@@ -29,6 +29,13 @@ const COMPETITIONS = [
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Lega_Serie_A_logo_2019.svg/200px-Lega_Serie_A_logo_2019.svg.png"
   },
   { 
+    label: "Bundesliga", 
+    value: "Bundesliga", 
+    start: "2025-11-01", 
+    end: "2025-11-07", 
+    logo: "https://upload.wikimedia.org/wikipedia/en/thumb/d/df/Bundesliga_logo_%282017%29.svg/200px-Bundesliga_logo_%282017%29.svg.png"
+  },
+  { 
     label: "Champions League", 
     value: "UEFA Champions League", 
     start: "2025-11-01", 
@@ -127,15 +134,15 @@ export function AITeamOfWeek() {
       <Card className="p-6">
         <div className="flex items-center gap-2">
           <Trophy className="h-6 w-6 text-yellow-500" />
-          <h2 className="text-2xl font-bold">AI-Generated Team of the Week</h2>
+          <h2 className="text-2xl font-bold">Fan Sentiment Team of the Week</h2>
         </div>
         <p className="text-sm text-muted-foreground mt-2">
-          Select a competition to view the best performing players based on match data and fan sentiment
+          Players selected 100% based on fan reactions on social media — who fans loved watching, celebrated, and talked about most positively
         </p>
       </Card>
 
       <Tabs defaultValue="premier-league" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5">
           {COMPETITIONS.map((comp, idx) => (
             <TabsTrigger key={idx} value={comp.label.toLowerCase().replace(/\s+/g, '-')} className="gap-2">
               <img 
