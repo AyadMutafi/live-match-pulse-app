@@ -25,12 +25,17 @@ import { AIEmojiSuggestionsBar } from "@/components/AIEmojiSuggestionsBar";
 import { WelcomeOnboarding } from "@/components/WelcomeOnboarding";
 import { QuickInsightCard } from "@/components/QuickInsightCard";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
+import { FanLeaderboard } from "@/components/FanLeaderboard";
+import { RivalryAlerts } from "@/components/RivalryAlerts";
+import { FanConfidenceIndex } from "@/components/FanConfidenceIndex";
+import { BraggingCard } from "@/components/BraggingCard";
+import { MatchTopFlop } from "@/components/MatchTopFlop";
 import { useMatchAnalytics } from "@/hooks/useMatchAnalytics";
 import { useTeamPulse } from "@/hooks/useTeamPulse";
 import { useMatchPulse } from "@/hooks/useMatchPulse";
 import { useDynamicTheme } from "@/hooks/useDynamicTheme";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Zap, Users, Target, TrendingUp, MessageCircle, Brain, Heart, Trophy, BarChart3, Flame, Globe } from "lucide-react";
+import { RefreshCw, Zap, Users, Target, TrendingUp, MessageCircle, Brain, Heart, Trophy, BarChart3, Flame, Globe, Medal, AlertTriangle, Share2, Star } from "lucide-react";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -753,12 +758,41 @@ const Index = () => {
               />
             </div>
 
+            {/* Fan Leaderboard */}
+            <CollapsibleSection
+              title="Prediction Leaderboard"
+              icon={<Medal className="w-5 h-5 text-[hsl(var(--warning))]" />}
+              badge="Compete"
+              defaultOpen={true}
+            >
+              <FanLeaderboard />
+            </CollapsibleSection>
+
+            {/* Fan Confidence Index */}
+            <CollapsibleSection
+              title="Fan Confidence Index"
+              icon={<Brain className="w-5 h-5 text-primary" />}
+              badge="AI"
+              defaultOpen={false}
+            >
+              <FanConfidenceIndex />
+            </CollapsibleSection>
+
+            {/* Top & Flop Players */}
+            <CollapsibleSection
+              title="Top & Flop of the Match"
+              icon={<Star className="w-5 h-5 text-[hsl(var(--success))]" />}
+              badge="Sentiment"
+              defaultOpen={false}
+            >
+              <MatchTopFlop />
+            </CollapsibleSection>
+
             {/* AI Predictions */}
             <CollapsibleSection
               title="AI Predictions"
               icon={<Target className="w-5 h-5 text-primary" />}
-              badge="Featured"
-              defaultOpen={true}
+              defaultOpen={false}
             >
               <div className="space-y-4">
                 <AIMatchPrediction />
@@ -787,34 +821,6 @@ const Index = () => {
             >
               <AIAnalytics {...(realAnalytics || aiAnalytics)} />
             </CollapsibleSection>
-
-            {/* Team Pulse */}
-            <CollapsibleSection
-              title="Team Performance"
-              icon={<TrendingUp className="w-5 h-5 text-[hsl(var(--success))]" />}
-              defaultOpen={false}
-            >
-              {realTeamPulse && realTeamPulse.length > 0 ? (
-                <div className="space-y-3">
-                  {realTeamPulse.map((team, index) => (
-                    <TeamPulseRating 
-                      key={index}
-                      teamName={team.teamName}
-                      league={team.league}
-                      teamLogo={team.teamLogo}
-                      overallPulse={team.overallPulse}
-                      totalMentions={team.totalMentions}
-                      players={team.players}
-                      languages={team.languages}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  <p>No team data available</p>
-                </div>
-              )}
-            </CollapsibleSection>
           </div>
         );
 
@@ -824,22 +830,32 @@ const Index = () => {
             {/* Fan Profile */}
             <FanProfileCard />
 
+            {/* Rivalry Alerts */}
+            <CollapsibleSection
+              title="Rivalry Alerts"
+              icon={<AlertTriangle className="w-5 h-5 text-accent" />}
+              badge="Live"
+              defaultOpen={true}
+            >
+              <RivalryAlerts />
+            </CollapsibleSection>
+
+            {/* Bragging Cards */}
+            <CollapsibleSection
+              title="Your Bragging Rights"
+              icon={<Share2 className="w-5 h-5 text-[hsl(var(--success))]" />}
+              defaultOpen={false}
+            >
+              <BraggingCard />
+            </CollapsibleSection>
+
             {/* Favorite Teams */}
             <CollapsibleSection
               title="My Favorite Teams"
               icon={<Heart className="w-5 h-5 text-accent" />}
-              defaultOpen={true}
-            >
-              <FavoriteTeamsDashboard />
-            </CollapsibleSection>
-
-            {/* Personalized Feed */}
-            <CollapsibleSection
-              title="My Feed"
-              icon={<Zap className="w-5 h-5 text-primary" />}
               defaultOpen={false}
             >
-              <PersonalizedFeed />
+              <FavoriteTeamsDashboard />
             </CollapsibleSection>
 
             {/* Rivalries */}
