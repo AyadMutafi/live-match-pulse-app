@@ -24,7 +24,7 @@ export interface Match {
   };
 }
 
-// Check if a match is live or finished within 30 minutes
+// Check if a match is live, recently finished (last 24 hours), or upcoming
 function isRelevantMatch(match: Match): boolean {
   const now = new Date();
   const matchDate = new Date(match.match_date);
@@ -36,19 +36,17 @@ function isRelevantMatch(match: Match): boolean {
     return true;
   }
   
-  // Finished match - check if within 30 minutes of completion
+  // Finished match - show if finished within the last 24 hours
   const finishedStatuses = ["FINISHED", "FT", "FULL_TIME"];
   if (finishedStatuses.includes(status)) {
-    // Estimate match end time as match_date + ~2 hours (typical match duration)
-    const estimatedEndTime = new Date(matchDate.getTime() + 2 * 60 * 60 * 1000);
-    const thirtyMinutesAfterEnd = new Date(estimatedEndTime.getTime() + 30 * 60 * 1000);
-    return now <= thirtyMinutesAfterEnd;
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    return matchDate >= twentyFourHoursAgo;
   }
   
-  // Scheduled/upcoming matches starting within next 2 hours (for pre-match monitoring)
+  // Scheduled/upcoming matches - show all upcoming matches within next 7 days
   if (status === "SCHEDULED" || status === "TIMED" || status === "") {
-    const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-    return matchDate >= now && matchDate <= twoHoursFromNow;
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return matchDate >= now && matchDate <= sevenDaysFromNow;
   }
   
   return false;
