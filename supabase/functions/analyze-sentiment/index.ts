@@ -11,9 +11,44 @@ const inputSchema = z.object({
   matchId: z.string().uuid({ message: 'Invalid match ID format' }),
 });
 
+// Simple in-memory rate limiter (resets on function cold start)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 10; // requests per minute
+const RATE_WINDOW = 60 * 1000; // 1 minute
+
+function checkRateLimit(clientIp: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(clientIp);
+  
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(clientIp, { count: 1, resetTime: now + RATE_WINDOW });
+    return true;
+  }
+  
+  if (record.count >= RATE_LIMIT) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Rate limiting check
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                   req.headers.get('x-real-ip') || 
+                   'unknown';
+  
+  if (!checkRateLimit(clientIp)) {
+    console.warn(`Rate limit exceeded for IP: ${clientIp}`);
+    return new Response(
+      JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
+    );
   }
 
   try {
