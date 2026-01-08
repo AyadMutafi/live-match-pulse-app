@@ -15,11 +15,11 @@ import {
 } from "@/components/ui/sheet";
 
 const navLinks = [
-  { name: "Home", href: "#home", icon: Home },
-  { name: "Matches", href: "#matches", icon: Trophy },
-  { name: "Leagues", href: "#leagues", icon: Globe },
-  { name: "About", href: "#about", icon: Info },
-  { name: "Contact", href: "#contact", icon: Mail },
+  { name: "Home", href: "/", icon: Home },
+  { name: "Matches", href: "/#matches", icon: Trophy },
+  { name: "League Ratings", href: "/league-ratings", icon: Globe },
+  { name: "About", href: "/#about", icon: Info },
+  { name: "Contact", href: "/#contact", icon: Mail },
 ];
 
 export function AppHeader() {
