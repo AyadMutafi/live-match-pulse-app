@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { LiveMatch } from "@/components/LiveMatch";
+import { MatchesSection } from "@/components/MatchesSection";
 import { EnhancedPrediction } from "@/components/EnhancedPrediction";
 import { SentimentMeter } from "@/components/SentimentMeter";
 import { AIAnalytics } from "@/components/AIAnalytics";
@@ -689,25 +690,13 @@ const Index = () => {
               />
             )}
 
-            {/* Live Matches Section */}
+            {/* Matches Section with Filters */}
             <CollapsibleSection
-              title="Live Matches"
+              title="Matches"
               icon={<Zap className="w-5 h-5 text-primary" />}
-              badge={realMatchPulse?.length ? `${realMatchPulse.length} live` : undefined}
               defaultOpen={true}
             >
-              {realMatchPulse && realMatchPulse.length > 0 ? (
-                <div className="space-y-3">
-                  {realMatchPulse.map((matchData) => (
-                    <MatchPulse key={matchData.matchId} matchData={matchData} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  <p>No live matches right now</p>
-                  <p className="text-sm mt-1">Check back during match times</p>
-                </div>
-              )}
+              <MatchesSection />
             </CollapsibleSection>
 
             {/* Fan Reactions */}
