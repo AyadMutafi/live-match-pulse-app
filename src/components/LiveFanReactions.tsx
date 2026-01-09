@@ -1,9 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MessageCircle, Repeat2, Eye, ExternalLink, User } from "lucide-react";
+import { Heart, MessageCircle, Repeat2, Eye, ExternalLink, User, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLiveMatches } from "@/hooks/useMatches";
+import { useEffect, useState } from "react";
 
 // Helper to generate a link to the original post
 function getPostUrl(platform: string, postId: string, authorHandle: string | null): string | null {
@@ -52,7 +54,15 @@ function getSentimentLabel(score: number | null): string {
 }
 
 export function LiveFanReactions() {
-  const { data: posts, isLoading } = useQuery({
+  const { data: liveMatches } = useLiveMatches();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+  
+  // Determine refresh interval based on live matches
+  const hasLiveMatches = (liveMatches?.length || 0) > 0;
+  const refetchInterval = hasLiveMatches ? 15000 : 30000; // 15s during live, 30s otherwise
+  
+  const { data: posts, isLoading, refetch } = useQuery({
     queryKey: ['live-fan-reactions'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -80,8 +90,20 @@ export function LiveFanReactions() {
 
       return filteredPosts;
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval,
   });
+  
+  // Listen to query invalidations from the smart refresh system
+  useEffect(() => {
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      if (event?.query?.queryKey?.[0] === "fan-reactions") {
+        setIsRefreshing(true);
+        refetch().finally(() => setIsRefreshing(false));
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [queryClient, refetch]);
 
   if (isLoading) {
     return (
@@ -117,14 +139,22 @@ export function LiveFanReactions() {
   return (
     <Card className="p-6">
       <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
-            <MessageCircle className="h-5 w-5" />
-            Live Fan Reactions
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Most engaging recent posts from fans across social platforms
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
+              <MessageCircle className="h-5 w-5" />
+              Live Fan Reactions
+              {isRefreshing && <RefreshCw className="w-4 h-4 text-primary animate-spin" />}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Most engaging recent posts from fans across social platforms
+            </p>
+          </div>
+          {hasLiveMatches && (
+            <Badge variant="destructive" className="animate-pulse">
+              Live Updates
+            </Badge>
+          )}
         </div>
 
         <div className="space-y-4">

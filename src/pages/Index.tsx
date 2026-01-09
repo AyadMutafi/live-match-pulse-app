@@ -1,7 +1,6 @@
 import { MatchesSection } from "@/components/MatchesSection";
 import { SentimentMeter } from "@/components/SentimentMeter";
 import { AppHeader } from "@/components/AppHeader";
-import { StatCard } from "@/components/StatCard";
 import { MultiLanguageSentiment } from "@/components/MultiLanguageSentiment";
 import { LiveFanReactions } from "@/components/LiveFanReactions";
 import { AITeamOfWeek } from "@/components/AITeamOfWeek";
@@ -13,12 +12,17 @@ import { LiveSocialFeed } from "@/components/LiveSocialFeed";
 import { TopViralPosts } from "@/components/TopViralPosts";
 import { MostMentionedPlayers } from "@/components/MostMentionedPlayers";
 import { PlatformBreakdown } from "@/components/PlatformBreakdown";
+import { RefreshStatusIndicator } from "@/components/RefreshStatusIndicator";
 import { useMatchPulse } from "@/hooks/useMatchPulse";
+import { useSmartRefresh } from "@/hooks/useSmartRefresh";
 import { Zap, Users, Globe, TrendingUp, BarChart3, Trophy, Star, Radio, MessageSquare } from "lucide-react";
 
 const Index = () => {
   // Fetch real match data
   const { liveMatchesData: realMatchPulse } = useMatchPulse();
+  
+  // Smart auto-refresh system
+  const { refreshState, lastRefresh, liveMatchCount } = useSmartRefresh();
 
   // Sentiment data (read-only display)
   const sentiment = {
@@ -95,6 +99,17 @@ const Index = () => {
 
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 pt-6 pb-12">
+        {/* Smart Refresh Status */}
+        <div className="mb-4 p-3 rounded-lg bg-card border border-border">
+          <RefreshStatusIndicator
+            interval={refreshState.interval}
+            reason={refreshState.reason}
+            isBoost={refreshState.isBoost}
+            lastRefresh={lastRefresh}
+            liveMatchCount={liveMatchCount}
+          />
+        </div>
+
         {/* Monitoring Banner */}
         <MonitoringBanner />
 
