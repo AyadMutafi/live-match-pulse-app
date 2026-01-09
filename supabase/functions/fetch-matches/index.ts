@@ -80,13 +80,19 @@ Deno.serve(async (req) => {
 
     console.log('Fetching matches from football-data.org API...');
 
-    // This function fetches from a trusted external API with dynamic date range
-    // No user input is accepted - uses last 7 days for reliable data
+    // This function fetches from a trusted external API with a fixed date window
+    // No user input is accepted.
+    // We fetch a small history + upcoming fixtures so the app can show:
+    // - recent finished matches ("yesterday")
+    // - live matches
+    // - upcoming matches
     const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const dateFrom = sevenDaysAgo.toISOString().split('T')[0];
-    const dateTo = now.toISOString().split('T')[0];
-    
+    const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const dateFrom = twoDaysAgo.toISOString().split('T')[0];
+    const dateTo = sevenDaysFromNow.toISOString().split('T')[0];
+
     console.log(`Fetching matches from ${dateFrom} to ${dateTo}`);
 
     const response = await fetch(
@@ -171,8 +177,9 @@ Deno.serve(async (req) => {
           match_date: match.utcDate,
           competition: match.competition.name,
           status: match.status.toLowerCase(),
-          home_score: match.score.fullTime.home || 0,
-          away_score: match.score.fullTime.away || 0,
+          // Keep upcoming scores as NULL instead of forcing 0-0
+          home_score: match.score.fullTime.home ?? null,
+          away_score: match.score.fullTime.away ?? null,
           api_match_id: match.id.toString(),
         });
       }

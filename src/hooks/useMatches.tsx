@@ -36,11 +36,11 @@ function isRelevantMatch(match: Match): boolean {
     return true;
   }
   
-  // Finished match - show if finished within the last 24 hours
+  // Finished match - show if started within the last 48 hours (covers "yesterday" even late today)
   const finishedStatuses = ["FINISHED", "FT", "FULL_TIME"];
   if (finishedStatuses.includes(status)) {
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    return matchDate >= twentyFourHoursAgo;
+    const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+    return matchDate >= fortyEightHoursAgo;
   }
   
   // Scheduled/upcoming matches - show all upcoming matches within next 7 days
@@ -94,15 +94,18 @@ export function useMatches() {
 
       if (error) throw error;
       
-      // Filter for allowed teams and relevant matches (live or finished within 30 min)
-      const filteredData = (data as Match[])?.filter(match => {
-        const isAllowed = isAllowedTeam(match.home_team?.name || "") || 
-                          isAllowedTeam(match.away_team?.name || "");
-        const isRelevant = isRelevantMatch(match);
-        return isAllowed && isRelevant;
+      // Filter by time relevance first; then prefer "allowed teams" if any exist.
+      const relevantMatches = (data as Match[])?.filter(isRelevantMatch) ?? [];
+
+      const allowedRelevant = relevantMatches.filter(match => {
+        return (
+          isAllowedTeam(match.home_team?.name || "") ||
+          isAllowedTeam(match.away_team?.name || "")
+        );
       });
-      
-      return filteredData;
+
+      // If the allowed-teams filter would hide everything, fall back to showing relevant matches.
+      return allowedRelevant.length > 0 ? allowedRelevant : relevantMatches;
     },
     refetchInterval: 60 * 1000, // Refetch every minute for live updates
   });
