@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlatformBadge } from "./PlatformBadge";
 import { SentimentIntensityBadge } from "./SentimentIntensityBadge";
-import { Radio, TrendingUp, MessageSquare, Heart, Repeat2, Eye } from "lucide-react";
+import { Radio, Heart, Repeat2, Eye, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLiveMatches } from "@/hooks/useMatches";
 
 interface SocialPost {
   id: string;
@@ -18,6 +20,7 @@ interface SocialPost {
   shares: number;
   views: number;
   timestamp: string;
+  isNew?: boolean;
 }
 
 // Sample posts that simulate real social media monitoring
@@ -99,25 +102,47 @@ const generateSamplePosts = (): SocialPost[] => [
 export function LiveSocialFeed() {
   const [posts, setPosts] = useState<SocialPost[]>(generateSamplePosts());
   const [lastUpdated, setLastUpdated] = useState(new Date());
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Simulate new posts coming in
-      setPosts(prev => {
-        const newPosts = [...prev];
-        // Shuffle timestamps to simulate activity
-        return newPosts.map(post => ({
-          ...post,
-          likes: post.likes + Math.floor(Math.random() * 50),
-          shares: post.shares + Math.floor(Math.random() * 10),
-          views: post.views + Math.floor(Math.random() * 500)
-        }));
-      });
-      setLastUpdated(new Date());
-    }, 15000);
-
-    return () => clearInterval(interval);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: liveMatches } = useLiveMatches();
+  
+  // Refresh function that syncs with the smart refresh system
+  const refreshPosts = useCallback(() => {
+    setIsRefreshing(true);
+    setPosts(prev => {
+      const newPosts = [...prev];
+      // Simulate new posts and update engagement
+      return newPosts.map((post, index) => ({
+        ...post,
+        likes: post.likes + Math.floor(Math.random() * 50),
+        shares: post.shares + Math.floor(Math.random() * 10),
+        views: post.views + Math.floor(Math.random() * 500),
+        isNew: index === 0 && Math.random() > 0.5, // Randomly mark first post as new
+      }));
+    });
+    setLastUpdated(new Date());
+    setTimeout(() => setIsRefreshing(false), 500);
   }, []);
+  
+  // Listen to query invalidations from the smart refresh system
+  useEffect(() => {
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      if (event?.query?.queryKey?.[0] === "social-posts") {
+        refreshPosts();
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [queryClient, refreshPosts]);
+
+  // Also update based on live match status - faster updates during live matches
+  useEffect(() => {
+    const hasLiveMatches = (liveMatches?.length || 0) > 0;
+    const interval = hasLiveMatches ? 30000 : 60000; // 30s during live, 60s otherwise
+    
+    const intervalId = setInterval(refreshPosts, interval);
+    return () => clearInterval(intervalId);
+  }, [liveMatches, refreshPosts]);
 
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
@@ -149,9 +174,14 @@ export function LiveSocialFeed() {
             <Radio className="w-5 h-5 text-[hsl(var(--success))] animate-pulse" />
             Live Social Feed
           </CardTitle>
-          <Badge variant="outline" className="text-xs">
-            Updated: {lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {isRefreshing && (
+              <RefreshCw className="w-4 h-4 text-primary animate-spin" />
+            )}
+            <Badge variant="outline" className="text-xs">
+              {lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </Badge>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">
           Real-time fan posts from social media platforms
