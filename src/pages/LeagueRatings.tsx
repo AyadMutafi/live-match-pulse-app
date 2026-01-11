@@ -9,13 +9,14 @@ import { Progress } from "@/components/ui/progress";
 import { 
   Trophy, Star, TrendingUp, TrendingDown, Users, 
   Search, ArrowLeft, Share2, Calendar, Medal, 
-  Flame, Sparkles, ChevronDown, ChevronUp
+  Flame, Sparkles, ChevronDown, ChevronUp, TableIcon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/AppHeader";
 import { PlayerRatingCard } from "@/components/PlayerRatingCard";
 import { PlayerComparison } from "@/components/PlayerComparison";
+import { LeagueStandings } from "@/components/LeagueStandings";
 import { 
   PlayerRating, 
   generateMockPlayerRatings, 
@@ -117,7 +118,7 @@ export default function LeagueRatings() {
   const [selectedLeague, setSelectedLeague] = useState("premier-league");
   const [selectedWeek, setSelectedWeek] = useState("current");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("best-xi");
+  const [activeTab, setActiveTab] = useState("standings");
   const [compareMode, setCompareMode] = useState(false);
   const [selectedPlayers, setSelectedPlayers] = useState<PlayerRating[]>([]);
   const [expandedSection, setExpandedSection] = useState<string | null>("top-10");
@@ -290,7 +291,11 @@ export default function LeagueRatings() {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
+            <TabsTrigger value="standings" className="gap-1">
+              <TableIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">Standings</span>
+            </TabsTrigger>
             <TabsTrigger value="best-xi" className="gap-1">
               <Star className="w-4 h-4" />
               <span className="hidden sm:inline">Best XI</span>
@@ -308,6 +313,15 @@ export default function LeagueRatings() {
               <span className="hidden sm:inline">Improved</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* Standings Tab */}
+          <TabsContent value="standings">
+            <LeagueStandings 
+              leagueId={selectedLeague}
+              leagueName={currentLeague?.name || "Premier League"}
+              leagueFlag={currentLeague?.flag || "🏴󠁧󠁢󠁥󠁮󠁧󠁿"}
+            />
+          </TabsContent>
 
           {/* Best XI Tab */}
           <TabsContent value="best-xi">
