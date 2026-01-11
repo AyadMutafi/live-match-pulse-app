@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.fetch-matches]
 verify_jwt = false
 
+[functions.fetch-match-details]
+verify_jwt = false
+
 [functions.generate-fan-data]
 verify_jwt = false
 

@@ -12,6 +12,7 @@ export interface Match {
   away_score: number;
   status: string;
   competition: string;
+  api_match_id?: string;
   home_team?: {
     name: string;
     league: string;
@@ -86,6 +87,7 @@ export function useMatches() {
         .from("matches")
         .select(`
           *,
+          api_match_id,
           home_team:teams!matches_home_team_id_fkey(name, league, country),
           away_team:teams!matches_away_team_id_fkey(name, league, country)
         `)
