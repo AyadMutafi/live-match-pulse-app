@@ -20,3 +20,18 @@ verify_jwt = false
 
 [functions.predict-match]
 verify_jwt = false
+
+[functions.grok-sentiment]
+verify_jwt = false
+
+[functions.grok-match-summary]
+verify_jwt = false
+
+[functions.grok-club-analysis]
+verify_jwt = false
+
+[functions.grok-rivalry-analysis]
+verify_jwt = false
+
+[functions.grok-player-sentiment]
+verify_jwt = false
