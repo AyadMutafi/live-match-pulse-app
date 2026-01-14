@@ -35,3 +35,18 @@ verify_jwt = false
 
 [functions.grok-player-sentiment]
 verify_jwt = false
+
+[functions.gemini-sentiment]
+verify_jwt = false
+
+[functions.gemini-match-summary]
+verify_jwt = false
+
+[functions.gemini-club-analysis]
+verify_jwt = false
+
+[functions.gemini-rivalry-analysis]
+verify_jwt = false
+
+[functions.gemini-player-sentiment]
+verify_jwt = false
