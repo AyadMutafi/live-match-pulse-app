@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DisplaySettingsProvider } from "@/contexts/DisplaySettingsContext";
 import Index from "./pages/Index";
 import LeagueRatings from "./pages/LeagueRatings";
+import WeeklyRatings from "./pages/WeeklyRatings";
 import About from "./pages/About";
 import ClubPage from "./pages/ClubPage";
 import NotFound from "./pages/NotFound";
@@ -22,6 +23,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/league-ratings" element={<LeagueRatings />} />
+            <Route path="/weekly" element={<WeeklyRatings />} />
             <Route path="/club/:clubSlug" element={<ClubPage />} />
             <Route path="/about" element={<About />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
