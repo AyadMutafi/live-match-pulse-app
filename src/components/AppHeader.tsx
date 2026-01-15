@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Menu, Moon, Sun, Home, Info, Radio, ChevronDown } from "lucide-react";
+import { Sparkles, Menu, Moon, Sun, Home, Info, Radio, ChevronDown, Trophy, Swords } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -24,6 +24,7 @@ import { TARGET_CLUBS } from "@/lib/constants";
 
 const navLinks = [
   { name: "Dashboard", href: "/", icon: Home },
+  { name: "Weekly", href: "/weekly", icon: Trophy },
   { name: "About", href: "/about", icon: Info },
 ];
 
