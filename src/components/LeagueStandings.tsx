@@ -292,14 +292,14 @@ function PositionBadge({ position, totalTeams }: { position: number; totalTeams:
 
 function FormBadge({ result }: { result: "W" | "D" | "L" }) {
   const styles = {
-    W: "bg-success/20 text-success border-success/30",
-    D: "bg-muted text-muted-foreground border-muted-foreground/30",
-    L: "bg-destructive/20 text-destructive border-destructive/30",
+    W: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+    D: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+    L: "bg-rose-500/20 text-rose-400 border-rose-500/30",
   };
 
   return (
     <span className={cn(
-      "inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded border",
+      "inline-flex items-center justify-center w-7 h-7 text-xs font-bold rounded-md border",
       styles[result]
     )}>
       {result}
@@ -422,46 +422,49 @@ export function LeagueStandings({ leagueId, leagueName, leagueFlag }: LeagueStan
   );
 
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-3 mb-4">
-        <Trophy className="w-5 h-5 text-yellow-500" />
-        <h3 className="font-semibold">
-          {leagueFlag} {leagueName} Standings
+    <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="flex items-center gap-2">
+          <Trophy className="w-6 h-6 text-yellow-500" />
+          <span className="text-2xl">{leagueFlag}</span>
+        </div>
+        <h3 className="text-xl font-bold">
+          {leagueName} Standings
         </h3>
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-4 mb-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600" />
-          <span>Champions</span>
+      <div className="flex flex-wrap gap-6 mb-5 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-sm" />
+          <span className="text-muted-foreground">Champions</span>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-primary/40" />
-          <span>Champions League</span>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-blue-500/60" />
+          <span className="text-muted-foreground">Champions League</span>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-destructive/40" />
-          <span>Relegation Zone</span>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-rose-500/60" />
+          <span className="text-muted-foreground">Relegation Zone</span>
         </div>
       </div>
 
-      <div className="relative w-full overflow-x-auto">
+      <div className="relative w-full overflow-x-auto rounded-lg border border-border/30">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <SortableHeader columnKey="position" className="w-12">#</SortableHeader>
-              <SortableHeader columnKey="team" className="min-w-[140px]">Team</SortableHeader>
-              <SortableHeader columnKey="played" className="text-center">P</SortableHeader>
-              <SortableHeader columnKey="won" className="text-center">W</SortableHeader>
-              <SortableHeader columnKey="drawn" className="text-center">D</SortableHeader>
-              <SortableHeader columnKey="lost" className="text-center">L</SortableHeader>
-              <SortableHeader columnKey="goalsFor" className="text-center">GF</SortableHeader>
-              <SortableHeader columnKey="goalsAgainst" className="text-center">GA</SortableHeader>
-              <SortableHeader columnKey="goalDifference" className="text-center">GD</SortableHeader>
-              <SortableHeader columnKey="points" className="text-center font-bold">Pts</SortableHeader>
-              <TableHead className="hidden md:table-cell min-w-[140px]">Form</TableHead>
-              <SortableHeader columnKey="sentiment" className="min-w-[100px]">Sentiment</SortableHeader>
+          <TableHeader className="bg-muted/30">
+            <TableRow className="hover:bg-transparent border-border/30">
+              <SortableHeader columnKey="position" className="w-12"># ↕</SortableHeader>
+              <SortableHeader columnKey="team" className="min-w-[160px]">Team ↕</SortableHeader>
+              <SortableHeader columnKey="played" className="text-center">P ↕</SortableHeader>
+              <SortableHeader columnKey="won" className="text-center">W ↕</SortableHeader>
+              <SortableHeader columnKey="drawn" className="text-center">D ↕</SortableHeader>
+              <SortableHeader columnKey="lost" className="text-center">L ↕</SortableHeader>
+              <SortableHeader columnKey="goalsFor" className="text-center">GF ↕</SortableHeader>
+              <SortableHeader columnKey="goalsAgainst" className="text-center">GA ↕</SortableHeader>
+              <SortableHeader columnKey="goalDifference" className="text-center">GD ↕</SortableHeader>
+              <SortableHeader columnKey="points" className="text-center font-bold">Pts ↕</SortableHeader>
+              <TableHead className="hidden md:table-cell min-w-[150px]">Form</TableHead>
+              <SortableHeader columnKey="sentiment" className="min-w-[110px]">Sentiment ↕</SortableHeader>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -476,46 +479,48 @@ export function LeagueStandings({ leagueId, leagueName, leagueFlag }: LeagueStan
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.02 }}
                   className={cn(
-                    "border-b transition-colors hover:bg-muted/50",
-                    isRelegation && "bg-destructive/5 hover:bg-destructive/10",
-                    isChampionsLeague && !isRelegation && "bg-primary/5 hover:bg-primary/10"
+                    "border-b border-border/20 transition-all duration-200",
+                    isRelegation && "bg-rose-500/5 hover:bg-rose-500/10",
+                    isChampionsLeague && !isRelegation && "bg-blue-500/5 hover:bg-blue-500/10",
+                    !isRelegation && !isChampionsLeague && "hover:bg-muted/30"
                   )}
                 >
-                  <TableCell>
+                  <TableCell className="py-3">
                     <PositionBadge position={standing.position} totalTeams={standings.length} />
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+                  <TableCell className="py-3">
+                    <div className="flex items-center gap-3">
                       <div 
-                        className="w-4 h-4 rounded-full" 
+                        className="w-3.5 h-3.5 rounded-full shadow-sm ring-1 ring-white/10" 
                         style={{ backgroundColor: standing.team.color }}
                       />
                       <span className="font-medium hidden sm:inline">{standing.team.name}</span>
                       <span className="font-medium sm:hidden">{standing.team.shortName}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-center">{standing.played}</TableCell>
-                  <TableCell className="text-center text-success font-medium">{standing.won}</TableCell>
-                  <TableCell className="text-center">{standing.drawn}</TableCell>
-                  <TableCell className="text-center text-destructive">{standing.lost}</TableCell>
-                  <TableCell className="text-center">{standing.goalsFor}</TableCell>
-                  <TableCell className="text-center">{standing.goalsAgainst}</TableCell>
+                  <TableCell className="text-center py-3 text-muted-foreground">{standing.played}</TableCell>
+                  <TableCell className="text-center py-3 text-emerald-500 font-medium">{standing.won}</TableCell>
+                  <TableCell className="text-center py-3 text-muted-foreground">{standing.drawn}</TableCell>
+                  <TableCell className="text-center py-3 text-rose-500">{standing.lost}</TableCell>
+                  <TableCell className="text-center py-3 text-muted-foreground">{standing.goalsFor}</TableCell>
+                  <TableCell className="text-center py-3 text-muted-foreground">{standing.goalsAgainst}</TableCell>
                   <TableCell className={cn(
-                    "text-center font-medium",
-                    standing.goalDifference > 0 && "text-success",
-                    standing.goalDifference < 0 && "text-destructive"
+                    "text-center py-3 font-medium",
+                    standing.goalDifference > 0 && "text-emerald-500",
+                    standing.goalDifference < 0 && "text-rose-500",
+                    standing.goalDifference === 0 && "text-muted-foreground"
                   )}>
                     {standing.goalDifference > 0 ? "+" : ""}{standing.goalDifference}
                   </TableCell>
-                  <TableCell className="text-center font-bold text-lg">{standing.points}</TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell className="text-center py-3 font-bold text-lg">{standing.points}</TableCell>
+                  <TableCell className="hidden md:table-cell py-3">
                     <div className="flex gap-1">
                       {standing.form.map((result, i) => (
                         <FormBadge key={i} result={result} />
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-3">
                     <SentimentCell sentiment={standing.sentiment} />
                   </TableCell>
                 </motion.tr>
