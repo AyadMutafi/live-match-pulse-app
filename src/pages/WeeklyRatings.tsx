@@ -171,16 +171,17 @@ export default function WeeklyRatings() {
     return { icon: "🔽", color: "text-destructive", value: diff.toFixed(1) };
   };
 
-  // Convert rating to emoji representation
-  const getRatingEmoji = (rating: number): string => {
-    if (rating >= 9.5) return "🔥🔥🔥"; // Elite/World class
-    if (rating >= 9.0) return "🔥🔥"; // Outstanding
-    if (rating >= 8.5) return "🔥"; // Excellent
-    if (rating >= 8.0) return "⭐⭐⭐"; // Very Good
-    if (rating >= 7.5) return "⭐⭐"; // Good
-    if (rating >= 7.0) return "⭐"; // Average
-    if (rating >= 6.0) return "👍"; // Below Average
-    return "😐"; // Poor
+  // Convert rating to fan sentiment emoji representation
+  const getSentimentEmoji = (rating: number): string => {
+    if (rating >= 9.5) return "🤩😍🔥"; // Fans absolutely love - ecstatic
+    if (rating >= 9.0) return "😍🔥"; // Fans adore - thrilled
+    if (rating >= 8.5) return "🥳"; // Fans very happy - celebrating
+    if (rating >= 8.0) return "😊👏"; // Fans pleased - appreciative
+    if (rating >= 7.5) return "👏"; // Fans satisfied - supportive
+    if (rating >= 7.0) return "🙂"; // Fans neutral - content
+    if (rating >= 6.0) return "😐"; // Fans underwhelmed - meh
+    if (rating >= 5.0) return "😕"; // Fans disappointed
+    return "😤"; // Fans frustrated
   };
 
   return (
@@ -379,7 +380,7 @@ export default function WeeklyRatings() {
                         >
                           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: player.clubColor }} />
                           {player.name}
-                          <span className="text-lg">{getRatingEmoji(player.rating)}</span>
+                          <span className="text-lg">{getSentimentEmoji(player.rating)}</span>
                         </Badge>
                       ))}
                     </div>
@@ -417,7 +418,7 @@ export default function WeeklyRatings() {
                       ⭐
                     </div>
                     <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[hsl(var(--success))] text-white text-lg px-3">
-                      {getRatingEmoji(playerOfWeek.rating)}
+                      {getSentimentEmoji(playerOfWeek.rating)}
                     </Badge>
                   </div>
                   
@@ -542,16 +543,17 @@ export default function WeeklyRatings() {
   );
 }
 
-// Convert rating to emoji representation (standalone for components)
-const getRatingEmojiStandalone = (rating: number): string => {
-  if (rating >= 9.5) return "🔥🔥🔥"; // Elite/World class
-  if (rating >= 9.0) return "🔥🔥"; // Outstanding
-  if (rating >= 8.5) return "🔥"; // Excellent
-  if (rating >= 8.0) return "⭐⭐⭐"; // Very Good
-  if (rating >= 7.5) return "⭐⭐"; // Good
-  if (rating >= 7.0) return "⭐"; // Average
-  if (rating >= 6.0) return "👍"; // Below Average
-  return "😐"; // Poor
+// Convert rating to fan sentiment emoji representation (standalone for components)
+const getSentimentEmojiStandalone = (rating: number): string => {
+  if (rating >= 9.5) return "🤩😍🔥"; // Fans absolutely love - ecstatic
+  if (rating >= 9.0) return "😍🔥"; // Fans adore - thrilled
+  if (rating >= 8.5) return "🥳"; // Fans very happy - celebrating
+  if (rating >= 8.0) return "😊👏"; // Fans pleased - appreciative
+  if (rating >= 7.5) return "👏"; // Fans satisfied - supportive
+  if (rating >= 7.0) return "🙂"; // Fans neutral - content
+  if (rating >= 6.0) return "😐"; // Fans underwhelmed - meh
+  if (rating >= 5.0) return "😕"; // Fans disappointed
+  return "😤"; // Fans frustrated
 };
 
 // Player Badge Component for Formation
@@ -567,7 +569,7 @@ function PlayerBadge({ player }: { player: WeeklyPlayer }) {
           boxShadow: `0 4px 12px ${player.clubColor}40`
         }}
       >
-        {getRatingEmojiStandalone(player.rating)}
+        {getSentimentEmojiStandalone(player.rating)}
       </div>
       <div className="mt-2 text-center">
         <p className="text-white text-xs md:text-sm font-medium drop-shadow-lg truncate max-w-[80px]">
@@ -622,7 +624,7 @@ function PositionRankingTable({ players, isLoading }: { players: WeeklyPlayer[];
               </p>
             </div>
             <div className="text-center text-xl">
-              {getRatingEmojiStandalone(player.rating)}
+              {getSentimentEmojiStandalone(player.rating)}
             </div>
             <div className={`text-sm w-14 text-right ${trend >= 0 ? "text-[hsl(var(--success))]" : "text-destructive"}`}>
               {trend >= 0.1 ? "🟢" : trend <= -0.1 ? "🔽" : "➡️"} {trend >= 0 ? "+" : ""}{trend.toFixed(1)}
