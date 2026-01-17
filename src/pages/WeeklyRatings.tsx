@@ -75,22 +75,22 @@ const getClubColor = (teamName: string): string => {
   return "#6366f1";
 };
 
-// Fallback mock data generator
+// Fallback mock data generator for Week 3 of January 2026 (Jan 13-19, 2026)
 const generateWeeklyPlayers = (): WeeklyPlayer[] => {
   return [
-    { id: "gk1", name: "Ederson", club: "Manchester City FC", clubColor: "#6CABDD", position: "GK", rating: 9.2, previousRating: 8.7, mentions: 8450, positivePercent: 91, cleanSheets: 3, keyStats: "🔒 3 clean sheets" },
-    { id: "gk2", name: "Alisson", club: "Liverpool FC", clubColor: "#C8102E", position: "GK", rating: 8.8, previousRating: 8.5, mentions: 7200, positivePercent: 88, cleanSheets: 2, keyStats: "🔒 2 clean sheets" },
-    { id: "gk3", name: "David Raya", club: "Arsenal FC", clubColor: "#EF0107", position: "GK", rating: 8.5, previousRating: 8.5, mentions: 5600, positivePercent: 85, cleanSheets: 2, keyStats: "🔒 2 clean sheets" },
-    { id: "df1", name: "Virgil van Dijk", club: "Liverpool FC", clubColor: "#C8102E", position: "DF", rating: 9.0, previousRating: 8.2, mentions: 12300, positivePercent: 92, keyStats: "⚔️ Dominant in air" },
-    { id: "df2", name: "Rúben Dias", club: "Manchester City FC", clubColor: "#6CABDD", position: "DF", rating: 8.8, previousRating: 8.4, mentions: 9800, positivePercent: 89, keyStats: "🧱 Rock solid" },
-    { id: "df3", name: "William Saliba", club: "Arsenal FC", clubColor: "#EF0107", position: "DF", rating: 8.7, previousRating: 8.7, mentions: 8900, positivePercent: 87, keyStats: "🛡️ Calm & composed" },
-    { id: "df4", name: "Joško Gvardiol", club: "Manchester City FC", clubColor: "#6CABDD", position: "DF", rating: 8.7, previousRating: 8.3, mentions: 8200, positivePercent: 88, keyStats: "💪 Physical presence" },
-    { id: "mf1", name: "Kevin De Bruyne", club: "Manchester City FC", clubColor: "#6CABDD", position: "MF", rating: 9.1, previousRating: 8.5, mentions: 15600, positivePercent: 93, assists: 5, keyStats: "🎯 5 assists" },
-    { id: "mf2", name: "Rodri", club: "Manchester City FC", clubColor: "#6CABDD", position: "MF", rating: 9.0, previousRating: 9.0, mentions: 11200, positivePercent: 91, keyStats: "🛡️ Defensive master" },
-    { id: "mf3", name: "Phil Foden", club: "Manchester City FC", clubColor: "#6CABDD", position: "MF", rating: 8.9, previousRating: 8.4, mentions: 12100, positivePercent: 90, keyStats: "✨ Brilliant movement" },
-    { id: "fw1", name: "Erling Haaland", club: "Manchester City FC", clubColor: "#6CABDD", position: "FW", rating: 9.5, previousRating: 8.3, mentions: 24500, positivePercent: 94, goals: 4, keyStats: "⚽⚽⚽ 4 goals" },
-    { id: "fw2", name: "Mohamed Salah", club: "Liverpool FC", clubColor: "#C8102E", position: "FW", rating: 9.0, previousRating: 8.3, mentions: 18700, positivePercent: 91, goals: 3, assists: 2, keyStats: "⚽⚽ 3 goals, 2 assists" },
-    { id: "fw3", name: "Lamine Yamal", club: "FC Barcelona", clubColor: "#A50044", position: "FW", rating: 8.9, previousRating: 8.0, mentions: 16200, positivePercent: 90, goals: 2, assists: 3, keyStats: "⚽ 2 goals, 3 assists" },
+    { id: "gk1", name: "Ederson", club: "Manchester City FC", clubColor: "#6CABDD", position: "GK", rating: 9.2, previousRating: 8.7, mentions: 8450, positivePercent: 91, cleanSheets: 3, keyStats: "🔒 Fans loved his commanding presence this week" },
+    { id: "gk2", name: "Alisson", club: "Liverpool FC", clubColor: "#C8102E", position: "GK", rating: 8.8, previousRating: 8.5, mentions: 7200, positivePercent: 88, cleanSheets: 2, keyStats: "🔒 Celebrated saves on social media" },
+    { id: "gk3", name: "David Raya", club: "Arsenal FC", clubColor: "#EF0107", position: "GK", rating: 8.5, previousRating: 8.5, mentions: 5600, positivePercent: 85, cleanSheets: 2, keyStats: "🔒 Fans appreciated his calmness" },
+    { id: "df1", name: "Virgil van Dijk", club: "Liverpool FC", clubColor: "#C8102E", position: "DF", rating: 9.0, previousRating: 8.2, mentions: 12300, positivePercent: 92, keyStats: "⚔️ Fans ecstatic about his leadership" },
+    { id: "df2", name: "Rúben Dias", club: "Manchester City FC", clubColor: "#6CABDD", position: "DF", rating: 8.8, previousRating: 8.4, mentions: 9800, positivePercent: 89, keyStats: "🧱 Trending for solid defending" },
+    { id: "df3", name: "William Saliba", club: "Arsenal FC", clubColor: "#EF0107", position: "DF", rating: 8.7, previousRating: 8.7, mentions: 8900, positivePercent: 87, keyStats: "🛡️ Fan favorite for composure" },
+    { id: "df4", name: "Joško Gvardiol", club: "Manchester City FC", clubColor: "#6CABDD", position: "DF", rating: 8.7, previousRating: 8.3, mentions: 8200, positivePercent: 88, keyStats: "💪 Viral tackle celebration" },
+    { id: "mf1", name: "Kevin De Bruyne", club: "Manchester City FC", clubColor: "#6CABDD", position: "MF", rating: 9.1, previousRating: 8.5, mentions: 15600, positivePercent: 93, assists: 5, keyStats: "🎯 Fans in awe of his vision" },
+    { id: "mf2", name: "Rodri", club: "Manchester City FC", clubColor: "#6CABDD", position: "MF", rating: 9.0, previousRating: 9.0, mentions: 11200, positivePercent: 91, keyStats: "🛡️ Ballon d'Or winner still trending" },
+    { id: "mf3", name: "Phil Foden", club: "Manchester City FC", clubColor: "#6CABDD", position: "MF", rating: 8.9, previousRating: 8.4, mentions: 12100, positivePercent: 90, keyStats: "✨ Social media buzzing about his skills" },
+    { id: "fw1", name: "Erling Haaland", club: "Manchester City FC", clubColor: "#6CABDD", position: "FW", rating: 9.5, previousRating: 8.3, mentions: 24500, positivePercent: 94, goals: 4, keyStats: "⚽⚽⚽ Fans going crazy - 4 goals this week!" },
+    { id: "fw2", name: "Mohamed Salah", club: "Liverpool FC", clubColor: "#C8102E", position: "FW", rating: 9.0, previousRating: 8.3, mentions: 18700, positivePercent: 91, goals: 3, assists: 2, keyStats: "⚽⚽ Egyptian King trending worldwide" },
+    { id: "fw3", name: "Lamine Yamal", club: "FC Barcelona", clubColor: "#A50044", position: "FW", rating: 8.9, previousRating: 8.0, mentions: 16200, positivePercent: 90, goals: 2, assists: 3, keyStats: "⚽ Fans celebrating the teen sensation" },
   ];
 };
 
@@ -104,7 +104,8 @@ const generateClubRankings = (): ClubRanking[] => [
 ];
 
 export default function WeeklyRatings() {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  // Use January 17, 2026 as current date
+  const [currentDate, setCurrentDate] = useState(() => new Date(2026, 0, 17));
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   
