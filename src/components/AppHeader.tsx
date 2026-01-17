@@ -25,6 +25,7 @@ import { TARGET_CLUBS } from "@/lib/constants";
 const navLinks = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Weekly", href: "/weekly", icon: Trophy },
+  { name: "Ratings", href: "/league-ratings", icon: Swords },
   { name: "About", href: "/about", icon: Info },
 ];
 
