@@ -11,6 +11,7 @@ import { useSmartRefresh } from "@/hooks/useSmartRefresh";
 import { Zap, Users, Globe, Radio, Swords, Trophy, Brain } from "lucide-react";
 import { AITeamOfWeek } from "@/components/AITeamOfWeek";
 import { Badge } from "@/components/ui/badge";
+import { TARGET_CLUBS, CLUB_RIVALRIES } from "@/lib/constants";
 
 const Index = () => {
   const { liveMatchesData: realMatchPulse } = useMatchPulse();
@@ -36,14 +37,14 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Radio className="w-5 h-5 text-[hsl(var(--success))] animate-pulse" />
-              <span className="font-medium">Monitoring 7 Target Clubs</span>
+              <span className="font-medium">Monitoring {TARGET_CLUBS.length} Target Clubs</span>
             </div>
             <Badge variant="outline" className="text-xs">
-              La Liga • Premier League
+              5 Leagues
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Barcelona, Real Madrid, Atlético Madrid, Liverpool, Man City, Man United, Arsenal
+            La Liga • Premier League • Serie A • Bundesliga • Ligue 1
           </p>
         </div>
 
@@ -59,13 +60,13 @@ const Index = () => {
           <QuickInsightCard
             icon={Users}
             title="Clubs Monitored"
-            value="7"
-            subtitle="La Liga & PL"
+            value={TARGET_CLUBS.length.toString()}
+            subtitle="5 Leagues"
           />
           <QuickInsightCard
             icon={Swords}
             title="Rivalries"
-            value="4"
+            value={CLUB_RIVALRIES.length.toString()}
             subtitle="Active tracking"
           />
           <QuickInsightCard
@@ -130,7 +131,7 @@ const Index = () => {
         {/* Footer */}
         <div className="mt-12 pt-6 border-t border-border text-center">
           <p className="text-xs text-muted-foreground">
-            Sentiment data for 7 target clubs from Twitter, Reddit, and Instagram. Read-only monitoring.
+            Sentiment data for {TARGET_CLUBS.length} clubs across 5 leagues from Twitter, Reddit, and Instagram. Read-only monitoring.
           </p>
         </div>
       </div>

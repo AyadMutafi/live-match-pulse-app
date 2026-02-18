@@ -1,4 +1,4 @@
-// Target clubs for the app - ONLY these 7 clubs should appear
+// Target clubs for the app - expanded to cover 5 major leagues
 export const TARGET_CLUBS = [
   // Spain (La Liga)
   { name: "FC Barcelona", shortName: "Barcelona", aliases: ["Barcelona", "Barça", "Barca", "FCB"], league: "La Liga", country: "Spain", color: "#A50044" },
@@ -10,6 +10,21 @@ export const TARGET_CLUBS = [
   { name: "Manchester City FC", shortName: "Man City", aliases: ["Manchester City", "Man City", "City", "MCFC"], league: "Premier League", country: "England", color: "#6CABDD" },
   { name: "Manchester United FC", shortName: "Man United", aliases: ["Manchester United", "Man United", "United", "MUFC"], league: "Premier League", country: "England", color: "#DA291C" },
   { name: "Arsenal FC", shortName: "Arsenal", aliases: ["Arsenal", "AFC", "Gunners"], league: "Premier League", country: "England", color: "#EF0107" },
+
+  // Italy (Serie A)
+  { name: "FC Internazionale Milano", shortName: "Inter Milan", aliases: ["Inter Milan", "Inter", "INT"], league: "Serie A", country: "Italy", color: "#0068A8" },
+  { name: "Juventus FC", shortName: "Juventus", aliases: ["Juventus", "Juve", "JUV"], league: "Serie A", country: "Italy", color: "#000000" },
+  { name: "AC Milan", shortName: "AC Milan", aliases: ["AC Milan", "Milan", "ACM"], league: "Serie A", country: "Italy", color: "#FB090B" },
+  { name: "SSC Napoli", shortName: "Napoli", aliases: ["Napoli", "NAP"], league: "Serie A", country: "Italy", color: "#12A0D7" },
+
+  // Germany (Bundesliga)
+  { name: "FC Bayern München", shortName: "Bayern Munich", aliases: ["Bayern Munich", "Bayern", "FCB München", "BAY"], league: "Bundesliga", country: "Germany", color: "#DC052D" },
+  { name: "Borussia Dortmund", shortName: "Dortmund", aliases: ["Dortmund", "BVB", "Borussia Dortmund"], league: "Bundesliga", country: "Germany", color: "#FDE100" },
+  { name: "Bayer 04 Leverkusen", shortName: "Leverkusen", aliases: ["Leverkusen", "Bayer Leverkusen", "LEV"], league: "Bundesliga", country: "Germany", color: "#E32221" },
+
+  // France (Ligue 1)
+  { name: "Paris Saint-Germain FC", shortName: "PSG", aliases: ["PSG", "Paris Saint-Germain", "Paris"], league: "Ligue 1", country: "France", color: "#004170" },
+  { name: "Olympique de Marseille", shortName: "Marseille", aliases: ["Marseille", "OM", "Olympique Marseille"], league: "Ligue 1", country: "France", color: "#2FAEE0" },
 ] as const;
 
 export type TargetClub = typeof TARGET_CLUBS[number];
@@ -51,9 +66,33 @@ export const CLUB_RIVALRIES = [
   },
   {
     name: "North London Derby",
-    clubs: ["Arsenal FC", "Tottenham Hotspur FC"], // Arsenal is target, Tottenham is not - show only for Arsenal
+    clubs: ["Arsenal FC", "Tottenham Hotspur FC"],
     description: "Arsenal's local rivalry",
     intensity: 88
+  },
+  {
+    name: "Derby della Madonnina",
+    clubs: ["FC Internazionale Milano", "AC Milan"],
+    description: "Milan's legendary city derby",
+    intensity: 96
+  },
+  {
+    name: "Derby d'Italia",
+    clubs: ["Juventus FC", "FC Internazionale Milano"],
+    description: "Italy's biggest inter-city rivalry",
+    intensity: 94
+  },
+  {
+    name: "Der Klassiker",
+    clubs: ["FC Bayern München", "Borussia Dortmund"],
+    description: "Germany's defining football rivalry",
+    intensity: 93
+  },
+  {
+    name: "Le Classique",
+    clubs: ["Paris Saint-Germain FC", "Olympique de Marseille"],
+    description: "France's fiercest football rivalry",
+    intensity: 91
   }
 ] as const;
 
