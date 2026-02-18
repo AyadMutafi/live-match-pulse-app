@@ -107,6 +107,69 @@ export type Database = {
         }
         Relationships: []
       }
+      league_standings: {
+        Row: {
+          created_at: string
+          drawn: number
+          form: string | null
+          goal_difference: number
+          goals_against: number
+          goals_for: number
+          id: string
+          league_code: string
+          league_name: string
+          lost: number
+          played: number
+          points: number
+          position: number
+          season: number
+          team_name: string
+          team_short_name: string | null
+          updated_at: string
+          won: number
+        }
+        Insert: {
+          created_at?: string
+          drawn?: number
+          form?: string | null
+          goal_difference?: number
+          goals_against?: number
+          goals_for?: number
+          id?: string
+          league_code: string
+          league_name: string
+          lost?: number
+          played?: number
+          points?: number
+          position: number
+          season: number
+          team_name: string
+          team_short_name?: string | null
+          updated_at?: string
+          won?: number
+        }
+        Update: {
+          created_at?: string
+          drawn?: number
+          form?: string | null
+          goal_difference?: number
+          goals_against?: number
+          goals_for?: number
+          id?: string
+          league_code?: string
+          league_name?: string
+          lost?: number
+          played?: number
+          points?: number
+          position?: number
+          season?: number
+          team_name?: string
+          team_short_name?: string | null
+          updated_at?: string
+          won?: number
+        }
+        Relationships: []
+      }
       match_emotions: {
         Row: {
           avg_sentiment: number | null

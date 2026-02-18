@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.gemini-player-sentiment]
 verify_jwt = false
+
+[functions.fetch-standings]
+verify_jwt = false
