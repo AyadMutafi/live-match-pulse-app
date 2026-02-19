@@ -24,7 +24,9 @@ interface SocialPost {
 
 function mapDbPosts(dbPosts: any[]): SocialPost[] {
   return dbPosts.map((p) => {
-    const score = p.sentiment_score ?? 50;
+    const rawScore = p.sentiment_score ?? 5;
+    // DB stores 0-9.99, UI expects 0-100
+    const score = Math.round(rawScore * 10);
     const sentiment = score >= 65 ? "positive" : score <= 35 ? "negative" : "neutral";
     const engagement = p.engagement_metrics as any || {};
     const postedAt = new Date(p.posted_at);
