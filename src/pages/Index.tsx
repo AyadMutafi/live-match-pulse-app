@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ClubSentimentOverview } from "@/components/ClubSentimentOverview";
 import { RivalryWatch } from "@/components/RivalryWatch";
 import { MatchesSection } from "@/components/MatchesSection";
@@ -8,14 +9,37 @@ import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { LiveRefreshIndicator } from "@/components/LiveRefreshIndicator";
 import { useMatchPulse } from "@/hooks/useMatchPulse";
 import { useSmartRefresh } from "@/hooks/useSmartRefresh";
-import { Zap, Users, Globe, Radio, Swords, Trophy, Brain } from "lucide-react";
+import { Zap, Users, Globe, Radio, Swords, Trophy, Brain, RefreshCw } from "lucide-react";
 import { AITeamOfWeek } from "@/components/AITeamOfWeek";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { TARGET_CLUBS, CLUB_RIVALRIES } from "@/lib/constants";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Index = () => {
   const { liveMatchesData: realMatchPulse } = useMatchPulse();
   const { refreshState, lastRefresh, liveMatchCount } = useSmartRefresh();
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateSentiment = async () => {
+    setIsGenerating(true);
+    toast.info("Generating fresh sentiment data from recent matches...");
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-social-posts');
+      if (error) {
+        toast.error("Failed to generate sentiment data");
+      } else {
+        toast.success(`Generated ${data?.postsGenerated || 0} fresh fan reactions from ${data?.matchesCovered || 0} matches`);
+        // Refresh the page data after a short delay
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch (e) {
+      toast.error("Error generating sentiment data");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -39,9 +63,21 @@ const Index = () => {
               <Radio className="w-5 h-5 text-[hsl(var(--success))] animate-pulse" />
               <span className="font-medium">Monitoring {TARGET_CLUBS.length} Target Clubs</span>
             </div>
-            <Badge variant="outline" className="text-xs">
-              5 Leagues
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateSentiment}
+                disabled={isGenerating}
+                className="text-xs"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
+                {isGenerating ? 'Generating...' : 'Refresh Sentiment'}
+              </Button>
+              <Badge variant="outline" className="text-xs">
+                5 Leagues
+              </Badge>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             La Liga • Premier League • Serie A • Bundesliga • Ligue 1

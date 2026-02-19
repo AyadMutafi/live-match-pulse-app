@@ -53,3 +53,9 @@ verify_jwt = false
 
 [functions.fetch-standings]
 verify_jwt = false
+
+[functions.generate-social-posts]
+verify_jwt = false
+
+[functions.fetch-reddit-posts]
+verify_jwt = false
