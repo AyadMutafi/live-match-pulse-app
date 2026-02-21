@@ -13,7 +13,8 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
+    const geminiApiKey = Deno.env.get('GOOGLE_AI_API_KEY');
+    if (!geminiApiKey) throw new Error('GOOGLE_AI_API_KEY is not configured');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get recent finished matches with team names
@@ -45,84 +46,89 @@ Deno.serve(async (req) => {
 
     console.log(`Generating AI social posts for ${matches.length} recent matches...`);
 
-    // Use Gemini to generate realistic fan reactions
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a social media content simulator for a football sentiment tracking app. Generate realistic fan reactions to real match results. Each post should feel authentic — use football slang, emojis, hashtags, and varied tones (excited, frustrated, analytical, humorous). Mix platforms (Twitter, Reddit, Instagram style). Return a JSON array of objects with these fields:
+    const prompt = `You are a social media content simulator for a football sentiment tracking app. Generate realistic fan reactions to real match results. Each post should feel authentic — use football slang, emojis, hashtags, and varied tones (excited, frustrated, analytical, humorous). Mix platforms (Twitter, Reddit, Instagram style).
+
+Return a JSON object with a "posts" array containing exactly 30 objects with these fields:
 - author_handle (string, realistic username)
 - content (string, 20-150 chars, authentic fan voice)
 - platform (string: "twitter", "instagram", or "facebook")
 - sentiment_score (number 0-100, where 100=very positive)
 - match_index (number, index of the match this post is about)
 
-Generate exactly 30 posts spread across the matches. Vary sentiment based on results (winners get positive posts, losers get negative/frustrated posts, draws get mixed). Include some neutral analytical posts too.`
-          },
-          {
-            role: 'user',
-            content: `Generate fan reactions for these recent match results:\n${matchSummaries}`
-          }
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "generate_posts",
-              description: "Generate realistic social media fan posts",
-              parameters: {
-                type: "object",
-                properties: {
-                  posts: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        author_handle: { type: "string" },
-                        content: { type: "string" },
-                        platform: { type: "string", enum: ["twitter", "instagram", "facebook"] },
-                        sentiment_score: { type: "number" },
-                        match_index: { type: "number" }
-                      },
-                      required: ["author_handle", "content", "platform", "sentiment_score", "match_index"],
-                      additionalProperties: false
-                    }
-                  }
-                },
-                required: ["posts"],
-                additionalProperties: false
-              }
-            }
-          }
-        ],
-        tool_choice: { type: "function", function: { name: "generate_posts" } }
+Vary sentiment based on results (winners get positive posts, losers get negative/frustrated posts, draws get mixed). Include some neutral analytical posts too.
+
+Here are the recent match results:
+${matchSummaries}
+
+IMPORTANT: Return ONLY the JSON object with the "posts" array. No other text.`;
+
+    // Try Gemini API first, fallback to Lovable AI Gateway
+    let generatedPosts: any[];
+
+    // Attempt 1: Direct Gemini API
+    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json", temperature: 0.9 },
       }),
     });
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errText);
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limited, try again later' }), {
-          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+    if (geminiResponse.ok) {
+      const geminiData = await geminiResponse.json();
+      const textContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (textContent) {
+        const parsed = JSON.parse(textContent);
+        generatedPosts = parsed.posts || parsed;
+        console.log(`Gemini API generated ${generatedPosts.length} posts`);
+      } else {
+        throw new Error('Empty Gemini response');
       }
-      throw new Error(`AI API error: ${aiResponse.status}`);
+    } else {
+      // Fallback: Lovable AI Gateway
+      console.log(`Gemini API returned ${geminiResponse.status}, falling back to Lovable AI Gateway...`);
+      const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+      if (!lovableApiKey) throw new Error('Both Gemini and Lovable AI unavailable');
+
+      const fallbackResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${lovableApiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: 'You are a JSON generator. Return only valid JSON.' },
+            { role: 'user', content: prompt }
+          ],
+        }),
+      });
+
+      if (!fallbackResponse.ok) {
+        const errText = await fallbackResponse.text();
+        console.error('Lovable AI fallback error:', fallbackResponse.status, errText);
+        if (fallbackResponse.status === 429) {
+          return new Response(JSON.stringify({ error: 'Rate limited, try again later' }), {
+            status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw new Error(`AI API error: ${fallbackResponse.status}`);
+      }
+
+      const fallbackData = await fallbackResponse.json();
+      const content = fallbackData.choices?.[0]?.message?.content;
+      if (!content) throw new Error('No content in fallback response');
+      // Extract JSON from potential markdown code blocks
+      const jsonStr = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsed = JSON.parse(jsonStr);
+      generatedPosts = parsed.posts || parsed;
+      console.log(`Lovable AI fallback generated ${generatedPosts.length} posts`);
     }
 
-    const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error('No tool call in AI response');
+    if (!Array.isArray(generatedPosts) || generatedPosts.length === 0) {
+      throw new Error('Invalid AI response format');
+    }
 
-    const { posts: generatedPosts } = JSON.parse(toolCall.function.arguments);
-    console.log(`AI generated ${generatedPosts.length} posts`);
+    console.log(`Total posts to insert: ${generatedPosts.length}`);
 
     // Map to DB format and insert
     const now = new Date();
