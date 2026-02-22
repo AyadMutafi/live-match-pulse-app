@@ -7,12 +7,31 @@ const corsHeaders = {
 
 const SUBREDDITS = ['soccer', 'football', 'PremierLeague', 'LaLiga', 'SerieA', 'Bundesliga'];
 
-async function fetchSubreddit(subreddit: string): Promise<any[]> {
+async function getRedditAccessToken(clientId: string, clientSecret: string): Promise<string> {
+  const auth = btoa(`${clientId}:${clientSecret}`);
+  const res = await fetch('https://www.reddit.com/api/v1/access_token', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'FanPulseApp/1.0',
+    },
+    body: 'grant_type=client_credentials',
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Reddit auth failed: ${res.status} ${text}`);
+  }
+  const data = await res.json();
+  return data.access_token;
+}
+
+async function fetchSubreddit(subreddit: string, accessToken: string): Promise<any[]> {
   try {
-    const res = await fetch(`https://www.reddit.com/r/${subreddit}/hot.json?limit=15&raw_json=1`, {
-      headers: { 
-        'User-Agent': 'Mozilla/5.0 (compatible; FanPulseBot/1.0)',
-        'Accept': 'application/json',
+    const res = await fetch(`https://oauth.reddit.com/r/${subreddit}/hot?limit=15&raw_json=1`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'User-Agent': 'FanPulseApp/1.0',
       },
     });
     if (!res.ok) {
@@ -45,12 +64,21 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const clientId = Deno.env.get('REDDIT_CLIENT_ID');
+    const clientSecret = Deno.env.get('REDDIT_CLIENT_SECRET');
+
+    if (!clientId || !clientSecret) {
+      throw new Error('REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET are required');
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('Fetching Reddit posts from football subreddits...');
+    console.log('Authenticating with Reddit OAuth2...');
+    const accessToken = await getRedditAccessToken(clientId, clientSecret);
+    console.log('Reddit OAuth2 token obtained, fetching posts...');
 
     // Fetch from all subreddits in parallel
-    const results = await Promise.all(SUBREDDITS.map(fetchSubreddit));
+    const results = await Promise.all(SUBREDDITS.map(s => fetchSubreddit(s, accessToken)));
     const allPosts = results.flat();
 
     if (allPosts.length === 0) {
@@ -76,7 +104,7 @@ Deno.serve(async (req) => {
 
     const newPosts = relevantPosts
       .filter(p => !existingIds.has(`reddit-${p.id}`))
-      .slice(0, 30); // Cap at 30 new posts per run
+      .slice(0, 30);
 
     if (newPosts.length === 0) {
       return new Response(JSON.stringify({ message: 'No new Reddit posts to insert' }), {
@@ -84,10 +112,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // The social_platform enum only supports 'twitter', 'instagram', 'facebook'
-    // Reddit posts will be stored as 'facebook' platform with source in emotions
     const dbPosts = newPosts.map(p => {
-      // sentiment_score column is numeric(3,2) so scale 0-100 to 0.00-9.99
       const rawScore = estimateSentiment(p.title);
       const scaledScore = parseFloat((Math.min(9.99, Math.max(0, (rawScore / 100) * 9.99))).toFixed(2));
       return {
