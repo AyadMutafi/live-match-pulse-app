@@ -460,6 +460,54 @@ export type Database = {
         }
         Relationships: []
       }
+      sentiment_searches: {
+        Row: {
+          created_at: string
+          id: string
+          keyword: string
+          language: string
+          negative_count: number
+          negative_pct: number
+          neutral_count: number
+          neutral_pct: number
+          positive_count: number
+          positive_pct: number
+          post_limit: number
+          summary: string | null
+          total_posts: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          keyword: string
+          language?: string
+          negative_count?: number
+          negative_pct?: number
+          neutral_count?: number
+          neutral_pct?: number
+          positive_count?: number
+          positive_pct?: number
+          post_limit?: number
+          summary?: string | null
+          total_posts?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          keyword?: string
+          language?: string
+          negative_count?: number
+          negative_pct?: number
+          neutral_count?: number
+          neutral_pct?: number
+          positive_count?: number
+          positive_pct?: number
+          post_limit?: number
+          summary?: string | null
+          total_posts?: number
+        }
+        Relationships: []
+      }
       shareable_moments: {
         Row: {
           created_at: string
