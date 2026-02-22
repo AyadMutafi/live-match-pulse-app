@@ -10,6 +10,7 @@ import WeeklyRatings from "./pages/WeeklyRatings";
 import About from "./pages/About";
 import ClubPage from "./pages/ClubPage";
 import NotFound from "./pages/NotFound";
+import SentimentTracker from "./pages/SentimentTracker";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/weekly" element={<WeeklyRatings />} />
             <Route path="/club/:clubSlug" element={<ClubPage />} />
             <Route path="/about" element={<About />} />
+            <Route path="/sentiment-tracker" element={<SentimentTracker />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
