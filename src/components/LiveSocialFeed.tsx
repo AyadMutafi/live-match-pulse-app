@@ -47,22 +47,35 @@ function mapDbPosts(dbPosts: any[]): SocialPost[] {
     const score = Math.round(rawScore * 10);
     const sentiment = score >= 65 ? "positive" : score <= 35 ? "negative" : "neutral";
     const engagement = p.engagement_metrics as any || {};
+    const emotions = p.emotions as any || {};
     const postedAt = new Date(p.posted_at);
     const minutesAgo = Math.max(1, Math.floor((Date.now() - postedAt.getTime()) / 60000));
     const timestamp = minutesAgo < 60 ? `${minutesAgo}m ago` : minutesAgo < 1440 ? `${Math.floor(minutesAgo / 60)}h ago` : `${Math.floor(minutesAgo / 1440)}d ago`;
+
+    // Detect real Reddit posts stored as 'facebook' platform
+    const isReddit = emotions.source === 'reddit';
+    const displayPlatform = isReddit ? "reddit" : (p.platform === "facebook" ? "twitter" : p.platform);
+
+    // For Reddit posts, use the permalink from emotions; for AI-generated, no real URL
+    let postUrl: string | null = null;
+    if (isReddit && emotions.permalink) {
+      postUrl = emotions.permalink;
+    } else if (!p.post_id?.startsWith('ai-gen-')) {
+      postUrl = getPostUrl(p.platform, p.post_id, p.author_handle);
+    }
 
     return {
       id: p.id,
       author: p.author_handle || "Anonymous",
       content: p.content,
-      platform: p.platform === "facebook" ? "twitter" : p.platform,
+      platform: displayPlatform as SocialPost["platform"],
       sentiment,
       sentimentScore: score,
       likes: engagement.likes ?? Math.floor(Math.random() * 3000),
       shares: engagement.shares ?? Math.floor(Math.random() * 500),
       views: engagement.views ?? Math.floor(Math.random() * 50000),
       timestamp,
-      postUrl: getPostUrl(p.platform, p.post_id, p.author_handle),
+      postUrl,
     };
   });
 }

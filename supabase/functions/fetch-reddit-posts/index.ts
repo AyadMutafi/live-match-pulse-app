@@ -9,9 +9,9 @@ const SUBREDDITS = ['soccer', 'football', 'PremierLeague', 'LaLiga', 'SerieA', '
 
 async function fetchSubreddit(subreddit: string): Promise<any[]> {
   try {
-    const res = await fetch(`https://old.reddit.com/r/${subreddit}/hot.json?limit=10&raw_json=1`, {
+    const res = await fetch(`https://www.reddit.com/r/${subreddit}/hot.json?limit=15&raw_json=1`, {
       headers: { 
-        'User-Agent': 'FanPulseApp/1.0 (by /u/fanpulse)',
+        'User-Agent': 'Mozilla/5.0 (compatible; FanPulseBot/1.0)',
         'Accept': 'application/json',
       },
     });
