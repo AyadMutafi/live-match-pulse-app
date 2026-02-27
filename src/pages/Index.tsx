@@ -9,13 +9,19 @@ import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { LiveRefreshIndicator } from "@/components/LiveRefreshIndicator";
 import { useMatchPulse } from "@/hooks/useMatchPulse";
 import { useSmartRefresh } from "@/hooks/useSmartRefresh";
-import { Zap, Users, Globe, Radio, Swords, Trophy, Brain, RefreshCw } from "lucide-react";
+import { Zap, Users, Globe, Radio, Swords, Trophy, Brain, RefreshCw, TrendingUp, BarChart3, Activity, Clock } from "lucide-react";
 import { AITeamOfWeek } from "@/components/AITeamOfWeek";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TARGET_CLUBS, CLUB_RIVALRIES } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SentimentTrendChart } from "@/components/SentimentTrendChart";
+import { FanMoodIndicator } from "@/components/FanMoodIndicator";
+import { TeamSentimentBreakdown } from "@/components/TeamSentimentBreakdown";
+import { MatchTimeline } from "@/components/MatchTimeline";
+import { LiveMatchStats } from "@/components/LiveMatchStats";
+import { MatchMomentumChart } from "@/components/MatchMomentumChart";
 
 const Index = () => {
   const { liveMatchesData: realMatchPulse } = useMatchPulse();
@@ -114,7 +120,25 @@ const Index = () => {
         </div>
 
         <div className="space-y-6">
-          {/* Club Sentiment Overview - NEW */}
+          {/* Sentiment Trend & Fan Mood */}
+          <CollapsibleSection
+            title="Live Sentiment Dashboard"
+            icon={<TrendingUp className="w-5 h-5 text-success" />}
+            badge="Real-time"
+            defaultOpen={true}
+          >
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="md:col-span-2">
+                <SentimentTrendChart matchMinute={75} />
+              </div>
+              <FanMoodIndicator positive={58} neutral={26} negative={16} />
+            </div>
+            <div className="mt-4">
+              <TeamSentimentBreakdown />
+            </div>
+          </CollapsibleSection>
+
+          {/* Club Sentiment Overview */}
           <CollapsibleSection
             title="Club Sentiment Overview"
             icon={<Brain className="w-5 h-5 text-primary" />}
@@ -133,7 +157,23 @@ const Index = () => {
             <MatchesSection />
           </CollapsibleSection>
 
-          {/* Rivalry Watch - NEW */}
+          {/* Match Experience */}
+          <CollapsibleSection
+            title="Live Match Experience"
+            icon={<Activity className="w-5 h-5 text-accent" />}
+            badge="Interactive"
+            defaultOpen={true}
+          >
+            <div className="grid gap-4 md:grid-cols-2">
+              <MatchTimeline />
+              <LiveMatchStats homeTeam="Real Madrid" awayTeam="Barcelona" />
+            </div>
+            <div className="mt-4">
+              <MatchMomentumChart homeTeam="Real Madrid" awayTeam="Barcelona" />
+            </div>
+          </CollapsibleSection>
+
+          {/* Rivalry Watch */}
           <CollapsibleSection
             title="Rivalry Watch"
             icon={<Swords className="w-5 h-5 text-destructive" />}
