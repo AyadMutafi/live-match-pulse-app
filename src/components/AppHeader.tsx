@@ -11,6 +11,8 @@ export function AppHeader() {
         <Badge variant="outline" className="text-[10px] gap-1 border-muted-foreground/30 text-muted-foreground">
           <span>Powered by</span>
           <span className="font-bold">𝕏</span>
+          <span>+</span>
+          <span className="font-bold text-[hsl(var(--ai-green))]">Gemini AI</span>
         </Badge>
       </div>
     </header>
