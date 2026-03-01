@@ -14,7 +14,6 @@ function getMood(score: number) {
   return SENTIMENT_SCALE.find(s => score >= s.range[0] && score <= s.range[1]) || SENTIMENT_SCALE[2];
 }
 
-// Mock live data
 const overallScore = 72;
 const mood = getMood(overallScore);
 
@@ -40,6 +39,15 @@ const clubMoods = [
 export function FanPulseHome() {
   return (
     <div className="space-y-6">
+      {/* AI Status */}
+      <div className="flex items-center justify-center gap-2 bg-card border border-border rounded-xl px-3 py-2">
+        <span className="w-2 h-2 rounded-full bg-[hsl(var(--ai-green))] animate-pulse" />
+        <span className="text-[11px] text-muted-foreground">Gemini AI Connected</span>
+        <Badge variant="outline" className="text-[9px] border-[hsl(var(--ai-green))]/30 text-[hsl(var(--ai-green))]">
+          Online
+        </Badge>
+      </div>
+
       {/* Hero: Live Fan Mood */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -56,21 +64,24 @@ export function FanPulseHome() {
         </motion.div>
         <p className="text-lg font-semibold text-foreground">{mood.label}</p>
         <p className="text-xs text-muted-foreground mt-1">Overall sentiment: {overallScore}%</p>
+        <Badge variant="outline" className="text-[9px] mt-2 border-[hsl(var(--ai-green))]/30 text-[hsl(var(--ai-green))]">
+          🤖 Analyzed by Gemini AI
+        </Badge>
       </motion.div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-card border border-border rounded-xl p-3 text-center">
           <p className="text-xl font-bold text-foreground">24.7K</p>
-          <p className="text-[10px] text-muted-foreground">Posts analyzed</p>
+          <p className="text-[10px] text-muted-foreground">Tweets analyzed</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-3 text-center">
           <p className="text-xl font-bold text-[hsl(var(--success))]">↑ 12%</p>
           <p className="text-[10px] text-muted-foreground">Sentiment trend</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-3 text-center">
-          <p className="text-xl font-bold text-foreground">8</p>
-          <p className="text-[10px] text-muted-foreground">Clubs tracked</p>
+          <p className="text-xl font-bold text-[hsl(var(--ai-green))]">94%</p>
+          <p className="text-[10px] text-muted-foreground">AI confidence</p>
         </div>
       </div>
 

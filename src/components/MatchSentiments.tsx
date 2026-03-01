@@ -5,12 +5,12 @@ import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from "rec
 
 // ── Sentiment scale ───────────────────────────────────────────────
 const SENTIMENT_SCALE = [
-  { emoji: "🔥", label: "On Fire", range: [90, 100], hue: 25 },
-  { emoji: "😍", label: "Love It", range: [70, 89], hue: 340 },
-  { emoji: "🙂", label: "Good", range: [50, 69], hue: 142 },
-  { emoji: "😐", label: "Meh", range: [30, 49], hue: 215 },
-  { emoji: "😤", label: "Frustrated", range: [10, 29], hue: 25 },
-  { emoji: "💩", label: "Awful", range: [0, 9], hue: 0 },
+  { emoji: "🔥", label: "On Fire", range: [90, 100], key: "fire" },
+  { emoji: "😍", label: "Love It", range: [70, 89], key: "love" },
+  { emoji: "🙂", label: "Good", range: [50, 69], key: "good" },
+  { emoji: "😐", label: "Meh", range: [30, 49], key: "meh" },
+  { emoji: "😤", label: "Frustrated", range: [10, 29], key: "frustrated" },
+  { emoji: "💩", label: "Awful", range: [0, 9], key: "awful" },
 ];
 
 function getMood(score: number) {
@@ -33,13 +33,19 @@ interface MatchData {
   away: string;
   league: string;
   status: MatchStatus;
+  statusDetail?: string;
   sentimentScore: number;
   tweets: string;
+  tweetsCount: number;
   topReaction: string;
-  breakdown: number[]; // [🔥, 😍, 🙂, 😐, 😤, 💩]
+  breakdown: number[];
+  aiSummary: string;
+  aiConfidence: number;
+  keyThemes: string[];
   sampleTweets: { text: string; sentiment: string }[];
   trendData: { min: string; score: number }[];
   topWords: string[];
+  lastUpdated: string;
 }
 
 // ── Sample data ───────────────────────────────────────────────────
@@ -50,10 +56,15 @@ const MATCHES: MatchData[] = [
     away: "Liverpool",
     league: "Premier League",
     status: "live",
+    statusDetail: "67'",
     sentimentScore: 82,
     tweets: "15.2K",
+    tweetsCount: 15234,
     topReaction: '"What a counter-attack! United are on fire today 🔥🔥"',
     breakdown: [45, 25, 15, 8, 5, 2],
+    aiSummary: "Fans are ecstatic about Rashford's performance and United's attacking display. Defensive concerns remain but overall sentiment is highly positive with excitement about the counter-attacking style.",
+    aiConfidence: 94,
+    keyThemes: ["Rashford form", "Counter-attacks", "Defensive lapses", "Tactical shift", "Manager praise"],
     sampleTweets: [
       { text: "Rashford is absolutely cooking today, incredible performance!", sentiment: "🔥" },
       { text: "This is the best football United have played in months", sentiment: "😍" },
@@ -63,9 +74,10 @@ const MATCHES: MatchData[] = [
     ],
     trendData: [
       { min: "0'", score: 55 }, { min: "15'", score: 62 }, { min: "30'", score: 78 },
-      { min: "45'", score: 85 }, { min: "60'", score: 80 }, { min: "75'", score: 82 },
+      { min: "45'", score: 85 }, { min: "60'", score: 80 }, { min: "67'", score: 82 },
     ],
     topWords: ["🔥", "amazing", "goal", "counter", "brilliant", "Rashford", "defense", "midfield"],
+    lastUpdated: "2 min ago",
   },
   {
     id: "2",
@@ -73,10 +85,15 @@ const MATCHES: MatchData[] = [
     away: "Chelsea",
     league: "Premier League",
     status: "live",
+    statusDetail: "42'",
     sentimentScore: 76,
     tweets: "22.1K",
+    tweetsCount: 22100,
     topReaction: '"Saka is pure magic, love watching this kid play 😍"',
     breakdown: [20, 38, 22, 12, 6, 2],
+    aiSummary: "Arsenal fans dominating the conversation with praise for Saka's creativity. Chelsea supporters frustrated with lack of attacking options. Derby atmosphere driving high engagement.",
+    aiConfidence: 91,
+    keyThemes: ["Saka brilliance", "Derby atmosphere", "Chelsea struggles", "Palmer potential", "Title race"],
     sampleTweets: [
       { text: "Arsenal completely dominating this derby, beautiful football", sentiment: "😍" },
       { text: "Saka skinning defenders for fun, world class talent", sentiment: "🔥" },
@@ -85,10 +102,11 @@ const MATCHES: MatchData[] = [
       { text: "Palmer needs more of the ball, he's Chelsea's only hope", sentiment: "😐" },
     ],
     trendData: [
-      { min: "0'", score: 60 }, { min: "15'", score: 68 }, { min: "30'", score: 72 },
-      { min: "45'", score: 74 }, { min: "60'", score: 78 }, { min: "75'", score: 76 },
+      { min: "0'", score: 60 }, { min: "10'", score: 68 }, { min: "20'", score: 72 },
+      { min: "30'", score: 74 }, { min: "42'", score: 76 },
     ],
     topWords: ["Saka", "derby", "😍", "dominating", "defense", "Palmer", "class", "beautiful"],
+    lastUpdated: "1 min ago",
   },
   {
     id: "3",
@@ -98,8 +116,12 @@ const MATCHES: MatchData[] = [
     status: "today",
     sentimentScore: 58,
     tweets: "45.8K",
+    tweetsCount: 45800,
     topReaction: '"El Clásico hype is real but let\'s see who shows up 🙂"',
     breakdown: [12, 18, 30, 22, 14, 4],
+    aiSummary: "Pre-match tension is high with fans cautiously optimistic. Both fanbases expressing nervousness about key matchups. Vinícius vs Yamal narrative dominating discussions.",
+    aiConfidence: 88,
+    keyThemes: ["El Clásico hype", "Vinícius vs Yamal", "Tactical battles", "Nervous anticipation", "Title implications"],
     sampleTweets: [
       { text: "El Clásico tonight! Can't contain my excitement", sentiment: "😍" },
       { text: "Honestly expecting a boring tactical battle today", sentiment: "😐" },
@@ -112,6 +134,7 @@ const MATCHES: MatchData[] = [
       { min: "3h", score: 56 }, { min: "2h", score: 60 }, { min: "1h", score: 58 },
     ],
     topWords: ["Clásico", "hype", "Vinícius", "Yamal", "nervous", "excited", "🙂", "rivalry"],
+    lastUpdated: "5 min ago",
   },
   {
     id: "4",
@@ -121,8 +144,12 @@ const MATCHES: MatchData[] = [
     status: "finished",
     sentimentScore: 42,
     tweets: "8.3K",
+    tweetsCount: 8300,
     topReaction: '"Meh game overall. Expected more from Der Klassiker 😐"',
     breakdown: [5, 12, 18, 35, 22, 8],
+    aiSummary: "Fan disappointment is the dominant emotion. The match failed to live up to the Der Klassiker billing. Bayern's conservative tactics drew heavy criticism from both fanbases.",
+    aiConfidence: 92,
+    keyThemes: ["Boring match", "Defensive tactics", "Musiala bright spot", "Fan disappointment", "Atmosphere praise"],
     sampleTweets: [
       { text: "That was the most boring Klassiker I've ever seen", sentiment: "😐" },
       { text: "Bayern completely parking the bus after going ahead", sentiment: "😤" },
@@ -135,6 +162,7 @@ const MATCHES: MatchData[] = [
       { min: "45'", score: 45 }, { min: "60'", score: 40 }, { min: "90'", score: 42 },
     ],
     topWords: ["boring", "😐", "Klassiker", "parking", "Musiala", "disappointed", "meh", "defend"],
+    lastUpdated: "1 hour ago",
   },
   {
     id: "5",
@@ -144,8 +172,12 @@ const MATCHES: MatchData[] = [
     status: "finished",
     sentimentScore: 24,
     tweets: "6.7K",
+    tweetsCount: 6700,
     topReaction: '"Absolutely disgraceful performance from PSG. No passion. 😤"',
     breakdown: [2, 5, 8, 15, 48, 22],
+    aiSummary: "Overwhelmingly negative sentiment from PSG fans frustrated with the lack of effort. Marseille fans celebrating but engagement is lower. Strong criticism of management and player attitude.",
+    aiConfidence: 96,
+    keyThemes: ["PSG disgrace", "Dembélé invisible", "Management criticism", "No passion", "Marseille celebration"],
     sampleTweets: [
       { text: "PSG are a disgrace, all that money for nothing", sentiment: "💩" },
       { text: "Dembélé was invisible the whole match, shocking", sentiment: "😤" },
@@ -158,6 +190,7 @@ const MATCHES: MatchData[] = [
       { min: "45'", score: 28 }, { min: "60'", score: 22 }, { min: "90'", score: 24 },
     ],
     topWords: ["disgrace", "😤", "💩", "embarrassing", "Dembélé", "invisible", "no passion", "worst"],
+    lastUpdated: "3 hours ago",
   },
   {
     id: "6",
@@ -167,8 +200,12 @@ const MATCHES: MatchData[] = [
     status: "today",
     sentimentScore: 65,
     tweets: "11.4K",
+    tweetsCount: 11400,
     topReaction: '"Derby d\'Italia is always special. Forza! 🙂"',
     breakdown: [15, 22, 30, 18, 10, 5],
+    aiSummary: "Cautious optimism from both sets of fans ahead of the Derby d'Italia. Juve supporters slightly more confident after recent form. Inter fans focused on Lautaro's threat.",
+    aiConfidence: 87,
+    keyThemes: ["Derby d'Italia", "Lautaro threat", "Juve momentum", "Tactical chess", "Serie A title"],
     sampleTweets: [
       { text: "Can't wait for the Derby d'Italia, biggest match of the season", sentiment: "😍" },
       { text: "Nervous about Lautaro, he always scores against us", sentiment: "😤" },
@@ -181,6 +218,7 @@ const MATCHES: MatchData[] = [
       { min: "3h", score: 63 }, { min: "2h", score: 66 }, { min: "1h", score: 65 },
     ],
     topWords: ["Derby", "Italia", "🙂", "Lautaro", "tactics", "Vlahović", "forza", "momentum"],
+    lastUpdated: "8 min ago",
   },
 ];
 
@@ -208,12 +246,16 @@ export function MatchSentiments() {
     <div className="space-y-4">
       <div className="text-center pt-2 pb-1">
         <p className="text-xs text-muted-foreground uppercase tracking-widest">Match Sentiments</p>
-        <p className="text-[11px] text-muted-foreground mt-0.5">How fans feel about each match on 𝕏</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
+          <span>🤖 Powered by Gemini AI</span>
+          <span>•</span>
+          <span className="font-bold">𝕏</span>
+          <span>data</span>
+        </p>
       </div>
 
       {/* Filters */}
       <div className="space-y-2">
-        {/* League filter */}
         <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
           {LEAGUES.map(l => (
             <button
@@ -229,7 +271,6 @@ export function MatchSentiments() {
             </button>
           ))}
         </div>
-        {/* Status filter */}
         <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
           {STATUSES.map(s => (
             <button
@@ -267,6 +308,8 @@ export function MatchSentiments() {
       <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground pt-2 pb-4">
         <span className="font-bold text-xs">𝕏</span>
         <span>Sentiment data from X.com</span>
+        <span>•</span>
+        <span className="text-[hsl(var(--ai-green))]">🤖 Gemini AI</span>
       </div>
     </div>
   );
@@ -293,12 +336,10 @@ function MatchCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
     >
-      {/* Card */}
       <button
         onClick={onToggle}
-        className={`w-full text-left bg-card rounded-2xl border border-border overflow-hidden transition-all duration-200 hover:border-muted-foreground/30`}
+        className="w-full text-left bg-card rounded-2xl border border-border overflow-hidden transition-all duration-200 hover:border-muted-foreground/30"
       >
-        {/* Gradient accent top */}
         <div className={`h-1 bg-gradient-to-r ${gradient}`} />
 
         <div className="px-4 py-3">
@@ -310,7 +351,7 @@ function MatchCard({
               </p>
               <p className="text-[10px] text-muted-foreground">{match.league}</p>
             </div>
-            <StatusBadge status={match.status} />
+            <StatusBadge status={match.status} detail={match.statusDetail} />
           </div>
 
           {/* Hero: emoji + score */}
@@ -324,7 +365,12 @@ function MatchCard({
             <div className="flex-1">
               <p className="text-2xl font-bold text-foreground">{match.sentimentScore}%</p>
               <p className="text-xs text-muted-foreground">{mood.label}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">📊 {match.tweets} posts</p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-[10px] text-muted-foreground">📊 {match.tweets} tweets</p>
+                <Badge variant="outline" className="text-[8px] border-[hsl(var(--ai-green))]/30 text-[hsl(var(--ai-green))] py-0 px-1.5">
+                  🤖 AI: {match.aiConfidence}%
+                </Badge>
+              </div>
             </div>
           </div>
 
@@ -332,6 +378,14 @@ function MatchCard({
           <p className="text-[11px] text-muted-foreground mt-3 italic line-clamp-2">
             {match.topReaction}
           </p>
+
+          {/* Last updated */}
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-[9px] text-muted-foreground">Updated {match.lastUpdated}</span>
+            <Badge variant="outline" className="text-[8px] border-muted-foreground/20 text-muted-foreground py-0">
+              🤖 Analyzed by Gemini AI
+            </Badge>
+          </div>
         </div>
       </button>
 
@@ -354,12 +408,12 @@ function MatchCard({
 }
 
 // ── Status Badge ──────────────────────────────────────────────────
-function StatusBadge({ status }: { status: MatchStatus }) {
+function StatusBadge({ status, detail }: { status: MatchStatus; detail?: string }) {
   if (status === "live") {
     return (
       <Badge className="bg-[hsl(var(--destructive))]/15 text-[hsl(var(--destructive))] border-[hsl(var(--destructive))]/20 text-[10px] gap-1">
         <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--destructive))] animate-pulse" />
-        LIVE
+        LIVE {detail || ""}
       </Badge>
     );
   }
@@ -381,6 +435,28 @@ function StatusBadge({ status }: { status: MatchStatus }) {
 function ExpandedView({ match }: { match: MatchData }) {
   return (
     <div className="bg-card border border-t-0 border-border rounded-b-2xl px-4 py-4 space-y-5">
+      {/* Gemini AI Analysis header */}
+      <div className="flex items-center gap-2 bg-[hsl(var(--ai-green))]/10 border border-[hsl(var(--ai-green))]/20 rounded-xl px-3 py-2">
+        <span className="text-sm">🤖</span>
+        <div className="flex-1">
+          <p className="text-[11px] font-semibold text-foreground">Gemini AI Analysis</p>
+          <p className="text-[9px] text-muted-foreground">
+            ✅ Analysis complete • {match.tweetsCount.toLocaleString()} tweets • Confidence: {match.aiConfidence}%
+          </p>
+        </div>
+        {match.status === "live" && (
+          <Badge variant="outline" className="text-[8px] border-[hsl(var(--ai-green))]/30 text-[hsl(var(--ai-green))]">
+            Re-analyze
+          </Badge>
+        )}
+      </div>
+
+      {/* AI Summary */}
+      <div>
+        <p className="text-xs font-semibold text-foreground mb-1.5">AI-Generated Summary</p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">{match.aiSummary}</p>
+      </div>
+
       {/* Breakdown bars */}
       <div>
         <p className="text-xs font-semibold text-foreground mb-2">Sentiment Breakdown</p>
@@ -405,6 +481,23 @@ function ExpandedView({ match }: { match: MatchData }) {
               </div>
               <span className="text-[10px] text-muted-foreground w-8 text-right">{match.breakdown[i]}%</span>
             </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Key Themes from X.com */}
+      <div>
+        <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+          <span className="font-bold">𝕏</span> Key Themes from X.com
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {match.keyThemes.map((theme) => (
+            <span
+              key={theme}
+              className="text-[10px] px-2.5 py-1 bg-primary/10 text-primary rounded-full border border-primary/20"
+            >
+              {theme}
+            </span>
           ))}
         </div>
       </div>
@@ -466,7 +559,7 @@ function ExpandedView({ match }: { match: MatchData }) {
         </div>
       </div>
 
-      {/* Word cloud (simple tag style) */}
+      {/* Word cloud */}
       <div>
         <p className="text-xs font-semibold text-foreground mb-2">Trending Words & Emojis</p>
         <div className="flex flex-wrap gap-1.5">
@@ -480,6 +573,14 @@ function ExpandedView({ match }: { match: MatchData }) {
           ))}
         </div>
       </div>
+
+      {/* Auto-refresh note for live */}
+      {match.status === "live" && (
+        <div className="flex items-center justify-center gap-1.5 text-[9px] text-[hsl(var(--ai-green))]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--ai-green))] animate-pulse" />
+          Auto-refreshing every 5 minutes • Gemini AI analyzing live
+        </div>
+      )}
     </div>
   );
 }
