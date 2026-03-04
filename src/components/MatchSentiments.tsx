@@ -134,25 +134,34 @@ function useMatchSentiment(match: Match | null, enabled: boolean) {
 }
 
 // ── Bulk sentiment for visible matches ────────────────────────────
+const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
 function useBulkMatchSentiments(matches: Match[]) {
   return useQuery({
     queryKey: ["bulk-sentiments", matches.map(m => m.id).join(",")],
     queryFn: async (): Promise<Record<string, SentimentData>> => {
       const results: Record<string, SentimentData> = {};
 
-      // Analyze up to 6 matches in parallel (to avoid rate limits)
-      const batch = matches.slice(0, 8);
-      const promises = batch.map(async (match) => {
+      // Process sequentially with delays to avoid 429 rate limits
+      const batch = matches.slice(0, 6);
+      for (const match of batch) {
         try {
           const keyword = getMatchKeyword(match);
           const { data, error } = await supabase.functions.invoke("analyze-football-sentiment", {
-            body: { keyword, limit: 20 },
+            body: { keyword, limit: 15 },
           });
           if (error) throw error;
           results[match.id] = parseSentimentResponse(data);
-        } catch (e) {
+          // Wait 2s between requests to respect rate limits
+          await delay(2000);
+        } catch (e: any) {
           console.error(`Sentiment analysis failed for ${match.id}:`, e);
-          // Provide fallback
+          const is429 = e?.message?.includes("429") || e?.status === 429;
+          if (is429) {
+            // Stop making more requests if rate limited
+            console.warn("Rate limited, stopping further requests");
+            break;
+          }
           results[match.id] = {
             sentimentScore: 50,
             aiSummary: "Sentiment analysis pending...",
@@ -164,9 +173,8 @@ function useBulkMatchSentiments(matches: Match[]) {
             source: "pending",
           };
         }
-      });
+      }
 
-      await Promise.all(promises);
       return results;
     },
     enabled: matches.length > 0,
