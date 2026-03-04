@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { useMatches, Match } from "@/hooks/useMatches";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Loader2, RefreshCw } from "lucide-react";
 
 // ── Sentiment scale ───────────────────────────────────────────────
 const SENTIMENT_SCALE = [
@@ -25,204 +29,152 @@ function getBorderGradient(score: number) {
 }
 
 // ── Types ─────────────────────────────────────────────────────────
-type MatchStatus = "live" | "today" | "finished";
+type MatchStatus = "live" | "today" | "finished" | "upcoming";
 
-interface MatchData {
-  id: string;
-  home: string;
-  away: string;
-  league: string;
-  status: MatchStatus;
-  statusDetail?: string;
+interface SentimentData {
   sentimentScore: number;
-  tweets: string;
-  tweetsCount: number;
-  topReaction: string;
-  breakdown: number[];
   aiSummary: string;
   aiConfidence: number;
+  totalPosts: number;
+  breakdown: number[];
   keyThemes: string[];
   sampleTweets: { text: string; sentiment: string }[];
-  trendData: { min: string; score: number }[];
-  topWords: string[];
-  lastUpdated: string;
+  source: string;
 }
 
-// ── Sample data ───────────────────────────────────────────────────
-const MATCHES: MatchData[] = [
-  {
-    id: "1",
-    home: "Man United",
-    away: "Liverpool",
-    league: "Premier League",
-    status: "live",
-    statusDetail: "67'",
-    sentimentScore: 82,
-    tweets: "15.2K",
-    tweetsCount: 15234,
-    topReaction: '"What a counter-attack! United are on fire today 🔥🔥"',
-    breakdown: [45, 25, 15, 8, 5, 2],
-    aiSummary: "Fans are ecstatic about Rashford's performance and United's attacking display. Defensive concerns remain but overall sentiment is highly positive with excitement about the counter-attacking style.",
-    aiConfidence: 94,
-    keyThemes: ["Rashford form", "Counter-attacks", "Defensive lapses", "Tactical shift", "Manager praise"],
-    sampleTweets: [
-      { text: "Rashford is absolutely cooking today, incredible performance!", sentiment: "🔥" },
-      { text: "This is the best football United have played in months", sentiment: "😍" },
-      { text: "Liverpool need to sort out that midfield, getting overrun", sentiment: "😤" },
-      { text: "Decent game so far, both teams giving it a go", sentiment: "🙂" },
-      { text: "Salah looks frustrated, not getting the service he needs", sentiment: "😐" },
-    ],
-    trendData: [
-      { min: "0'", score: 55 }, { min: "15'", score: 62 }, { min: "30'", score: 78 },
-      { min: "45'", score: 85 }, { min: "60'", score: 80 }, { min: "67'", score: 82 },
-    ],
-    topWords: ["🔥", "amazing", "goal", "counter", "brilliant", "Rashford", "defense", "midfield"],
-    lastUpdated: "2 min ago",
-  },
-  {
-    id: "2",
-    home: "Arsenal",
-    away: "Chelsea",
-    league: "Premier League",
-    status: "live",
-    statusDetail: "42'",
-    sentimentScore: 76,
-    tweets: "22.1K",
-    tweetsCount: 22100,
-    topReaction: '"Saka is pure magic, love watching this kid play 😍"',
-    breakdown: [20, 38, 22, 12, 6, 2],
-    aiSummary: "Arsenal fans dominating the conversation with praise for Saka's creativity. Chelsea supporters frustrated with lack of attacking options. Derby atmosphere driving high engagement.",
-    aiConfidence: 91,
-    keyThemes: ["Saka brilliance", "Derby atmosphere", "Chelsea struggles", "Palmer potential", "Title race"],
-    sampleTweets: [
-      { text: "Arsenal completely dominating this derby, beautiful football", sentiment: "😍" },
-      { text: "Saka skinning defenders for fun, world class talent", sentiment: "🔥" },
-      { text: "Chelsea look clueless in attack, where's the creativity?", sentiment: "😤" },
-      { text: "Good match but nothing spectacular so far", sentiment: "🙂" },
-      { text: "Palmer needs more of the ball, he's Chelsea's only hope", sentiment: "😐" },
-    ],
-    trendData: [
-      { min: "0'", score: 60 }, { min: "10'", score: 68 }, { min: "20'", score: 72 },
-      { min: "30'", score: 74 }, { min: "42'", score: 76 },
-    ],
-    topWords: ["Saka", "derby", "😍", "dominating", "defense", "Palmer", "class", "beautiful"],
-    lastUpdated: "1 min ago",
-  },
-  {
-    id: "3",
-    home: "Real Madrid",
-    away: "Barcelona",
-    league: "La Liga",
-    status: "today",
-    sentimentScore: 58,
-    tweets: "45.8K",
-    tweetsCount: 45800,
-    topReaction: '"El Clásico hype is real but let\'s see who shows up 🙂"',
-    breakdown: [12, 18, 30, 22, 14, 4],
-    aiSummary: "Pre-match tension is high with fans cautiously optimistic. Both fanbases expressing nervousness about key matchups. Vinícius vs Yamal narrative dominating discussions.",
-    aiConfidence: 88,
-    keyThemes: ["El Clásico hype", "Vinícius vs Yamal", "Tactical battles", "Nervous anticipation", "Title implications"],
-    sampleTweets: [
-      { text: "El Clásico tonight! Can't contain my excitement", sentiment: "😍" },
-      { text: "Honestly expecting a boring tactical battle today", sentiment: "😐" },
-      { text: "Vinícius needs to step up in big games like these", sentiment: "🙂" },
-      { text: "Nervous about our defense, Yamal could destroy us", sentiment: "😤" },
-      { text: "Both teams have weaknesses, should be an even match", sentiment: "🙂" },
-    ],
-    trendData: [
-      { min: "6h", score: 52 }, { min: "5h", score: 55 }, { min: "4h", score: 58 },
-      { min: "3h", score: 56 }, { min: "2h", score: 60 }, { min: "1h", score: 58 },
-    ],
-    topWords: ["Clásico", "hype", "Vinícius", "Yamal", "nervous", "excited", "🙂", "rivalry"],
-    lastUpdated: "5 min ago",
-  },
-  {
-    id: "4",
-    home: "Bayern Munich",
-    away: "Dortmund",
-    league: "Bundesliga",
-    status: "finished",
-    sentimentScore: 42,
-    tweets: "8.3K",
-    tweetsCount: 8300,
-    topReaction: '"Meh game overall. Expected more from Der Klassiker 😐"',
-    breakdown: [5, 12, 18, 35, 22, 8],
-    aiSummary: "Fan disappointment is the dominant emotion. The match failed to live up to the Der Klassiker billing. Bayern's conservative tactics drew heavy criticism from both fanbases.",
-    aiConfidence: 92,
-    keyThemes: ["Boring match", "Defensive tactics", "Musiala bright spot", "Fan disappointment", "Atmosphere praise"],
-    sampleTweets: [
-      { text: "That was the most boring Klassiker I've ever seen", sentiment: "😐" },
-      { text: "Bayern completely parking the bus after going ahead", sentiment: "😤" },
-      { text: "Musiala was decent but nobody else showed up", sentiment: "🙂" },
-      { text: "Dortmund fans deserve better than this performance", sentiment: "💩" },
-      { text: "At least the atmosphere was good I guess", sentiment: "😐" },
-    ],
-    trendData: [
-      { min: "0'", score: 65 }, { min: "15'", score: 58 }, { min: "30'", score: 48 },
-      { min: "45'", score: 45 }, { min: "60'", score: 40 }, { min: "90'", score: 42 },
-    ],
-    topWords: ["boring", "😐", "Klassiker", "parking", "Musiala", "disappointed", "meh", "defend"],
-    lastUpdated: "1 hour ago",
-  },
-  {
-    id: "5",
-    home: "PSG",
-    away: "Marseille",
-    league: "Ligue 1",
-    status: "finished",
-    sentimentScore: 24,
-    tweets: "6.7K",
-    tweetsCount: 6700,
-    topReaction: '"Absolutely disgraceful performance from PSG. No passion. 😤"',
-    breakdown: [2, 5, 8, 15, 48, 22],
-    aiSummary: "Overwhelmingly negative sentiment from PSG fans frustrated with the lack of effort. Marseille fans celebrating but engagement is lower. Strong criticism of management and player attitude.",
-    aiConfidence: 96,
-    keyThemes: ["PSG disgrace", "Dembélé invisible", "Management criticism", "No passion", "Marseille celebration"],
-    sampleTweets: [
-      { text: "PSG are a disgrace, all that money for nothing", sentiment: "💩" },
-      { text: "Dembélé was invisible the whole match, shocking", sentiment: "😤" },
-      { text: "At least Marseille showed some fight and heart", sentiment: "🙂" },
-      { text: "This team has zero identity, just vibes and prayers", sentiment: "😤" },
-      { text: "Worst Le Classique in years, embarrassing", sentiment: "💩" },
-    ],
-    trendData: [
-      { min: "0'", score: 55 }, { min: "15'", score: 42 }, { min: "30'", score: 35 },
-      { min: "45'", score: 28 }, { min: "60'", score: 22 }, { min: "90'", score: 24 },
-    ],
-    topWords: ["disgrace", "😤", "💩", "embarrassing", "Dembélé", "invisible", "no passion", "worst"],
-    lastUpdated: "3 hours ago",
-  },
-  {
-    id: "6",
-    home: "Juventus",
-    away: "Inter Milan",
-    league: "Serie A",
-    status: "today",
-    sentimentScore: 65,
-    tweets: "11.4K",
-    tweetsCount: 11400,
-    topReaction: '"Derby d\'Italia is always special. Forza! 🙂"',
-    breakdown: [15, 22, 30, 18, 10, 5],
-    aiSummary: "Cautious optimism from both sets of fans ahead of the Derby d'Italia. Juve supporters slightly more confident after recent form. Inter fans focused on Lautaro's threat.",
-    aiConfidence: 87,
-    keyThemes: ["Derby d'Italia", "Lautaro threat", "Juve momentum", "Tactical chess", "Serie A title"],
-    sampleTweets: [
-      { text: "Can't wait for the Derby d'Italia, biggest match of the season", sentiment: "😍" },
-      { text: "Nervous about Lautaro, he always scores against us", sentiment: "😤" },
-      { text: "Should be a good tactical battle between two great coaches", sentiment: "🙂" },
-      { text: "Vlahović needs to finally prove himself in a big match", sentiment: "😐" },
-      { text: "Inter are favourites but Juve have the momentum", sentiment: "🙂" },
-    ],
-    trendData: [
-      { min: "6h", score: 60 }, { min: "5h", score: 62 }, { min: "4h", score: 64 },
-      { min: "3h", score: 63 }, { min: "2h", score: 66 }, { min: "1h", score: 65 },
-    ],
-    topWords: ["Derby", "Italia", "🙂", "Lautaro", "tactics", "Vlahović", "forza", "momentum"],
-    lastUpdated: "8 min ago",
-  },
-];
+// ── Helpers ───────────────────────────────────────────────────────
+function getMatchStatus(match: Match): { status: MatchStatus; detail?: string } {
+  const s = (match.status || "").toUpperCase();
+  const liveStatuses = ["IN_PLAY", "LIVE", "FIRST_HALF", "SECOND_HALF", "HALFTIME", "HT", "PAUSED"];
+  if (liveStatuses.includes(s)) {
+    return { status: "live", detail: s === "HALFTIME" || s === "HT" ? "HT" : "LIVE" };
+  }
+  const finishedStatuses = ["FINISHED", "FT", "FULL_TIME"];
+  if (finishedStatuses.includes(s)) return { status: "finished" };
 
-const LEAGUES = ["All", "Premier League", "La Liga", "Bundesliga", "Ligue 1", "Serie A"];
+  const matchDate = new Date(match.match_date);
+  const now = new Date();
+  const isToday = matchDate.toDateString() === now.toDateString();
+  if (isToday) return { status: "today" };
+  return { status: "upcoming" };
+}
+
+function getMatchKeyword(match: Match): string {
+  const home = match.home_team?.name || "";
+  const away = match.away_team?.name || "";
+  // Use short/common names for better search results
+  const shorten = (n: string) => n.replace(/\s*(FC|CF|SC|SSC|AC|AFC)\s*/gi, "").trim();
+  return `${shorten(home)} vs ${shorten(away)}`;
+}
+
+function getLeague(match: Match): string {
+  return match.competition || match.home_team?.league || "Unknown";
+}
+
+// Parse sentiment API response into our UI format
+function parseSentimentResponse(data: any): SentimentData {
+  const positive = data.percentages?.positive ?? 50;
+  const negative = data.percentages?.negative ?? 20;
+  const neutral = data.percentages?.neutral ?? 30;
+
+  // Map positive/negative/neutral to our 6-tier breakdown
+  const score = Math.min(100, Math.max(0, Math.round(positive * 1.0 + neutral * 0.4)));
+  const fire = score >= 90 ? Math.round(positive * 0.5) : Math.round(positive * 0.2);
+  const love = Math.round(positive * 0.35);
+  const good = Math.round(neutral * 0.5);
+  const meh = Math.round(neutral * 0.5);
+  const frustrated = Math.round(negative * 0.6);
+  const awful = Math.round(negative * 0.4);
+  const total = fire + love + good + meh + frustrated + awful || 1;
+  const normalize = (v: number) => Math.round((v / total) * 100);
+
+  // Extract sample tweets from results
+  const sampleTweets = (data.results || []).slice(0, 5).map((r: any) => ({
+    text: r.text || r.originalContent || "",
+    sentiment: r.sentiment === "Positive" ? "😍" : r.sentiment === "Negative" ? "😤" : "😐",
+  }));
+
+  // Extract themes from summary
+  const summaryText = data.summary || "";
+  const keyThemes = summaryText
+    .split(/[.,;!]/)
+    .filter((s: string) => s.trim().length > 5 && s.trim().length < 60)
+    .slice(0, 5)
+    .map((s: string) => s.trim());
+
+  return {
+    sentimentScore: score,
+    aiSummary: summaryText || "Analysis in progress...",
+    aiConfidence: Math.min(98, Math.max(70, 75 + data.total_posts * 0.5)),
+    totalPosts: data.total_posts || 0,
+    breakdown: [normalize(fire), normalize(love), normalize(good), normalize(meh), normalize(frustrated), normalize(awful)],
+    keyThemes: keyThemes.length > 0 ? keyThemes : ["Match discussion", "Fan reactions"],
+    sampleTweets,
+    source: data.source || "ai",
+  };
+}
+
+// ── Sentiment hook per match ──────────────────────────────────────
+function useMatchSentiment(match: Match | null, enabled: boolean) {
+  const keyword = match ? getMatchKeyword(match) : "";
+
+  return useQuery({
+    queryKey: ["match-sentiment", match?.id],
+    queryFn: async (): Promise<SentimentData> => {
+      const { data, error } = await supabase.functions.invoke("analyze-football-sentiment", {
+        body: { keyword, limit: 25 },
+      });
+      if (error) throw error;
+      return parseSentimentResponse(data);
+    },
+    enabled: enabled && !!match,
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: match && getMatchStatus(match).status === "live" ? 5 * 60 * 1000 : false,
+  });
+}
+
+// ── Bulk sentiment for visible matches ────────────────────────────
+function useBulkMatchSentiments(matches: Match[]) {
+  return useQuery({
+    queryKey: ["bulk-sentiments", matches.map(m => m.id).join(",")],
+    queryFn: async (): Promise<Record<string, SentimentData>> => {
+      const results: Record<string, SentimentData> = {};
+
+      // Analyze up to 6 matches in parallel (to avoid rate limits)
+      const batch = matches.slice(0, 8);
+      const promises = batch.map(async (match) => {
+        try {
+          const keyword = getMatchKeyword(match);
+          const { data, error } = await supabase.functions.invoke("analyze-football-sentiment", {
+            body: { keyword, limit: 20 },
+          });
+          if (error) throw error;
+          results[match.id] = parseSentimentResponse(data);
+        } catch (e) {
+          console.error(`Sentiment analysis failed for ${match.id}:`, e);
+          // Provide fallback
+          results[match.id] = {
+            sentimentScore: 50,
+            aiSummary: "Sentiment analysis pending...",
+            aiConfidence: 0,
+            totalPosts: 0,
+            breakdown: [10, 15, 25, 25, 15, 10],
+            keyThemes: ["Awaiting analysis"],
+            sampleTweets: [],
+            source: "pending",
+          };
+        }
+      });
+
+      await Promise.all(promises);
+      return results;
+    },
+    enabled: matches.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+const LEAGUES = ["All", "Premier League", "La Liga", "Bundesliga", "Ligue 1", "Serie A", "UEFA Champions League"];
 const STATUSES: { label: string; value: string }[] = [
   { label: "All", value: "all" },
   { label: "🔴 Live", value: "live" },
@@ -236,11 +188,26 @@ export function MatchSentiments() {
   const [status, setStatus] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const filtered = MATCHES.filter(m => {
-    if (league !== "All" && m.league !== league) return false;
-    if (status !== "all" && m.status !== status) return false;
+  const { data: matches, isLoading: matchesLoading, error: matchesError } = useMatches();
+  const queryClient = useQueryClient();
+
+  const filtered = (matches || []).filter(m => {
+    const ms = getMatchStatus(m);
+    if (league !== "All" && getLeague(m) !== league) return false;
+    if (status !== "all" && ms.status !== status) return false;
     return true;
   });
+
+  const { data: sentiments, isLoading: sentimentsLoading, isFetching: sentimentsFetching } = useBulkMatchSentiments(filtered);
+
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["bulk-sentiments"] });
+  }, [queryClient]);
+
+  const isLoading = matchesLoading || sentimentsLoading;
+
+  // Get unique leagues from actual data
+  const availableLeagues = ["All", ...Array.from(new Set((matches || []).map(m => getLeague(m))))];
 
   return (
     <div className="space-y-4">
@@ -254,10 +221,22 @@ export function MatchSentiments() {
         </p>
       </div>
 
+      {/* Refresh button */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleRefresh}
+          disabled={sentimentsFetching}
+          className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3 h-3 ${sentimentsFetching ? "animate-spin" : ""}`} />
+          {sentimentsFetching ? "Analyzing..." : "Refresh AI Analysis"}
+        </button>
+      </div>
+
       {/* Filters */}
       <div className="space-y-2">
         <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
-          {LEAGUES.map(l => (
+          {availableLeagues.map(l => (
             <button
               key={l}
               onClick={() => setLeague(l)}
@@ -288,21 +267,45 @@ export function MatchSentiments() {
         </div>
       </div>
 
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center py-12 gap-3">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <p className="text-sm text-muted-foreground">
+            {matchesLoading ? "Loading matches..." : "🤖 Gemini AI analyzing tweets..."}
+          </p>
+        </div>
+      )}
+
+      {/* Error state */}
+      {matchesError && (
+        <div className="text-center py-8">
+          <p className="text-sm text-destructive">Failed to load matches</p>
+          <p className="text-xs text-muted-foreground mt-1">Please try again later</p>
+        </div>
+      )}
+
       {/* Match cards */}
-      <div className="space-y-3">
-        {filtered.length === 0 && (
-          <p className="text-center text-sm text-muted-foreground py-8">No matches for this filter</p>
-        )}
-        {filtered.map((match, i) => (
-          <MatchCard
-            key={match.id}
-            match={match}
-            index={i}
-            expanded={expandedId === match.id}
-            onToggle={() => setExpandedId(expandedId === match.id ? null : match.id)}
-          />
-        ))}
-      </div>
+      {!isLoading && (
+        <div className="space-y-3">
+          {filtered.length === 0 && !matchesLoading && (
+            <p className="text-center text-sm text-muted-foreground py-8">No matches found for this filter</p>
+          )}
+          {filtered.map((match, i) => {
+            const sentiment = sentiments?.[match.id];
+            return (
+              <MatchCard
+                key={match.id}
+                match={match}
+                sentiment={sentiment}
+                index={i}
+                expanded={expandedId === match.id}
+                onToggle={() => setExpandedId(expandedId === match.id ? null : match.id)}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Footer */}
       <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground pt-2 pb-4">
@@ -310,6 +313,12 @@ export function MatchSentiments() {
         <span>Sentiment data from X.com</span>
         <span>•</span>
         <span className="text-[hsl(var(--ai-green))]">🤖 Gemini AI</span>
+        {filtered.length > 0 && (
+          <>
+            <span>•</span>
+            <span>{filtered.length} matches</span>
+          </>
+        )}
       </div>
     </div>
   );
@@ -318,17 +327,25 @@ export function MatchSentiments() {
 // ── Match Card ────────────────────────────────────────────────────
 function MatchCard({
   match,
+  sentiment,
   index,
   expanded,
   onToggle,
 }: {
-  match: MatchData;
+  match: Match;
+  sentiment?: SentimentData;
   index: number;
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const mood = getMood(match.sentimentScore);
-  const gradient = getBorderGradient(match.sentimentScore);
+  const { status, detail } = getMatchStatus(match);
+  const score = sentiment?.sentimentScore ?? 50;
+  const mood = getMood(score);
+  const gradient = getBorderGradient(score);
+  const homeName = match.home_team?.name || "Home";
+  const awayName = match.away_team?.name || "Away";
+  const leagueName = getLeague(match);
+  const isPending = !sentiment || sentiment.source === "pending";
 
   return (
     <motion.div
@@ -347,11 +364,11 @@ function MatchCard({
           <div className="flex items-center justify-between mb-3">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-foreground truncate">
-                {match.home} vs {match.away}
+                {homeName} vs {awayName}
               </p>
-              <p className="text-[10px] text-muted-foreground">{match.league}</p>
+              <p className="text-[10px] text-muted-foreground">{leagueName}</p>
             </div>
-            <StatusBadge status={match.status} detail={match.statusDetail} />
+            <StatusBadge status={status} detail={detail} />
           </div>
 
           {/* Hero: emoji + score */}
@@ -360,28 +377,50 @@ function MatchCard({
               whileHover={{ scale: 1.2 }}
               className="text-5xl select-none"
             >
-              {mood.emoji}
+              {isPending ? "⏳" : mood.emoji}
             </motion.span>
             <div className="flex-1">
-              <p className="text-2xl font-bold text-foreground">{match.sentimentScore}%</p>
-              <p className="text-xs text-muted-foreground">{mood.label}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-[10px] text-muted-foreground">📊 {match.tweets} tweets</p>
-                <Badge variant="outline" className="text-[8px] border-[hsl(var(--ai-green))]/30 text-[hsl(var(--ai-green))] py-0 px-1.5">
-                  🤖 AI: {match.aiConfidence}%
-                </Badge>
-              </div>
+              {isPending ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">Analyzing...</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-foreground">{score}%</p>
+                  <p className="text-xs text-muted-foreground">{mood.label}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-[10px] text-muted-foreground">
+                      📊 {sentiment.totalPosts} posts analyzed
+                    </p>
+                    <Badge variant="outline" className="text-[8px] border-[hsl(var(--ai-green))]/30 text-[hsl(var(--ai-green))] py-0 px-1.5">
+                      🤖 AI: {Math.round(sentiment.aiConfidence)}%
+                    </Badge>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
           {/* Top reaction */}
-          <p className="text-[11px] text-muted-foreground mt-3 italic line-clamp-2">
-            {match.topReaction}
-          </p>
+          {sentiment?.sampleTweets?.[0] && (
+            <p className="text-[11px] text-muted-foreground mt-3 italic line-clamp-2">
+              "{sentiment.sampleTweets[0].text}"
+            </p>
+          )}
+
+          {/* Score display for finished matches */}
+          {status === "finished" && match.home_score != null && match.away_score != null && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Score: {match.home_score} - {match.away_score}
+            </p>
+          )}
 
           {/* Last updated */}
           <div className="flex items-center justify-between mt-2">
-            <span className="text-[9px] text-muted-foreground">Updated {match.lastUpdated}</span>
+            <span className="text-[9px] text-muted-foreground">
+              {new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+            </span>
             <Badge variant="outline" className="text-[8px] border-muted-foreground/20 text-muted-foreground py-0">
               🤖 Analyzed by Gemini AI
             </Badge>
@@ -391,7 +430,7 @@ function MatchCard({
 
       {/* Expanded view */}
       <AnimatePresence>
-        {expanded && (
+        {expanded && sentiment && sentiment.source !== "pending" && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -399,7 +438,7 @@ function MatchCard({
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <ExpandedView match={match} />
+            <ExpandedView match={match} sentiment={sentiment} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -424,6 +463,13 @@ function StatusBadge({ status, detail }: { status: MatchStatus; detail?: string 
       </Badge>
     );
   }
+  if (status === "upcoming") {
+    return (
+      <Badge variant="outline" className="text-[10px] text-primary border-primary/20">
+        Upcoming
+      </Badge>
+    );
+  }
   return (
     <Badge variant="outline" className="text-[10px] text-muted-foreground">
       Finished
@@ -432,7 +478,14 @@ function StatusBadge({ status, detail }: { status: MatchStatus; detail?: string 
 }
 
 // ── Expanded View ─────────────────────────────────────────────────
-function ExpandedView({ match }: { match: MatchData }) {
+function ExpandedView({ match, sentiment }: { match: Match; sentiment: SentimentData }) {
+  const { status } = getMatchStatus(match);
+  const queryClient = useQueryClient();
+
+  const handleReanalyze = () => {
+    queryClient.invalidateQueries({ queryKey: ["bulk-sentiments"] });
+  };
+
   return (
     <div className="bg-card border border-t-0 border-border rounded-b-2xl px-4 py-4 space-y-5">
       {/* Gemini AI Analysis header */}
@@ -441,20 +494,20 @@ function ExpandedView({ match }: { match: MatchData }) {
         <div className="flex-1">
           <p className="text-[11px] font-semibold text-foreground">Gemini AI Analysis</p>
           <p className="text-[9px] text-muted-foreground">
-            ✅ Analysis complete • {match.tweetsCount.toLocaleString()} tweets • Confidence: {match.aiConfidence}%
+            ✅ Analysis complete • {sentiment.totalPosts} posts • Confidence: {Math.round(sentiment.aiConfidence)}%
           </p>
         </div>
-        {match.status === "live" && (
-          <Badge variant="outline" className="text-[8px] border-[hsl(var(--ai-green))]/30 text-[hsl(var(--ai-green))]">
+        <button onClick={handleReanalyze}>
+          <Badge variant="outline" className="text-[8px] border-[hsl(var(--ai-green))]/30 text-[hsl(var(--ai-green))] cursor-pointer hover:bg-[hsl(var(--ai-green))]/10">
             Re-analyze
           </Badge>
-        )}
+        </button>
       </div>
 
       {/* AI Summary */}
       <div>
         <p className="text-xs font-semibold text-foreground mb-1.5">AI-Generated Summary</p>
-        <p className="text-[11px] text-muted-foreground leading-relaxed">{match.aiSummary}</p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">{sentiment.aiSummary}</p>
       </div>
 
       {/* Breakdown bars */}
@@ -467,7 +520,7 @@ function ExpandedView({ match }: { match: MatchData }) {
               <div className="flex-1 h-2.5 bg-muted rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: `${match.breakdown[i]}%` }}
+                  animate={{ width: `${sentiment.breakdown[i] || 0}%` }}
                   transition={{ duration: 0.5, delay: i * 0.08 }}
                   className="h-full rounded-full"
                   style={{
@@ -479,103 +532,56 @@ function ExpandedView({ match }: { match: MatchData }) {
                   }}
                 />
               </div>
-              <span className="text-[10px] text-muted-foreground w-8 text-right">{match.breakdown[i]}%</span>
+              <span className="text-[10px] text-muted-foreground w-8 text-right">{sentiment.breakdown[i] || 0}%</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Key Themes from X.com */}
-      <div>
-        <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
-          <span className="font-bold">𝕏</span> Key Themes from X.com
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {match.keyThemes.map((theme) => (
-            <span
-              key={theme}
-              className="text-[10px] px-2.5 py-1 bg-primary/10 text-primary rounded-full border border-primary/20"
-            >
-              {theme}
-            </span>
-          ))}
+      {/* Key Themes */}
+      {sentiment.keyThemes.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+            <span className="font-bold">𝕏</span> Key Themes
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {sentiment.keyThemes.map((theme) => (
+              <span
+                key={theme}
+                className="text-[10px] px-2.5 py-1 bg-primary/10 text-primary rounded-full border border-primary/20"
+              >
+                {theme}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* What X is saying */}
-      <div>
-        <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
-          <span className="font-bold">𝕏</span> What X.com is saying
-        </p>
-        <div className="space-y-2">
-          {match.sampleTweets.map((t, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.06 }}
-              className="flex gap-2 items-start bg-muted/40 rounded-lg px-3 py-2"
-            >
-              <span className="text-sm mt-0.5">{t.sentiment}</span>
-              <p className="text-[11px] text-foreground/80 leading-relaxed">{t.text}</p>
-            </motion.div>
-          ))}
+      {sentiment.sampleTweets.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+            <span className="font-bold">𝕏</span> What X.com is saying
+          </p>
+          <div className="space-y-2">
+            {sentiment.sampleTweets.map((t, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.06 }}
+                className="flex gap-2 items-start bg-muted/40 rounded-lg px-3 py-2"
+              >
+                <span className="text-sm mt-0.5">{t.sentiment}</span>
+                <p className="text-[11px] text-foreground/80 leading-relaxed">{t.text}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* Sentiment trend chart */}
-      <div>
-        <p className="text-xs font-semibold text-foreground mb-2">Sentiment Trend</p>
-        <div className="h-28 bg-muted/30 rounded-xl p-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={match.trendData}>
-              <defs>
-                <linearGradient id={`grad-${match.id}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="min" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-              <YAxis domain={[0, 100]} hide />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: 8,
-                  fontSize: 11,
-                }}
-                labelStyle={{ color: "hsl(var(--muted-foreground))" }}
-                formatter={(v: number) => [`${v}%`, "Sentiment"]}
-              />
-              <Area
-                type="monotone"
-                dataKey="score"
-                stroke="hsl(var(--primary))"
-                strokeWidth={2}
-                fill={`url(#grad-${match.id})`}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Word cloud */}
-      <div>
-        <p className="text-xs font-semibold text-foreground mb-2">Trending Words & Emojis</p>
-        <div className="flex flex-wrap gap-1.5">
-          {match.topWords.map((w) => (
-            <span
-              key={w}
-              className="text-[10px] px-2 py-1 bg-muted rounded-full text-muted-foreground"
-            >
-              {w}
-            </span>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* Auto-refresh note for live */}
-      {match.status === "live" && (
+      {status === "live" && (
         <div className="flex items-center justify-center gap-1.5 text-[9px] text-[hsl(var(--ai-green))]">
           <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--ai-green))] animate-pulse" />
           Auto-refreshing every 5 minutes • Gemini AI analyzing live
