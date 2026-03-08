@@ -29,6 +29,7 @@ const App = () => (
             <Route path="/club/:clubSlug" element={<ClubPage />} />
             <Route path="/about" element={<About />} />
             <Route path="/sentiment-tracker" element={<SentimentTracker />} />
+            <Route path="/admin" element={<Admin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.fetch-player-sentiments]
 verify_jwt = false
+
+[functions.fetch-configured-sentiment]
+verify_jwt = false
