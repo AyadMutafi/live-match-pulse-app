@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.analyze-football-sentiment]
 verify_jwt = false
+
+[functions.fetch-player-sentiments]
+verify_jwt = false
