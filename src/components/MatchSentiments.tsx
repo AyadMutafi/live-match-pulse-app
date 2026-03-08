@@ -1,11 +1,11 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { useMatches, Match } from "@/hooks/useMatches";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, RefreshCw } from "lucide-react";
+import { getClubInfo } from "@/lib/constants";
 
 // ── Sentiment scale ───────────────────────────────────────────────
 const SENTIMENT_SCALE = [
@@ -21,17 +21,47 @@ function getMood(score: number) {
   return SENTIMENT_SCALE.find(s => score >= s.range[0] && score <= s.range[1]) || SENTIMENT_SCALE[2];
 }
 
-function getBorderGradient(score: number) {
-  if (score >= 70) return "from-[hsl(var(--success))]/40 to-[hsl(var(--success))]/10";
-  if (score >= 50) return "from-[hsl(var(--warning))]/40 to-[hsl(var(--warning))]/10";
-  if (score >= 30) return "from-muted-foreground/30 to-muted-foreground/10";
-  return "from-[hsl(var(--destructive))]/40 to-[hsl(var(--destructive))]/10";
+// ── Team colors ───────────────────────────────────────────────────
+const TEAM_COLORS: Record<string, string> = {
+  "manchester united": "#DA291C",
+  "man united": "#DA291C",
+  "liverpool": "#C8102E",
+  "arsenal": "#EF0107",
+  "chelsea": "#034694",
+  "man city": "#6CABDD",
+  "manchester city": "#6CABDD",
+  "tottenham": "#132257",
+  "real madrid": "#FEBE10",
+  "barcelona": "#A50044",
+  "bayern munich": "#DC052D",
+  "bayern": "#DC052D",
+  "dortmund": "#FDE100",
+  "borussia dortmund": "#FDE100",
+  "psg": "#004170",
+  "paris saint-germain": "#004170",
+  "juventus": "#000000",
+  "inter milan": "#0068A8",
+  "ac milan": "#FB090B",
+  "napoli": "#12A0D7",
+  "atletico madrid": "#CB3524",
+  "leverkusen": "#E32221",
+  "marseille": "#2FAEE0",
+};
+
+function getTeamColor(teamName: string): string {
+  const lower = teamName.toLowerCase();
+  for (const [key, color] of Object.entries(TEAM_COLORS)) {
+    if (lower.includes(key)) return color;
+  }
+  const clubInfo = getClubInfo(teamName);
+  return clubInfo?.color || "#6B7280";
 }
 
 // ── Types ─────────────────────────────────────────────────────────
 type MatchStatus = "live" | "today" | "finished" | "upcoming";
 
-interface SentimentData {
+interface TeamSentimentData {
+  teamName: string;
   sentimentScore: number;
   aiSummary: string;
   aiConfidence: number;
@@ -40,6 +70,12 @@ interface SentimentData {
   keyThemes: string[];
   sampleTweets: { text: string; sentiment: string }[];
   source: string;
+}
+
+interface DualSentimentData {
+  home: TeamSentimentData;
+  away: TeamSentimentData;
+  totalPosts: number;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -51,33 +87,26 @@ function getMatchStatus(match: Match): { status: MatchStatus; detail?: string } 
   }
   const finishedStatuses = ["FINISHED", "FT", "FULL_TIME"];
   if (finishedStatuses.includes(s)) return { status: "finished" };
-
   const matchDate = new Date(match.match_date);
   const now = new Date();
-  const isToday = matchDate.toDateString() === now.toDateString();
-  if (isToday) return { status: "today" };
+  if (matchDate.toDateString() === now.toDateString()) return { status: "today" };
   return { status: "upcoming" };
 }
 
-function getMatchKeyword(match: Match): string {
-  const home = match.home_team?.name || "";
-  const away = match.away_team?.name || "";
-  // Use short/common names for better search results
-  const shorten = (n: string) => n.replace(/\s*(FC|CF|SC|SSC|AC|AFC)\s*/gi, "").trim();
-  return `${shorten(home)} vs ${shorten(away)}`;
+function getTeamKeyword(teamName: string): string {
+  return teamName.replace(/\s*(FC|CF|SC|SSC|AC|AFC)\s*/gi, "").trim();
 }
 
 function getLeague(match: Match): string {
   return match.competition || match.home_team?.league || "Unknown";
 }
 
-// Parse sentiment API response into our UI format
-function parseSentimentResponse(data: any): SentimentData {
+// Parse sentiment API response into team-specific format
+function parseTeamSentimentResponse(data: any, teamName: string): TeamSentimentData {
   const positive = data.percentages?.positive ?? 50;
   const negative = data.percentages?.negative ?? 20;
   const neutral = data.percentages?.neutral ?? 30;
 
-  // Map positive/negative/neutral to our 6-tier breakdown
   const score = Math.min(100, Math.max(0, Math.round(positive * 1.0 + neutral * 0.4)));
   const fire = score >= 90 ? Math.round(positive * 0.5) : Math.round(positive * 0.2);
   const love = Math.round(positive * 0.35);
@@ -88,91 +117,114 @@ function parseSentimentResponse(data: any): SentimentData {
   const total = fire + love + good + meh + frustrated + awful || 1;
   const normalize = (v: number) => Math.round((v / total) * 100);
 
-  // Extract sample tweets from results
   const sampleTweets = (data.results || []).slice(0, 5).map((r: any) => ({
-    text: r.text || r.originalContent || "",
+    text: r.text || "",
     sentiment: r.sentiment === "Positive" ? "😍" : r.sentiment === "Negative" ? "😤" : "😐",
   }));
 
-  // Extract themes from summary
   const summaryText = data.summary || "";
   const keyThemes = summaryText
     .split(/[.,;!]/)
     .filter((s: string) => s.trim().length > 5 && s.trim().length < 60)
-    .slice(0, 5)
+    .slice(0, 4)
     .map((s: string) => s.trim());
 
   return {
+    teamName,
     sentimentScore: score,
     aiSummary: summaryText || "Analysis in progress...",
-    aiConfidence: Math.min(98, Math.max(70, 75 + data.total_posts * 0.5)),
+    aiConfidence: Math.min(98, Math.max(70, 75 + (data.total_posts || 0) * 0.5)),
     totalPosts: data.total_posts || 0,
     breakdown: [normalize(fire), normalize(love), normalize(good), normalize(meh), normalize(frustrated), normalize(awful)],
-    keyThemes: keyThemes.length > 0 ? keyThemes : ["Match discussion", "Fan reactions"],
+    keyThemes: keyThemes.length > 0 ? keyThemes : ["Match discussion"],
     sampleTweets,
     source: data.source || "ai",
   };
 }
 
-// ── Sentiment hook per match ──────────────────────────────────────
-function useMatchSentiment(match: Match | null, enabled: boolean) {
-  const keyword = match ? getMatchKeyword(match) : "";
-
-  return useQuery({
-    queryKey: ["match-sentiment", match?.id],
-    queryFn: async (): Promise<SentimentData> => {
-      const { data, error } = await supabase.functions.invoke("analyze-football-sentiment", {
-        body: { keyword, limit: 25 },
-      });
-      if (error) throw error;
-      return parseSentimentResponse(data);
-    },
-    enabled: enabled && !!match,
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: match && getMatchStatus(match).status === "live" ? 5 * 60 * 1000 : false,
-  });
+function pendingTeamSentiment(teamName: string): TeamSentimentData {
+  return {
+    teamName,
+    sentimentScore: 50,
+    aiSummary: "Sentiment analysis pending...",
+    aiConfidence: 0,
+    totalPosts: 0,
+    breakdown: [10, 15, 25, 25, 15, 10],
+    keyThemes: ["Awaiting analysis"],
+    sampleTweets: [],
+    source: "pending",
+  };
 }
 
-// ── Bulk sentiment for visible matches ────────────────────────────
+// ── Data fetching ─────────────────────────────────────────────────
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-function useBulkMatchSentiments(matches: Match[]) {
+function useBulkDualSentiments(matches: Match[]) {
   return useQuery({
-    queryKey: ["bulk-sentiments", matches.map(m => m.id).join(",")],
-    queryFn: async (): Promise<Record<string, SentimentData>> => {
-      const results: Record<string, SentimentData> = {};
+    queryKey: ["bulk-dual-sentiments", matches.map(m => m.id).join(",")],
+    queryFn: async (): Promise<Record<string, DualSentimentData>> => {
+      const results: Record<string, DualSentimentData> = {};
+      const batch = matches.slice(0, 5); // Max 5 matches = 10 API calls
 
-      // Process sequentially with delays to avoid 429 rate limits
-      const batch = matches.slice(0, 6);
       for (const match of batch) {
+        const homeName = match.home_team?.name || "Home";
+        const awayName = match.away_team?.name || "Away";
+
+        let homeSentiment: TeamSentimentData;
+        let awaySentiment: TeamSentimentData;
+
+        // Fetch home team sentiment
         try {
-          const keyword = getMatchKeyword(match);
+          const keyword = `${getTeamKeyword(homeName)} fans`;
           const { data, error } = await supabase.functions.invoke("analyze-football-sentiment", {
-            body: { keyword, limit: 15 },
+            body: { keyword, limit: 12 },
           });
           if (error) throw error;
-          results[match.id] = parseSentimentResponse(data);
-          // Wait 2s between requests to respect rate limits
-          await delay(2000);
+          homeSentiment = parseTeamSentimentResponse(data, homeName);
         } catch (e: any) {
-          console.error(`Sentiment analysis failed for ${match.id}:`, e);
-          const is429 = e?.message?.includes("429") || e?.status === 429;
-          if (is429) {
-            // Stop making more requests if rate limited
-            console.warn("Rate limited, stopping further requests");
+          console.error(`Home sentiment failed for ${homeName}:`, e);
+          if (e?.message?.includes("429") || e?.status === 429) {
+            // Rate limited - use pending for both and stop
+            results[match.id] = {
+              home: pendingTeamSentiment(homeName),
+              away: pendingTeamSentiment(awayName),
+              totalPosts: 0,
+            };
             break;
           }
-          results[match.id] = {
-            sentimentScore: 50,
-            aiSummary: "Sentiment analysis pending...",
-            aiConfidence: 0,
-            totalPosts: 0,
-            breakdown: [10, 15, 25, 25, 15, 10],
-            keyThemes: ["Awaiting analysis"],
-            sampleTweets: [],
-            source: "pending",
-          };
+          homeSentiment = pendingTeamSentiment(homeName);
         }
+
+        await delay(2500);
+
+        // Fetch away team sentiment
+        try {
+          const keyword = `${getTeamKeyword(awayName)} fans`;
+          const { data, error } = await supabase.functions.invoke("analyze-football-sentiment", {
+            body: { keyword, limit: 12 },
+          });
+          if (error) throw error;
+          awaySentiment = parseTeamSentimentResponse(data, awayName);
+        } catch (e: any) {
+          console.error(`Away sentiment failed for ${awayName}:`, e);
+          if (e?.message?.includes("429") || e?.status === 429) {
+            results[match.id] = {
+              home: homeSentiment,
+              away: pendingTeamSentiment(awayName),
+              totalPosts: homeSentiment.totalPosts,
+            };
+            break;
+          }
+          awaySentiment = pendingTeamSentiment(awayName);
+        }
+
+        results[match.id] = {
+          home: homeSentiment,
+          away: awaySentiment,
+          totalPosts: homeSentiment.totalPosts + awaySentiment.totalPosts,
+        };
+
+        await delay(2500);
       }
 
       return results;
@@ -182,7 +234,7 @@ function useBulkMatchSentiments(matches: Match[]) {
   });
 }
 
-const LEAGUES = ["All", "Premier League", "La Liga", "Bundesliga", "Ligue 1", "Serie A", "UEFA Champions League"];
+// ── Filters ───────────────────────────────────────────────────────
 const STATUSES: { label: string; value: string }[] = [
   { label: "All", value: "all" },
   { label: "🔴 Live", value: "live" },
@@ -190,7 +242,7 @@ const STATUSES: { label: string; value: string }[] = [
   { label: "Finished", value: "finished" },
 ];
 
-// ── Component ─────────────────────────────────────────────────────
+// ── Main Component ────────────────────────────────────────────────
 export function MatchSentiments() {
   const [league, setLeague] = useState("All");
   const [status, setStatus] = useState("all");
@@ -206,15 +258,13 @@ export function MatchSentiments() {
     return true;
   });
 
-  const { data: sentiments, isLoading: sentimentsLoading, isFetching: sentimentsFetching } = useBulkMatchSentiments(filtered);
+  const { data: sentiments, isLoading: sentimentsLoading, isFetching: sentimentsFetching } = useBulkDualSentiments(filtered);
 
   const handleRefresh = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["bulk-sentiments"] });
+    queryClient.invalidateQueries({ queryKey: ["bulk-dual-sentiments"] });
   }, [queryClient]);
 
   const isLoading = matchesLoading || sentimentsLoading;
-
-  // Get unique leagues from actual data
   const availableLeagues = ["All", ...Array.from(new Set((matches || []).map(m => getLeague(m))))];
 
   return (
@@ -225,11 +275,11 @@ export function MatchSentiments() {
           <span>🤖 Powered by Gemini AI</span>
           <span>•</span>
           <span className="font-bold">𝕏</span>
-          <span>data</span>
+          <span>data from both fanbases</span>
         </p>
       </div>
 
-      {/* Refresh button */}
+      {/* Refresh */}
       <div className="flex justify-end">
         <button
           onClick={handleRefresh}
@@ -237,7 +287,7 @@ export function MatchSentiments() {
           className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`w-3 h-3 ${sentimentsFetching ? "animate-spin" : ""}`} />
-          {sentimentsFetching ? "Analyzing..." : "Refresh AI Analysis"}
+          {sentimentsFetching ? "Analyzing both fanbases..." : "Refresh AI Analysis"}
         </button>
       </div>
 
@@ -275,17 +325,16 @@ export function MatchSentiments() {
         </div>
       </div>
 
-      {/* Loading state */}
+      {/* Loading */}
       {isLoading && (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
           <p className="text-sm text-muted-foreground">
-            {matchesLoading ? "Loading matches..." : "🤖 Gemini AI analyzing tweets..."}
+            {matchesLoading ? "Loading matches..." : "🤖 Gemini AI analyzing both fanbases..."}
           </p>
         </div>
       )}
 
-      {/* Error state */}
       {matchesError && (
         <div className="text-center py-8">
           <p className="text-sm text-destructive">Failed to load matches</p>
@@ -299,26 +348,23 @@ export function MatchSentiments() {
           {filtered.length === 0 && !matchesLoading && (
             <p className="text-center text-sm text-muted-foreground py-8">No matches found for this filter</p>
           )}
-          {filtered.map((match, i) => {
-            const sentiment = sentiments?.[match.id];
-            return (
-              <MatchCard
-                key={match.id}
-                match={match}
-                sentiment={sentiment}
-                index={i}
-                expanded={expandedId === match.id}
-                onToggle={() => setExpandedId(expandedId === match.id ? null : match.id)}
-              />
-            );
-          })}
+          {filtered.map((match, i) => (
+            <DualMatchCard
+              key={match.id}
+              match={match}
+              sentiment={sentiments?.[match.id]}
+              index={i}
+              expanded={expandedId === match.id}
+              onToggle={() => setExpandedId(expandedId === match.id ? null : match.id)}
+            />
+          ))}
         </div>
       )}
 
       {/* Footer */}
       <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground pt-2 pb-4">
         <span className="font-bold text-xs">𝕏</span>
-        <span>Sentiment data from X.com</span>
+        <span>Sentiment from both fanbases</span>
         <span>•</span>
         <span className="text-[hsl(var(--ai-green))]">🤖 Gemini AI</span>
         {filtered.length > 0 && (
@@ -332,8 +378,50 @@ export function MatchSentiments() {
   );
 }
 
-// ── Match Card ────────────────────────────────────────────────────
-function MatchCard({
+// ── Team Sentiment Box ────────────────────────────────────────────
+function TeamSentimentBox({
+  team,
+  label,
+  isPending,
+}: {
+  team: TeamSentimentData;
+  label: string;
+  isPending: boolean;
+}) {
+  const mood = getMood(team.sentimentScore);
+  const color = getTeamColor(team.teamName);
+
+  return (
+    <div
+      className="flex-1 rounded-xl border border-border bg-muted/30 p-3 text-center relative overflow-hidden"
+      style={{ borderTopColor: color, borderTopWidth: "3px" }}
+    >
+      {isPending ? (
+        <div className="flex flex-col items-center gap-2 py-2">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          <p className="text-[10px] text-muted-foreground">Analyzing...</p>
+        </div>
+      ) : (
+        <>
+          <motion.span
+            whileHover={{ scale: 1.15 }}
+            className={`text-4xl select-none block ${mood.key === "fire" ? "animate-pulse" : ""}`}
+          >
+            {mood.emoji}
+          </motion.span>
+          <p className="text-xl font-bold text-foreground mt-1">{team.sentimentScore}%</p>
+          <p className="text-[10px] text-muted-foreground font-medium">{mood.label}</p>
+          <p className="text-[10px] mt-1.5 font-semibold" style={{ color }}>
+            {label}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Dual Match Card ───────────────────────────────────────────────
+function DualMatchCard({
   match,
   sentiment,
   index,
@@ -341,19 +429,22 @@ function MatchCard({
   onToggle,
 }: {
   match: Match;
-  sentiment?: SentimentData;
+  sentiment?: DualSentimentData;
   index: number;
   expanded: boolean;
   onToggle: () => void;
 }) {
   const { status, detail } = getMatchStatus(match);
-  const score = sentiment?.sentimentScore ?? 50;
-  const mood = getMood(score);
-  const gradient = getBorderGradient(score);
   const homeName = match.home_team?.name || "Home";
   const awayName = match.away_team?.name || "Away";
   const leagueName = getLeague(match);
-  const isPending = !sentiment || sentiment.source === "pending";
+  const homeColor = getTeamColor(homeName);
+  const awayColor = getTeamColor(awayName);
+  const isPending = !sentiment || (sentiment.home.source === "pending" && sentiment.away.source === "pending");
+  const totalPosts = sentiment?.totalPosts || 0;
+  const avgConfidence = sentiment
+    ? Math.round((sentiment.home.aiConfidence + sentiment.away.aiConfidence) / 2)
+    : 0;
 
   return (
     <motion.div
@@ -365,80 +456,61 @@ function MatchCard({
         onClick={onToggle}
         className="w-full text-left bg-card rounded-2xl border border-border overflow-hidden transition-all duration-200 hover:border-muted-foreground/30"
       >
-        <div className={`h-1 bg-gradient-to-r ${gradient}`} />
+        {/* Dual color top stripe */}
+        <div className="h-1.5 flex">
+          <div className="flex-1" style={{ backgroundColor: homeColor }} />
+          <div className="flex-1" style={{ backgroundColor: awayColor }} />
+        </div>
 
         <div className="px-4 py-3">
-          {/* Top row: teams + status */}
+          {/* Header */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-foreground truncate">
                 {homeName} vs {awayName}
               </p>
-              <p className="text-[10px] text-muted-foreground">{leagueName}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {leagueName}
+                {status === "finished" && match.home_score != null && match.away_score != null && (
+                  <span className="ml-1.5">• {match.home_score} - {match.away_score}</span>
+                )}
+              </p>
             </div>
             <StatusBadge status={status} detail={detail} />
           </div>
 
-          {/* Hero: emoji + score */}
-          <div className="flex items-center gap-4">
-            <motion.span
-              whileHover={{ scale: 1.2 }}
-              className="text-5xl select-none"
-            >
-              {isPending ? "⏳" : mood.emoji}
-            </motion.span>
-            <div className="flex-1">
-              {isPending ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Analyzing...</p>
-                </div>
-              ) : (
-                <>
-                  <p className="text-2xl font-bold text-foreground">{score}%</p>
-                  <p className="text-xs text-muted-foreground">{mood.label}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-[10px] text-muted-foreground">
-                      📊 {sentiment.totalPosts} posts analyzed
-                    </p>
-                    <Badge variant="outline" className="text-[8px] border-[hsl(var(--ai-green))]/30 text-[hsl(var(--ai-green))] py-0 px-1.5">
-                      🤖 AI: {Math.round(sentiment.aiConfidence)}%
-                    </Badge>
-                  </div>
-                </>
-              )}
-            </div>
+          {/* Two sentiment boxes side by side */}
+          <div className="flex gap-3">
+            <TeamSentimentBox
+              team={sentiment?.home || pendingTeamSentiment(homeName)}
+              label={`${getTeamKeyword(homeName)} Fans`}
+              isPending={!sentiment || sentiment.home.source === "pending"}
+            />
+            <TeamSentimentBox
+              team={sentiment?.away || pendingTeamSentiment(awayName)}
+              label={`${getTeamKeyword(awayName)} Fans`}
+              isPending={!sentiment || sentiment.away.source === "pending"}
+            />
           </div>
 
-          {/* Top reaction */}
-          {sentiment?.sampleTweets?.[0] && (
-            <p className="text-[11px] text-muted-foreground mt-3 italic line-clamp-2">
-              "{sentiment.sampleTweets[0].text}"
+          {/* Bottom row */}
+          <div className="flex items-center justify-between mt-3">
+            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <span className="font-bold">𝕏</span>
+              {isPending ? "Analyzing..." : `${totalPosts.toLocaleString()} tweets`}
             </p>
-          )}
-
-          {/* Score display for finished matches */}
-          {status === "finished" && match.home_score != null && match.away_score != null && (
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Score: {match.home_score} - {match.away_score}
-            </p>
-          )}
-
-          {/* Last updated */}
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-[9px] text-muted-foreground">
-              {new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
-            </span>
-            <Badge variant="outline" className="text-[8px] border-muted-foreground/20 text-muted-foreground py-0">
-              🤖 Analyzed by Gemini AI
-            </Badge>
+            {!isPending && (
+              <Badge variant="outline" className="text-[8px] border-[hsl(var(--ai-green))]/30 text-[hsl(var(--ai-green))] py-0 px-1.5">
+                🤖 AI: {avgConfidence}%
+              </Badge>
+            )}
           </div>
         </div>
       </button>
 
       {/* Expanded view */}
       <AnimatePresence>
-        {expanded && sentiment && sentiment.source !== "pending" && (
+        {expanded && sentiment && !isPending && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -446,7 +518,7 @@ function MatchCard({
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <ExpandedView match={match} sentiment={sentiment} />
+            <DualExpandedView match={match} sentiment={sentiment} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -485,24 +557,124 @@ function StatusBadge({ status, detail }: { status: MatchStatus; detail?: string 
   );
 }
 
-// ── Expanded View ─────────────────────────────────────────────────
-function ExpandedView({ match, sentiment }: { match: Match; sentiment: SentimentData }) {
+// ── Team Section in Expanded View ─────────────────────────────────
+function TeamExpandedSection({ team }: { team: TeamSentimentData }) {
+  const mood = getMood(team.sentimentScore);
+  const color = getTeamColor(team.teamName);
+  const shortName = getTeamKeyword(team.teamName);
+
+  return (
+    <div className="space-y-4">
+      {/* Team header */}
+      <div className="flex items-center gap-2">
+        <div className="w-1 h-8 rounded-full" style={{ backgroundColor: color }} />
+        <div>
+          <p className="text-xs font-bold text-foreground uppercase tracking-wide">
+            {shortName} Fans
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            {mood.emoji} {team.sentimentScore}% - {mood.label}
+          </p>
+        </div>
+      </div>
+
+      {/* Breakdown bars */}
+      <div>
+        <p className="text-[10px] font-semibold text-foreground mb-1.5">Sentiment Breakdown:</p>
+        <div className="flex gap-0.5 h-4 rounded-full overflow-hidden bg-muted">
+          {SENTIMENT_SCALE.map((s, i) => {
+            const val = team.breakdown[i] || 0;
+            if (val === 0) return null;
+            return (
+              <motion.div
+                key={s.key}
+                initial={{ width: 0 }}
+                animate={{ width: `${val}%` }}
+                transition={{ duration: 0.5, delay: i * 0.06 }}
+                className="h-full flex items-center justify-center"
+                title={`${s.emoji} ${s.label}: ${val}%`}
+                style={{
+                  backgroundColor:
+                    i <= 1 ? "hsl(var(--success))" :
+                    i === 2 ? "hsl(var(--warning))" :
+                    i === 3 ? "hsl(var(--muted-foreground))" :
+                    "hsl(var(--destructive))",
+                }}
+              >
+                {val >= 10 && <span className="text-[8px] text-white font-bold">{s.emoji} {val}%</span>}
+              </motion.div>
+            );
+          })}
+        </div>
+        <div className="flex gap-1 mt-1 text-[8px] text-muted-foreground">
+          {SENTIMENT_SCALE.map((s, i) => (
+            <span key={s.key}>{s.emoji} {team.breakdown[i] || 0}%</span>
+          ))}
+        </div>
+      </div>
+
+      {/* Key Themes */}
+      {team.keyThemes.length > 0 && team.keyThemes[0] !== "Awaiting analysis" && (
+        <div>
+          <p className="text-[10px] font-semibold text-foreground mb-1.5">What They're Saying:</p>
+          <div className="space-y-1">
+            {team.keyThemes.map((theme, i) => (
+              <p key={i} className="text-[10px] text-muted-foreground flex items-start gap-1.5">
+                <span>{i === 0 ? "⚽" : i === 1 ? "🔥" : i === 2 ? "💪" : "💬"}</span>
+                <span>"{theme}"</span>
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Sample tweets */}
+      {team.sampleTweets.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold text-foreground mb-1.5 flex items-center gap-1">
+            <span className="font-bold">𝕏</span>
+            Top Tweets from {shortName} Fans:
+          </p>
+          <div className="space-y-1.5">
+            {team.sampleTweets.slice(0, 3).map((t, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="flex gap-2 items-start bg-muted/40 rounded-lg px-2.5 py-1.5"
+              >
+                <span className="text-xs mt-0.5">{t.sentiment}</span>
+                <p className="text-[10px] text-foreground/80 leading-relaxed line-clamp-2">"{t.text}"</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Dual Expanded View ────────────────────────────────────────────
+function DualExpandedView({ match, sentiment }: { match: Match; sentiment: DualSentimentData }) {
   const { status } = getMatchStatus(match);
   const queryClient = useQueryClient();
+  const homeColor = getTeamColor(match.home_team?.name || "");
+  const awayColor = getTeamColor(match.away_team?.name || "");
 
   const handleReanalyze = () => {
-    queryClient.invalidateQueries({ queryKey: ["bulk-sentiments"] });
+    queryClient.invalidateQueries({ queryKey: ["bulk-dual-sentiments"] });
   };
 
   return (
-    <div className="bg-card border border-t-0 border-border rounded-b-2xl px-4 py-4 space-y-5">
-      {/* Gemini AI Analysis header */}
+    <div className="bg-card border border-t-0 border-border rounded-b-2xl px-4 py-4 space-y-4">
+      {/* AI Header */}
       <div className="flex items-center gap-2 bg-[hsl(var(--ai-green))]/10 border border-[hsl(var(--ai-green))]/20 rounded-xl px-3 py-2">
         <span className="text-sm">🤖</span>
         <div className="flex-1">
-          <p className="text-[11px] font-semibold text-foreground">Gemini AI Analysis</p>
+          <p className="text-[11px] font-semibold text-foreground">Gemini AI Dual Fanbase Analysis</p>
           <p className="text-[9px] text-muted-foreground">
-            ✅ Analysis complete • {sentiment.totalPosts} posts • Confidence: {Math.round(sentiment.aiConfidence)}%
+            ✅ {sentiment.totalPosts} posts analyzed from both fanbases
           </p>
         </div>
         <button onClick={handleReanalyze}>
@@ -512,83 +684,28 @@ function ExpandedView({ match, sentiment }: { match: Match; sentiment: Sentiment
         </button>
       </div>
 
-      {/* AI Summary */}
-      <div>
-        <p className="text-xs font-semibold text-foreground mb-1.5">AI-Generated Summary</p>
-        <p className="text-[11px] text-muted-foreground leading-relaxed">{sentiment.aiSummary}</p>
-      </div>
-
-      {/* Breakdown bars */}
-      <div>
-        <p className="text-xs font-semibold text-foreground mb-2">Sentiment Breakdown</p>
-        <div className="space-y-1.5">
-          {SENTIMENT_SCALE.map((s, i) => (
-            <div key={s.label} className="flex items-center gap-2">
-              <span className="text-sm w-5">{s.emoji}</span>
-              <div className="flex-1 h-2.5 bg-muted rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${sentiment.breakdown[i] || 0}%` }}
-                  transition={{ duration: 0.5, delay: i * 0.08 }}
-                  className="h-full rounded-full"
-                  style={{
-                    backgroundColor:
-                      i <= 1 ? "hsl(var(--success))" :
-                      i === 2 ? "hsl(var(--warning))" :
-                      i === 3 ? "hsl(var(--muted-foreground))" :
-                      "hsl(var(--destructive))",
-                  }}
-                />
-              </div>
-              <span className="text-[10px] text-muted-foreground w-8 text-right">{sentiment.breakdown[i] || 0}%</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Key Themes */}
-      {sentiment.keyThemes.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
-            <span className="font-bold">𝕏</span> Key Themes
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {sentiment.keyThemes.map((theme) => (
-              <span
-                key={theme}
-                className="text-[10px] px-2.5 py-1 bg-primary/10 text-primary rounded-full border border-primary/20"
-              >
-                {theme}
-              </span>
-            ))}
-          </div>
+      {/* Home team section */}
+      {sentiment.home.source !== "pending" && (
+        <div className="border rounded-xl p-3" style={{ borderColor: `${homeColor}30` }}>
+          <TeamExpandedSection team={sentiment.home} />
         </div>
       )}
 
-      {/* What X is saying */}
-      {sentiment.sampleTweets.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
-            <span className="font-bold">𝕏</span> What X.com is saying
-          </p>
-          <div className="space-y-2">
-            {sentiment.sampleTweets.map((t, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.06 }}
-                className="flex gap-2 items-start bg-muted/40 rounded-lg px-3 py-2"
-              >
-                <span className="text-sm mt-0.5">{t.sentiment}</span>
-                <p className="text-[11px] text-foreground/80 leading-relaxed">{t.text}</p>
-              </motion.div>
-            ))}
-          </div>
+      {/* Divider */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-[10px] text-muted-foreground font-medium">vs</span>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+
+      {/* Away team section */}
+      {sentiment.away.source !== "pending" && (
+        <div className="border rounded-xl p-3" style={{ borderColor: `${awayColor}30` }}>
+          <TeamExpandedSection team={sentiment.away} />
         </div>
       )}
 
-      {/* Auto-refresh note for live */}
+      {/* Auto-refresh for live */}
       {status === "live" && (
         <div className="flex items-center justify-center gap-1.5 text-[9px] text-[hsl(var(--ai-green))]">
           <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--ai-green))] animate-pulse" />
