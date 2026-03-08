@@ -11,6 +11,7 @@ import About from "./pages/About";
 import ClubPage from "./pages/ClubPage";
 import NotFound from "./pages/NotFound";
 import SentimentTracker from "./pages/SentimentTracker";
+import Admin from "./pages/Admin";
 
 const queryClient = new QueryClient();
 
