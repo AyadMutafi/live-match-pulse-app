@@ -183,9 +183,13 @@ function useBulkDualSentiments(matches: Match[], hasLiveMatches: boolean) {
     queryKey: ["bulk-dual-sentiments", matches.map(m => m.id).join(",")],
     queryFn: async (): Promise<Record<string, DualSentimentData>> => {
       const results: Record<string, DualSentimentData> = {};
-      const batch = matches.slice(0, 5);
+      // Only fetch 2 matches at a time to stay well within rate limits
+      const batch = matches.slice(0, 2);
+      let rateLimited = false;
 
       for (const match of batch) {
+        if (rateLimited) break;
+
         const homeName = match.home_team?.name || "Home";
         const awayName = match.away_team?.name || "Away";
 
@@ -198,11 +202,23 @@ function useBulkDualSentiments(matches: Match[], hasLiveMatches: boolean) {
           const { data, error } = await supabase.functions.invoke("analyze-football-sentiment", {
             body: { keyword, limit: 15 },
           });
-          if (error) throw error;
-          homeSentiment = parseTeamSentimentResponse(data, homeName);
-        } catch (e: any) {
-          console.error(`Home sentiment failed for ${homeName}:`, e);
-          if (e?.message?.includes("429") || e?.status === 429) {
+          if (error) {
+            // Check if it's a rate limit error from the response
+            if (error.message?.includes("429") || error.message?.includes("non-2xx")) {
+              console.warn(`Rate limited on ${homeName}, stopping batch`);
+              rateLimited = true;
+              results[match.id] = {
+                home: pendingTeamSentiment(homeName),
+                away: pendingTeamSentiment(awayName),
+                totalPosts: 0,
+              };
+              break;
+            }
+            throw error;
+          }
+          // Check if response itself indicates rate limit
+          if (data?.error?.includes?.("Rate limit")) {
+            rateLimited = true;
             results[match.id] = {
               home: pendingTeamSentiment(homeName),
               away: pendingTeamSentiment(awayName),
@@ -210,10 +226,14 @@ function useBulkDualSentiments(matches: Match[], hasLiveMatches: boolean) {
             };
             break;
           }
+          homeSentiment = parseTeamSentimentResponse(data, homeName);
+        } catch (e: any) {
+          console.error(`Home sentiment failed for ${homeName}:`, e);
           homeSentiment = pendingTeamSentiment(homeName);
         }
 
-        await delay(3000);
+        // Wait 5s between calls to respect free tier (15 RPM)
+        await delay(5000);
 
         // Fetch away team sentiment
         try {
@@ -221,37 +241,56 @@ function useBulkDualSentiments(matches: Match[], hasLiveMatches: boolean) {
           const { data, error } = await supabase.functions.invoke("analyze-football-sentiment", {
             body: { keyword, limit: 15 },
           });
-          if (error) throw error;
-          awaySentiment = parseTeamSentimentResponse(data, awayName);
+          if (error) {
+            if (error.message?.includes("429") || error.message?.includes("non-2xx")) {
+              console.warn(`Rate limited on ${awayName}, stopping batch`);
+              rateLimited = true;
+              awaySentiment = pendingTeamSentiment(awayName);
+            } else {
+              throw error;
+            }
+          } else if (data?.error?.includes?.("Rate limit")) {
+            rateLimited = true;
+            awaySentiment = pendingTeamSentiment(awayName);
+          } else {
+            awaySentiment = parseTeamSentimentResponse(data, awayName);
+          }
         } catch (e: any) {
           console.error(`Away sentiment failed for ${awayName}:`, e);
-          if (e?.message?.includes("429") || e?.status === 429) {
-            results[match.id] = {
-              home: homeSentiment,
-              away: pendingTeamSentiment(awayName),
-              totalPosts: homeSentiment.totalPosts,
-            };
-            break;
-          }
           awaySentiment = pendingTeamSentiment(awayName);
         }
 
         const searchedAt = new Date().toISOString();
         results[match.id] = {
-          home: homeSentiment,
-          away: awaySentiment,
-          totalPosts: homeSentiment.totalPosts + awaySentiment.totalPosts,
+          home: homeSentiment!,
+          away: awaySentiment!,
+          totalPosts: (homeSentiment?.totalPosts || 0) + (awaySentiment!?.totalPosts || 0),
           searchedAt,
         };
 
-        await delay(3000);
+        if (!rateLimited) await delay(5000);
+      }
+
+      // Fill remaining matches with pending data
+      for (const match of matches) {
+        if (!results[match.id]) {
+          const homeName = match.home_team?.name || "Home";
+          const awayName = match.away_team?.name || "Away";
+          results[match.id] = {
+            home: pendingTeamSentiment(homeName),
+            away: pendingTeamSentiment(awayName),
+            totalPosts: 0,
+          };
+        }
       }
 
       return results;
     },
     enabled: matches.length > 0,
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: hasLiveMatches ? 60_000 : false,
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
+    gcTime: 15 * 60 * 1000,
+    refetchInterval: hasLiveMatches ? 120_000 : false, // 2 min for live
+    retry: false, // Don't auto-retry on rate limits
   });
 }
 
