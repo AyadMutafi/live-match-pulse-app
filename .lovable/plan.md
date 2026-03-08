@@ -1,80 +1,90 @@
-# Plan: Professional Upgrade for Fan Pulse
+# Plan: Fix Outdated Data and Enhance App for Diverse Audience
 
-## Current State
+## Problem Summary
 
-The app has 3 tabs (Sentiments, Ratings, TOTW), an admin panel, and covers 17 clubs across 5 leagues. It uses Gemini AI for sentiment analysis but suffers from rate limiting, hardcoded mock data in several pages, and a narrow feature set that doesn't justify a subscription.
+The app has two core issues:
 
-## What to Build
+1. **Outdated/stale data** - Multiple components use hardcoded mock data from Oct-Dec 2025, and the live match API calls are failing
+2. **Limited audience appeal** - The app currently targets a narrow set of clubs and lacks features that would attract fans from different nationalities and age groups
 
-### 1. Onboarding & Personalization Flow
+---
 
-- First-launch screen where users pick their favorite clubs (1-3) and preferred leagues
-- Store selections in `user_favorite_teams` table
-- Filter all dashboard content to prioritize their clubs first
-- This makes the app feel personal from the start
+## Part 1: Fix Outdated Data
 
-### 2. Rivalry Hub (New Tab)
+### Issue 1: Failing Supabase Connections
 
-- Replace the 3-tab layout with a 5-tab bottom nav: **Home | Sentiments | Ratings | Rivals | More**
-- **Home** tab: personalized feed showing your clubs' latest sentiment, upcoming matches, and trending moments
-- **Rivals** tab: head-to-head sentiment comparison for classic rivalries (El Clasico, NW Derby, etc.), pulling from the existing `CLUB_RIVALRIES` data
-- Shows which fanbase is happier right now with a live tug-of-war visualization
+All network requests to Supabase are returning "Failed to fetch." The `fetch-matches` edge function needs to be redeployed and tested to restore data flow.
 
-### 3. Match Day Timeline
+**Action:** Redeploy the `fetch-matches` edge function and verify the `FOOTBALL_DATA_API_KEY` secret is still valid.
 
-- When a match is live or recently finished, show a sentiment timeline chart (using Recharts, already installed)
-- Plot home vs away fan sentiment over match minutes using `sentiment_snapshots` data
-- Fans can see exactly when mood shifted (e.g., after a goal or red card)
+### Issue 2: Hardcoded Mock Data in Components
 
-### 4. Push Notification Triggers
+Several components display static data instead of fetching from the database or APIs:
 
-- "Sentiment Alert" badges: notify when your club's fan mood drops below 30% or spikes above 90%
-- Uses existing `notification_preferences` table
-- Implemented as in-app toast notifications for now (no push infra needed)
 
-### 5. Club Deep-Dive Pages
+| Component               | Problem                                                           |
+| ----------------------- | ----------------------------------------------------------------- |
+| `ClubSentimentOverview` | Hardcoded mock data with "Oct 26" dates                           |
+| `RivalryWatch`          | Hardcoded mock data with "Oct 26, 2025" to "Jan 5, 2026" dates    |
+| `LiveSocialFeed`        | Static sample posts, never fetches real data                      |
+| `LeagueStandings`       | Entirely generated with `Math.random()` -- no real standings data |
+| `WeeklyRatings`         | Uses fallback mock player data                                    |
 
-- Replace the hardcoded mock data in `ClubPage.tsx` with real sentiment data from `sentiment_snapshots` and Gemini AI
-- Add a "Follow" button that adds the club to favorites
-- Show historical sentiment trend (last 5 matchdays)
 
-### 7. Multi-Language Support
+**Actions:**
 
-- Add a language selector in settings (English, Spanish, French, German, Italian, Portuguese, Arabic)
-- Use `Intl` API for date/number formatting per locale
-- Keep emoji-first design so sentiment labels are universally understood
-- Translate key UI strings (tab labels, headers, buttons)
+- Replace `ClubSentimentOverview` mock data with dynamic data sourced from the `matches` and `social_posts` tables, calculating sentiment from recent match results and social post scores
+- Replace `RivalryWatch` mock data with dynamic data from the `matches` table, pulling actual upcoming fixtures between rival clubs
+- Update `LiveSocialFeed` to query the `social_posts` table for real posts, keeping the mock data only as a fallback when no data exists
+- Update `LeagueStandings` to fetch real standings from the football-data.org API via a new edge function (`fetch-standings`)
+- Add a visible "Last Updated" timestamp and a manual refresh button to the main dashboard so users can see when data was last fetched and force a refresh
 
-### 8. Visual & UX Polish
+### Issue 3: Smart Refresh Not Triggering Properly
 
-- Add a proper splash/loading screen with the Fan Pulse brand
-- Smooth page transitions with Framer Motion (already installed)
-- Add haptic-style micro-animations on card taps
-- Dark mode toggle in header (app already has dark theme CSS variables)
-- Improve the header: add user avatar, settings gear icon, and a link to /admin for admin users
+The `useMatches` hook fires `fetch-matches` on mount and every 5 minutes, but when the function fails, there is no user-visible error or retry mechanism.
 
-### 9. "Why Subscribe?" Value Screen
+**Action:** Add error handling with a user-visible banner showing connection issues and a manual "Retry" button when data fails to load.
 
-- Accessible from a "Pro" badge in the header
-- Shows what free vs paid users get:
-  - **Free**: 3 clubs, delayed sentiment (30 min), basic mood emoji
-  - **Pro**: Unlimited clubs, real-time sentiment, detailed breakdowns, predictions, rivalry hub, alerts
-- No actual paywall enforcement yet — just the UI to communicate value
+---
 
-## Technical Approach
+## Part 2: Enhance App for Diverse Audience
 
-- **New components**: `OnboardingFlow.tsx`, `HomeTab.tsx`, `RivalryHub.tsx`, `SentimentTimeline.tsx`, `PredictionWidget.tsx`, `ProValueScreen.tsx`, `LanguageSelector.tsx`
-- **Modified**: `BottomNavigation.tsx` (5 tabs), `AppHeader.tsx` (avatar + settings), `ClubPage.tsx` (real data), `Index.tsx` (onboarding gate + home tab)
-- **Database**: Uses existing tables — no new migrations needed
-- **No new edge functions** — reuses existing Gemini sentiment functions
-- **i18n**: Simple JSON-based translation files in `src/lib/i18n/`
+### Enhancement 1: Expand League Coverage
 
-## Priority Order
+Currently the app only monitors 7 clubs across 2 leagues. To attract fans from more nationalities:
 
-1. Onboarding + Home tab (personalization is the biggest value driver)
-2. Rivalry Hub (unique, engaging feature)
-3. Match Day Timeline (leverages existing data)
-4. Visual polish + dark mode toggle
-5. Predictions + gamification
-6. Pro value screen
-7. Multi-language support
+- Add support for **Serie A** (Italy), **Bundesliga** (Germany), **Ligue 1** (France), and **Primeira Liga** (Portugal) in the target clubs configuration
+- Allow users to **choose their favorite leagues and clubs** from a settings page (stored in `user_favorite_teams` table which already exists)
+- Make the dashboard sections filter based on the user's selected clubs
+
+### Enhancement 2: Multi-Language Sentiment Labels
+
+Replace English-only sentiment labels with universal emoji-based indicators that work across languages. The app already uses emojis for sentiment -- this will be extended to ensure all labels are emoji-first with minimal text.
+
+---
+
+## Technical Details
+
+### New Edge Function: `fetch-standings`
+
+- Calls `football-data.org/v4/competitions/{id}/standings` for each monitored league
+- Stores results in a new `league_standings` table
+- Refreshes every 6 hours (standings don't change frequently)
+
+### Database Changes
+
+- New table: `league_standings` with columns for `league_id`, `team_name`, `position`, `played`, `won`, `drawn`, `lost`, `goals_for`, `goals_against`, `points`, `form`, `updated_at`
+- New table: `user_display_preferences` with columns for `user_id`, `font_size`, `simplified_view`, `favorite_leagues`
+
+### Files to Modify
+
+1. `src/components/ClubSentimentOverview.tsx` -- Replace mock data with dynamic queries
+2. `src/components/RivalryWatch.tsx` -- Replace mock data with dynamic queries
+3. `src/components/LiveSocialFeed.tsx` -- Add real data fetching
+4. `src/components/LeagueStandings.tsx` -- Replace random generation with API data
+5. `src/pages/Index.tsx` -- Add error banner and manual refresh button
+6. `src/hooks/useMatches.tsx` -- Add better error handling and retry logic
+7. `src/lib/constants.ts` -- Expand target clubs (optional, based on user preference)
+8. New: `supabase/functions/fetch-standings/index.ts`
+9. New: `src/components/ConnectionErrorBanner.tsx`
+10. New: `src/components/WhyThisMatters.tsx` -- Cultural context cards
