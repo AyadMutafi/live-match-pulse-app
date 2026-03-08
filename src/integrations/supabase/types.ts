@@ -14,6 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
+      competitions: {
+        Row: {
+          active: boolean | null
+          country: string | null
+          created_at: string | null
+          id: string
+          name: string
+          season: string | null
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          season?: string | null
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          season?: string | null
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      data_sources: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          display_name: string | null
+          handle: string | null
+          hashtag: string | null
+          id: string
+          platform: string
+          source_type: string
+          team_id: string
+          url: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          display_name?: string | null
+          handle?: string | null
+          hashtag?: string | null
+          id?: string
+          platform?: string
+          source_type: string
+          team_id: string
+          url?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          display_name?: string | null
+          handle?: string | null
+          hashtag?: string | null
+          id?: string
+          platform?: string
+          source_type?: string
+          team_id?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_sources_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fan_profiles: {
         Row: {
           correct_predictions: number | null
@@ -220,6 +300,50 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_monitoring: {
+        Row: {
+          active: boolean | null
+          competition_slug: string | null
+          created_at: string | null
+          id: string
+          match_id: string
+          monitoring_end: string | null
+          monitoring_start: string | null
+          updated_at: string | null
+          week_number: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          competition_slug?: string | null
+          created_at?: string | null
+          id?: string
+          match_id: string
+          monitoring_end?: string | null
+          monitoring_start?: string | null
+          updated_at?: string | null
+          week_number?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          competition_slug?: string | null
+          created_at?: string | null
+          id?: string
+          match_id?: string
+          monitoring_end?: string | null
+          monitoring_start?: string | null
+          updated_at?: string | null
+          week_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_monitoring_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: true
+            referencedRelation: "matches"
             referencedColumns: ["id"]
           },
         ]
@@ -507,6 +631,68 @@ export type Database = {
           total_posts?: number
         }
         Relationships: []
+      }
+      sentiment_snapshots: {
+        Row: {
+          ai_confidence: number | null
+          away_breakdown: Json | null
+          away_emoji: string | null
+          away_sample_tweets: Json | null
+          away_sentiment: number | null
+          away_themes: Json | null
+          created_at: string | null
+          home_breakdown: Json | null
+          home_emoji: string | null
+          home_sample_tweets: Json | null
+          home_sentiment: number | null
+          home_themes: Json | null
+          id: string
+          match_id: string
+          tweets_analyzed: number | null
+        }
+        Insert: {
+          ai_confidence?: number | null
+          away_breakdown?: Json | null
+          away_emoji?: string | null
+          away_sample_tweets?: Json | null
+          away_sentiment?: number | null
+          away_themes?: Json | null
+          created_at?: string | null
+          home_breakdown?: Json | null
+          home_emoji?: string | null
+          home_sample_tweets?: Json | null
+          home_sentiment?: number | null
+          home_themes?: Json | null
+          id?: string
+          match_id: string
+          tweets_analyzed?: number | null
+        }
+        Update: {
+          ai_confidence?: number | null
+          away_breakdown?: Json | null
+          away_emoji?: string | null
+          away_sample_tweets?: Json | null
+          away_sentiment?: number | null
+          away_themes?: Json | null
+          created_at?: string | null
+          home_breakdown?: Json | null
+          home_emoji?: string | null
+          home_sample_tweets?: Json | null
+          home_sentiment?: number | null
+          home_themes?: Json | null
+          id?: string
+          match_id?: string
+          tweets_analyzed?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sentiment_snapshots_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shareable_moments: {
         Row: {
