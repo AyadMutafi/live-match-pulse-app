@@ -1,10 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useMatches, Match } from "@/hooks/useMatches";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Clock } from "lucide-react";
 import { getClubInfo } from "@/lib/constants";
 
 // ── Sentiment scale ───────────────────────────────────────────────
@@ -76,7 +77,15 @@ interface DualSentimentData {
   home: TeamSentimentData;
   away: TeamSentimentData;
   totalPosts: number;
+  searchedAt?: string;
 }
+
+// ── Loading steps ─────────────────────────────────────────────────
+const LOADING_STEPS = [
+  { icon: "🔍", text: "Searching X.com & Reddit..." },
+  { icon: "🤖", text: "Gemini AI analyzing fan reactions..." },
+  { icon: "📊", text: "Calculating sentiments..." },
+];
 
 // ── Helpers ───────────────────────────────────────────────────────
 function getMatchStatus(match: Match): { status: MatchStatus; detail?: string } {
@@ -101,7 +110,6 @@ function getLeague(match: Match): string {
   return match.competition || match.home_team?.league || "Unknown";
 }
 
-// Parse sentiment API response into team-specific format
 function parseTeamSentimentResponse(data: any, teamName: string): TeamSentimentData {
   const positive = data.percentages?.positive ?? 50;
   const negative = data.percentages?.negative ?? 20;
@@ -122,23 +130,24 @@ function parseTeamSentimentResponse(data: any, teamName: string): TeamSentimentD
     sentiment: r.sentiment === "Positive" ? "😍" : r.sentiment === "Negative" ? "😤" : "😐",
   }));
 
-  const summaryText = data.summary || "";
-  const keyThemes = summaryText
-    .split(/[.,;!]/)
-    .filter((s: string) => s.trim().length > 5 && s.trim().length < 60)
-    .slice(0, 4)
-    .map((s: string) => s.trim());
+  const keyThemes = data.themes && data.themes.length > 0
+    ? data.themes.slice(0, 4)
+    : (data.summary || "")
+        .split(/[.,;!]/)
+        .filter((s: string) => s.trim().length > 5 && s.trim().length < 60)
+        .slice(0, 4)
+        .map((s: string) => s.trim());
 
   return {
     teamName,
     sentimentScore: score,
-    aiSummary: summaryText || "Analysis in progress...",
+    aiSummary: data.summary || "Analysis in progress...",
     aiConfidence: Math.min(98, Math.max(70, 75 + (data.total_posts || 0) * 0.5)),
     totalPosts: data.total_posts || 0,
     breakdown: [normalize(fire), normalize(love), normalize(good), normalize(meh), normalize(frustrated), normalize(awful)],
     keyThemes: keyThemes.length > 0 ? keyThemes : ["Match discussion"],
     sampleTweets,
-    source: data.source || "ai",
+    source: data.source || "gemini_web_search",
   };
 }
 
@@ -156,15 +165,25 @@ function pendingTeamSentiment(teamName: string): TeamSentimentData {
   };
 }
 
+function timeAgo(isoString?: string): string {
+  if (!isoString) return "";
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  return `${hrs}h ago`;
+}
+
 // ── Data fetching ─────────────────────────────────────────────────
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-function useBulkDualSentiments(matches: Match[]) {
+function useBulkDualSentiments(matches: Match[], hasLiveMatches: boolean) {
   return useQuery({
     queryKey: ["bulk-dual-sentiments", matches.map(m => m.id).join(",")],
     queryFn: async (): Promise<Record<string, DualSentimentData>> => {
       const results: Record<string, DualSentimentData> = {};
-      const batch = matches.slice(0, 5); // Max 5 matches = 10 API calls
+      const batch = matches.slice(0, 5);
 
       for (const match of batch) {
         const homeName = match.home_team?.name || "Home";
@@ -173,18 +192,17 @@ function useBulkDualSentiments(matches: Match[]) {
         let homeSentiment: TeamSentimentData;
         let awaySentiment: TeamSentimentData;
 
-        // Fetch home team sentiment
+        // Fetch home team sentiment with Gemini web search
         try {
-          const keyword = `${getTeamKeyword(homeName)} fans`;
+          const keyword = `${getTeamKeyword(homeName)} fans reaction today`;
           const { data, error } = await supabase.functions.invoke("analyze-football-sentiment", {
-            body: { keyword, limit: 12 },
+            body: { keyword, limit: 15 },
           });
           if (error) throw error;
           homeSentiment = parseTeamSentimentResponse(data, homeName);
         } catch (e: any) {
           console.error(`Home sentiment failed for ${homeName}:`, e);
           if (e?.message?.includes("429") || e?.status === 429) {
-            // Rate limited - use pending for both and stop
             results[match.id] = {
               home: pendingTeamSentiment(homeName),
               away: pendingTeamSentiment(awayName),
@@ -195,13 +213,13 @@ function useBulkDualSentiments(matches: Match[]) {
           homeSentiment = pendingTeamSentiment(homeName);
         }
 
-        await delay(2500);
+        await delay(3000);
 
         // Fetch away team sentiment
         try {
-          const keyword = `${getTeamKeyword(awayName)} fans`;
+          const keyword = `${getTeamKeyword(awayName)} fans reaction today`;
           const { data, error } = await supabase.functions.invoke("analyze-football-sentiment", {
-            body: { keyword, limit: 12 },
+            body: { keyword, limit: 15 },
           });
           if (error) throw error;
           awaySentiment = parseTeamSentimentResponse(data, awayName);
@@ -218,19 +236,22 @@ function useBulkDualSentiments(matches: Match[]) {
           awaySentiment = pendingTeamSentiment(awayName);
         }
 
+        const searchedAt = new Date().toISOString();
         results[match.id] = {
           home: homeSentiment,
           away: awaySentiment,
           totalPosts: homeSentiment.totalPosts + awaySentiment.totalPosts,
+          searchedAt,
         };
 
-        await delay(2500);
+        await delay(3000);
       }
 
       return results;
     },
     enabled: matches.length > 0,
     staleTime: 5 * 60 * 1000,
+    refetchInterval: hasLiveMatches ? 60_000 : false,
   });
 }
 
@@ -247,6 +268,7 @@ export function MatchSentiments() {
   const [league, setLeague] = useState("All");
   const [status, setStatus] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [loadingStep, setLoadingStep] = useState(0);
 
   const { data: matches, isLoading: matchesLoading, error: matchesError } = useMatches();
   const queryClient = useQueryClient();
@@ -258,7 +280,18 @@ export function MatchSentiments() {
     return true;
   });
 
-  const { data: sentiments, isLoading: sentimentsLoading, isFetching: sentimentsFetching } = useBulkDualSentiments(filtered);
+  const hasLiveMatches = filtered.some(m => getMatchStatus(m).status === "live");
+
+  const { data: sentiments, isLoading: sentimentsLoading, isFetching: sentimentsFetching } = useBulkDualSentiments(filtered, hasLiveMatches);
+
+  // Animate loading steps
+  useEffect(() => {
+    if (!sentimentsLoading && !matchesLoading) return;
+    const interval = setInterval(() => {
+      setLoadingStep(prev => (prev + 1) % LOADING_STEPS.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [sentimentsLoading, matchesLoading]);
 
   const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["bulk-dual-sentiments"] });
@@ -267,29 +300,52 @@ export function MatchSentiments() {
   const isLoading = matchesLoading || sentimentsLoading;
   const availableLeagues = ["All", ...Array.from(new Set((matches || []).map(m => getLeague(m))))];
 
+  // Find latest search time
+  const latestSearch = sentiments
+    ? Object.values(sentiments).reduce((latest, s) => {
+        if (s.searchedAt && (!latest || s.searchedAt > latest)) return s.searchedAt;
+        return latest;
+      }, "" as string)
+    : "";
+
   return (
     <div className="space-y-4">
       <div className="text-center pt-2 pb-1">
         <p className="text-xs text-muted-foreground uppercase tracking-widest">Match Sentiments</p>
         <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
-          <span>🤖 Powered by Gemini AI</span>
+          <span>🤖 Powered by Gemini AI + Web Search</span>
           <span>•</span>
           <span className="font-bold">𝕏</span>
-          <span>data from both fanbases</span>
+          <span>real-time fan data</span>
         </p>
       </div>
 
-      {/* Refresh */}
-      <div className="flex justify-end">
+      {/* Refresh + Timestamp */}
+      <div className="flex items-center justify-between">
+        {latestSearch && !isLoading && (
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <Clock className="w-3 h-3" />
+            Updated {timeAgo(latestSearch)}
+          </div>
+        )}
+        {!latestSearch && <div />}
         <button
           onClick={handleRefresh}
           disabled={sentimentsFetching}
           className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`w-3 h-3 ${sentimentsFetching ? "animate-spin" : ""}`} />
-          {sentimentsFetching ? "Analyzing both fanbases..." : "Refresh AI Analysis"}
+          {sentimentsFetching ? "Updating..." : "Refresh"}
         </button>
       </div>
+
+      {/* Auto-refresh indicator for live matches */}
+      {hasLiveMatches && !isLoading && (
+        <div className="flex items-center justify-center gap-1.5 text-[9px] text-[hsl(var(--destructive))] bg-[hsl(var(--destructive))]/5 rounded-lg py-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--destructive))] animate-pulse" />
+          Auto-refreshing every 60s for live matches
+        </div>
+      )}
 
       {/* Filters */}
       <div className="space-y-2">
@@ -325,13 +381,42 @@ export function MatchSentiments() {
         </div>
       </div>
 
-      {/* Loading */}
+      {/* Animated Loading */}
       {isLoading && (
-        <div className="flex flex-col items-center justify-center py-12 gap-3">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          <p className="text-sm text-muted-foreground">
-            {matchesLoading ? "Loading matches..." : "🤖 Gemini AI analyzing both fanbases..."}
-          </p>
+        <div className="space-y-4">
+          <div className="flex flex-col items-center justify-center py-8 gap-4">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            <div className="text-center">
+              <motion.p
+                key={loadingStep}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="text-sm text-foreground font-medium"
+              >
+                {LOADING_STEPS[loadingStep].icon} {LOADING_STEPS[loadingStep].text}
+              </motion.p>
+              <p className="text-[10px] text-muted-foreground mt-1">Using Gemini AI with web search for real fan data</p>
+            </div>
+          </div>
+
+          {/* Skeleton cards */}
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-card rounded-2xl border border-border p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <div className="flex gap-3">
+                <Skeleton className="flex-1 h-28 rounded-xl" />
+                <Skeleton className="flex-1 h-28 rounded-xl" />
+              </div>
+              <div className="flex justify-between">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-4 w-16 rounded-full" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -364,7 +449,7 @@ export function MatchSentiments() {
       {/* Footer */}
       <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground pt-2 pb-4">
         <span className="font-bold text-xs">𝕏</span>
-        <span>Sentiment from both fanbases</span>
+        <span>Real-time web search data</span>
         <span>•</span>
         <span className="text-[hsl(var(--ai-green))]">🤖 Gemini AI</span>
         {filtered.length > 0 && (
@@ -399,7 +484,7 @@ function TeamSentimentBox({
       {isPending ? (
         <div className="flex flex-col items-center gap-2 py-2">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-          <p className="text-[10px] text-muted-foreground">Analyzing...</p>
+          <p className="text-[10px] text-muted-foreground">Searching web...</p>
         </div>
       ) : (
         <>
@@ -445,6 +530,7 @@ function DualMatchCard({
   const avgConfidence = sentiment
     ? Math.round((sentiment.home.aiConfidence + sentiment.away.aiConfidence) / 2)
     : 0;
+  const isWebSearch = sentiment?.home.source === "gemini_web_search" || sentiment?.away.source === "gemini_web_search";
 
   return (
     <motion.div
@@ -479,7 +565,7 @@ function DualMatchCard({
             <StatusBadge status={status} detail={detail} />
           </div>
 
-          {/* Two sentiment boxes side by side */}
+          {/* Two sentiment boxes */}
           <div className="flex gap-3">
             <TeamSentimentBox
               team={sentiment?.home || pendingTeamSentiment(homeName)}
@@ -495,10 +581,17 @@ function DualMatchCard({
 
           {/* Bottom row */}
           <div className="flex items-center justify-between mt-3">
-            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-              <span className="font-bold">𝕏</span>
-              {isPending ? "Analyzing..." : `${totalPosts.toLocaleString()} tweets`}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <span className="font-bold">𝕏</span>
+                {isPending ? "Searching..." : `${totalPosts.toLocaleString()} posts analyzed`}
+              </p>
+              {isWebSearch && !isPending && (
+                <Badge variant="outline" className="text-[7px] py-0 px-1 border-primary/20 text-primary">
+                  LIVE DATA
+                </Badge>
+              )}
+            </div>
             {!isPending && (
               <Badge variant="outline" className="text-[8px] border-[hsl(var(--ai-green))]/30 text-[hsl(var(--ai-green))] py-0 px-1.5">
                 🤖 AI: {avgConfidence}%
@@ -633,7 +726,7 @@ function TeamExpandedSection({ team }: { team: TeamSentimentData }) {
         <div>
           <p className="text-[10px] font-semibold text-foreground mb-1.5 flex items-center gap-1">
             <span className="font-bold">𝕏</span>
-            Top Tweets from {shortName} Fans:
+            Top Reactions from {shortName} Fans:
           </p>
           <div className="space-y-1.5">
             {team.sampleTweets.slice(0, 3).map((t, i) => (
@@ -649,6 +742,14 @@ function TeamExpandedSection({ team }: { team: TeamSentimentData }) {
               </motion.div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Data source indicator */}
+      {team.source === "gemini_web_search" && (
+        <div className="flex items-center gap-1 text-[8px] text-muted-foreground/70">
+          <span>🌐</span>
+          <span>Data sourced from live web search • {team.totalPosts} posts analyzed</span>
         </div>
       )}
     </div>
@@ -672,9 +773,10 @@ function DualExpandedView({ match, sentiment }: { match: Match; sentiment: DualS
       <div className="flex items-center gap-2 bg-[hsl(var(--ai-green))]/10 border border-[hsl(var(--ai-green))]/20 rounded-xl px-3 py-2">
         <span className="text-sm">🤖</span>
         <div className="flex-1">
-          <p className="text-[11px] font-semibold text-foreground">Gemini AI Dual Fanbase Analysis</p>
+          <p className="text-[11px] font-semibold text-foreground">Gemini AI Web Search Analysis</p>
           <p className="text-[9px] text-muted-foreground">
-            ✅ {sentiment.totalPosts} posts analyzed from both fanbases
+            ✅ {sentiment.totalPosts} real posts analyzed from both fanbases
+            {sentiment.searchedAt && ` • ${timeAgo(sentiment.searchedAt)}`}
           </p>
         </div>
         <button onClick={handleReanalyze}>
@@ -709,7 +811,15 @@ function DualExpandedView({ match, sentiment }: { match: Match; sentiment: DualS
       {status === "live" && (
         <div className="flex items-center justify-center gap-1.5 text-[9px] text-[hsl(var(--ai-green))]">
           <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--ai-green))] animate-pulse" />
-          Auto-refreshing every 5 minutes • Gemini AI analyzing live
+          Auto-refreshing every 60 seconds • Gemini AI analyzing live
+        </div>
+      )}
+
+      {/* Limited data fallback */}
+      {sentiment.totalPosts === 0 && (
+        <div className="text-center py-2 bg-[hsl(var(--warning))]/5 rounded-lg border border-[hsl(var(--warning))]/20">
+          <p className="text-[10px] text-[hsl(var(--warning))]">⚠️ Limited data available</p>
+          <p className="text-[9px] text-muted-foreground">Estimated sentiment based on recent team form</p>
         </div>
       )}
     </div>

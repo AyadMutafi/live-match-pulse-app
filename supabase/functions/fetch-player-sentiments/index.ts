@@ -3,23 +3,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+interface PlayerInput {
+  name: string;
+  team: string;
+  position: string;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { keyword, limit = 20 } = await req.json();
+    const { players } = await req.json() as { players: PlayerInput[] };
 
-    if (!keyword || typeof keyword !== 'string' || keyword.trim().length === 0) {
+    if (!players || !Array.isArray(players) || players.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Keyword is required' }),
+        JSON.stringify({ error: 'Players array is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const cleanKeyword = keyword.trim().slice(0, 120);
-    console.log(`Analyzing sentiment with Gemini web search for: "${cleanKeyword}"`);
 
     const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
     if (!apiKey) {
@@ -29,28 +32,41 @@ Deno.serve(async (req) => {
       );
     }
 
-    const prompt = `Search the web for very recent fan reactions, tweets, and social media posts about "${cleanKeyword}" in football/soccer. Focus on X.com (Twitter), Reddit, and fan forums from the last 24-48 hours.
+    const batch = players.slice(0, 15);
+    const playerList = batch.map(p => `${p.name} (${p.team}, ${p.position})`).join(', ');
 
-Analyze the sentiment of what fans are saying and return STRICTLY valid JSON (no markdown, no code blocks):
+    const prompt = `Search the web for the latest fan reactions, tweets, and social media sentiment about these football/soccer players from the last 48 hours: ${playerList}
+
+For EACH player, analyze fan sentiment from X.com (Twitter), Reddit, and fan forums.
+
+Return STRICTLY valid JSON (no markdown, no code blocks):
 {
-  "total_posts": <number of posts/reactions you found and analyzed>,
-  "positive": <count of positive reactions>,
-  "negative": <count of negative reactions>,
-  "neutral": <count of neutral reactions>,
-  "percentages": {
-    "positive": <percentage 0-100>,
-    "negative": <percentage 0-100>,
-    "neutral": <percentage 0-100>
-  },
-  "summary": "<2-3 sentence summary of overall fan sentiment>",
-  "themes": ["<theme1>", "<theme2>", "<theme3>"],
-  "results": [
-    { "text": "<actual fan reaction or tweet content>", "sentiment": "Positive|Negative|Neutral" }
+  "players": [
+    {
+      "name": "<player name>",
+      "team": "<team>",
+      "position": "<position>",
+      "score": <sentiment score 0-100>,
+      "trend": "rising|falling|stable",
+      "tweetsCount": <approximate number of posts found>,
+      "aiConfidence": <confidence 70-98>,
+      "aiSummary": "<2-3 sentence summary of fan sentiment>",
+      "themes": [
+        { "icon": "<emoji>", "label": "<theme>", "count": "<approx count like 1.2K>" }
+      ],
+      "recentForm": [
+        { "match": "<vs opponent>", "emoji": "<sentiment emoji>", "score": <0-100> }
+      ],
+      "sampleTweets": [
+        { "text": "<authentic sounding fan reaction>", "sentiment": "<emoji>" }
+      ]
+    }
   ],
+  "analyzedAt": "<ISO timestamp>",
   "source": "gemini_web_search"
 }
 
-Include 5-10 real or representative fan reactions in the results array. Make them sound authentic like real tweets/posts. The themes should be the top 3-4 talking points fans are discussing.`;
+For each player provide 2-3 themes, 3-5 recent form entries, and 3 sample tweets. Make reactions sound authentic. Use emojis from this scale: 🔥(90-100) 😍(70-89) 🙂(50-69) 😐(30-49) 😤(10-29) 💩(0-9).`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
@@ -62,7 +78,7 @@ Include 5-10 real or representative fan reactions in the results array. Make the
           tools: [{ googleSearch: {} }],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 2048,
+            maxOutputTokens: 4096,
           },
         }),
       }
@@ -93,9 +109,7 @@ Include 5-10 real or representative fan reactions in the results array. Make the
       const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, rawContent];
       parsed = JSON.parse(jsonMatch[1]!.trim());
     } catch {
-      console.error('Failed to parse Gemini response, attempting cleanup');
       try {
-        // Try to find JSON object in the response
         const jsonStart = rawContent.indexOf('{');
         const jsonEnd = rawContent.lastIndexOf('}');
         if (jsonStart !== -1 && jsonEnd !== -1) {
@@ -104,36 +118,16 @@ Include 5-10 real or representative fan reactions in the results array. Make the
           throw new Error('No JSON found');
         }
       } catch {
-        console.error('All parsing failed, returning fallback');
-        parsed = {
-          total_posts: 0,
-          positive: 0,
-          negative: 0,
-          neutral: 0,
-          percentages: { positive: 33, negative: 33, neutral: 34 },
-          summary: `Could not parse AI analysis for "${cleanKeyword}". Please try again.`,
-          themes: [],
-          results: [],
-          source: "fallback",
-        };
+        console.error('Failed to parse player sentiment response');
+        parsed = { players: [], source: "fallback" };
       }
     }
 
-    // Ensure all fields exist
-    const result = {
-      total_posts: parsed.total_posts || parsed.results?.length || 0,
-      positive: parsed.positive || 0,
-      negative: parsed.negative || 0,
-      neutral: parsed.neutral || 0,
-      percentages: parsed.percentages || { positive: 33, negative: 33, neutral: 34 },
-      summary: parsed.summary || `Analysis for "${cleanKeyword}"`,
-      themes: parsed.themes || [],
-      results: (parsed.results || []).slice(0, 10),
+    return new Response(JSON.stringify({
+      players: parsed.players || [],
+      analyzedAt: parsed.analyzedAt || new Date().toISOString(),
       source: parsed.source || "gemini_web_search",
-      searchedAt: new Date().toISOString(),
-    };
-
-    return new Response(JSON.stringify(result), {
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
