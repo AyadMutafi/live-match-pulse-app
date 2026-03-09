@@ -220,7 +220,7 @@ export function ShareableMoodCard({
             </Button>
             <Button
               variant="outline"
-              className="flex-1 gap-2 bg-[#25D366]/10 border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/20"
+              className="flex-1 gap-2 border-primary/30 text-primary hover:bg-primary/10"
               onClick={handleWhatsAppShare}
             >
               WhatsApp
