@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { TARGET_CLUBS, getClubInfo, getSentimentCategory } from "@/lib/constants";
-import { TrendingUp, Flame, Clock, ChevronRight } from "lucide-react";
+import { TrendingUp, Flame, Clock, ChevronRight, Share2 } from "lucide-react";
+import { SentimentAlert } from "@/components/SentimentAlert";
+import { ShareableMoodCard } from "@/components/ShareableMoodCard";
+import { getTeamLogo } from "@/lib/teamLogos";
 
 interface HomeTabProps {
   favoriteClubs: string[];
@@ -23,10 +26,23 @@ interface ClubSentiment {
   matchCount: number;
 }
 
+interface RecentMatch {
+  id: string;
+  home_team: { name: string } | null;
+  away_team: { name: string } | null;
+  home_score: number | null;
+  away_score: number | null;
+  match_date: string;
+  status: string;
+  homeSentiment?: number;
+  awaySentiment?: number;
+}
+
 export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
   const [clubSentiments, setClubSentiments] = useState<ClubSentiment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [recentMatches, setRecentMatches] = useState<any[]>([]);
+  const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
+  const [shareMatch, setShareMatch] = useState<RecentMatch | null>(null);
 
   useEffect(() => {
     fetchHomeData();
@@ -45,7 +61,24 @@ export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
         .order("match_date", { ascending: false })
         .limit(20);
 
-      setRecentMatches(matches?.slice(0, 5) || []);
+      // Fetch sentiment snapshots for these matches
+      const matchIds = matches?.map(m => m.id) || [];
+      const { data: snapshots } = await supabase
+        .from("sentiment_snapshots")
+        .select("*")
+        .in("match_id", matchIds);
+
+      // Merge sentiment data into matches
+      const enrichedMatches = (matches || []).slice(0, 5).map((m: any) => {
+        const snap = snapshots?.find(s => s.match_id === m.id);
+        return {
+          ...m,
+          homeSentiment: snap?.home_sentiment || undefined,
+          awaySentiment: snap?.away_sentiment || undefined,
+        };
+      });
+
+      setRecentMatches(enrichedMatches);
 
       // Build club sentiment summary from sentiment_snapshots
       const sentiments: ClubSentiment[] = [];
@@ -55,32 +88,61 @@ export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
         if (!club) continue;
 
         // Get latest sentiment for this club's matches
-        const { data: snapshots } = await supabase
+        const { data: clubSnapshots } = await supabase
           .from("sentiment_snapshots")
-          .select("home_sentiment, away_sentiment, match_id")
+          .select("home_sentiment, away_sentiment, match_id, match:matches(home_team:teams!matches_home_team_id_fkey(name), away_team:teams!matches_away_team_id_fkey(name))")
           .order("created_at", { ascending: false })
-          .limit(5);
+          .limit(10);
 
-        const avgSentiment = snapshots?.length
-          ? Math.round(
-              snapshots.reduce(
-                (sum, s) => sum + ((s.home_sentiment || 50) + (s.away_sentiment || 50)) / 2,
-                0
-              ) / snapshots.length
-            )
-          : 50;
-
-        const category = getSentimentCategory(avgSentiment);
-
-        sentiments.push({
-          clubName: club.name,
-          shortName: club.shortName,
-          color: club.color,
-          sentiment: avgSentiment,
-          emoji: category.emoji,
-          label: category.name,
-          matchCount: snapshots?.length || 0,
+        // Filter to only this club's matches
+        const relevantSnapshots = (clubSnapshots || []).filter((s: any) => {
+          const homeName = s.match?.home_team?.name?.toLowerCase() || "";
+          const awayName = s.match?.away_team?.name?.toLowerCase() || "";
+          return club.aliases.some(a => 
+            homeName.includes(a.toLowerCase()) || awayName.includes(a.toLowerCase())
+          );
         });
+
+        if (relevantSnapshots.length > 0) {
+          let total = 0;
+          let count = 0;
+
+          for (const snap of relevantSnapshots.slice(0, 5)) {
+            const homeName = snap.match?.home_team?.name?.toLowerCase() || "";
+            const isHome = club.aliases.some(a => homeName.includes(a.toLowerCase()));
+            
+            if (isHome) {
+              total += snap.home_sentiment || 50;
+            } else {
+              total += snap.away_sentiment || 50;
+            }
+            count++;
+          }
+
+          const avgSentiment = Math.round(total / count);
+          const category = getSentimentCategory(avgSentiment);
+
+          sentiments.push({
+            clubName: club.name,
+            shortName: club.shortName,
+            color: club.color,
+            sentiment: avgSentiment,
+            emoji: category.emoji,
+            label: category.name,
+            matchCount: count,
+          });
+        } else {
+          // No data yet
+          sentiments.push({
+            clubName: club.name,
+            shortName: club.shortName,
+            color: club.color,
+            sentiment: 50,
+            emoji: "😐",
+            label: "Awaiting data",
+            matchCount: 0,
+          });
+        }
       }
 
       setClubSentiments(sentiments);
@@ -108,6 +170,9 @@ export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
+      {/* Sentiment Alert System */}
+      <SentimentAlert favoriteClubs={favoriteClubs} enabled={true} />
+
       {/* Greeting */}
       <div>
         <h2 className="text-xl font-bold text-foreground">Your Pulse 📡</h2>
@@ -134,25 +199,27 @@ export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-lg"
-                        style={{ backgroundColor: `${club.color}20` }}
-                      >
-                        {club.emoji}
-                      </div>
+                      <img 
+                        src={getTeamLogo(club.shortName)} 
+                        alt={club.shortName}
+                        className="w-10 h-10 object-contain"
+                      />
                       <div>
                         <p className="font-semibold text-foreground">
                           {club.shortName}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {club.label} · {club.matchCount} recent matches
+                          {club.label} · {club.matchCount > 0 ? `${club.matchCount} recent matches` : "No data yet"}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-foreground">
-                        {club.sentiment}
-                      </p>
+                      <div className="flex items-center gap-1 justify-end">
+                        <span className="text-2xl">{club.emoji}</span>
+                        <p className="text-2xl font-bold text-foreground">
+                          {club.sentiment}
+                        </p>
+                      </div>
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
                         Fan Mood
                       </p>
@@ -217,7 +284,7 @@ export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
               View All <ChevronRight className="w-3 h-3" />
             </Button>
           </div>
-          {recentMatches.map((match: any) => (
+          {recentMatches.map((match: RecentMatch) => (
             <Card key={match.id} className="overflow-hidden">
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
@@ -226,18 +293,53 @@ export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
                       {match.home_team?.name || "TBD"} vs{" "}
                       {match.away_team?.name || "TBD"}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {new Date(match.match_date).toLocaleDateString()}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(match.match_date).toLocaleDateString()}
+                      </p>
+                      {match.homeSentiment && match.awaySentiment && (
+                        <Badge variant="secondary" className="text-[9px]">
+                          {getSentimentCategory(match.homeSentiment).emoji} vs {getSentimentCategory(match.awaySentiment).emoji}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  <Badge variant="outline" className="text-[10px]">
-                    {match.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px]">
+                      {match.status}
+                    </Badge>
+                    {match.homeSentiment && match.awaySentiment && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShareMatch(match);
+                        }}
+                      >
+                        <Share2 className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Share Modal */}
+      {shareMatch && shareMatch.homeSentiment && shareMatch.awaySentiment && (
+        <ShareableMoodCard
+          homeTeam={shareMatch.home_team?.name || "Home"}
+          awayTeam={shareMatch.away_team?.name || "Away"}
+          homeScore={shareMatch.home_score ?? undefined}
+          awayScore={shareMatch.away_score ?? undefined}
+          homeSentiment={shareMatch.homeSentiment}
+          awaySentiment={shareMatch.awaySentiment}
+          onClose={() => setShareMatch(null)}
+        />
       )}
     </motion.div>
   );
