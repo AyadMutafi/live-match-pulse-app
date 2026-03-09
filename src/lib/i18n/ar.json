@@ -1,0 +1,85 @@
+{
+  "app": {
+    "name": "Fan Pulse",
+    "tagline": "مشاعر المشجعين في الوقت الحقيقي"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "sentiments": "المشاعر",
+    "ratings": "التقييمات",
+    "rivals": "المنافسون",
+    "more": "المزيد"
+  },
+  "home": {
+    "greeting": "نبضك",
+    "subtitle": "كيف يشعر مشجعو أنديتك الآن",
+    "noData": "لا توجد بيانات مشاعر لأنديتك بعد.",
+    "fanMood": "مزاج المشجعين",
+    "recentMatches": "المباريات الأخيرة",
+    "viewAll": "عرض الكل"
+  },
+  "sentiments": {
+    "title": "مشاعر المباراة",
+    "poweredBy": "مدعوم بـ Gemini AI + بحث الويب",
+    "realTimeData": "بيانات المشجعين الحية",
+    "updated": "تم التحديث",
+    "refresh": "تحديث",
+    "updating": "جاري التحديث...",
+    "autoRefresh": "تحديث تلقائي كل 60 ثانية للمباريات الحية",
+    "all": "الكل",
+    "live": "مباشر",
+    "today": "اليوم",
+    "finished": "انتهت"
+  },
+  "rivals": {
+    "title": "مركز المنافسات",
+    "subtitle": "أي جماهير أسعد؟ مواجهات المشاعر الحية.",
+    "awaitingData": "في انتظار بيانات المباراة للمشاعر الحقيقية",
+    "intensity": "الحدة"
+  },
+  "ratings": {
+    "title": "تقييمات اللاعبين",
+    "subtitle": "أداء اللاعبين مُقيّم من المشجعين"
+  },
+  "more": {
+    "title": "المزيد",
+    "standings": "ترتيب الدوري",
+    "weeklyRatings": "التقييمات الأسبوعية",
+    "admin": "لوحة الإدارة",
+    "settings": "الإعدادات",
+    "about": "حول"
+  },
+  "onboarding": {
+    "welcome": "مرحباً بك في Fan Pulse",
+    "subtitle": "متتبع مشاعر كرة القدم الشخصي",
+    "selectLeagues": "اختر دورياتك",
+    "selectClubs": "اختر أنديتك",
+    "continue": "متابعة",
+    "getStarted": "ابدأ",
+    "clubsSelected": "أندية مختارة"
+  },
+  "pro": {
+    "title": "Fan Pulse Pro",
+    "subtitle": "احصل على تجربة ذكاء المشجعين الكاملة",
+    "upgrade": "الترقية إلى Pro",
+    "perMonth": "/شهر",
+    "freeTrial": "7 أيام تجربة مجانية",
+    "cancelAnytime": "إلغاء في أي وقت",
+    "maybeLater": "ربما لاحقاً"
+  },
+  "share": {
+    "title": "مشاركة بطاقة المزاج",
+    "copy": "نسخ",
+    "copied": "تم النسخ",
+    "fanMoodBattle": "معركة مزاج المشجعين"
+  },
+  "common": {
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ ما",
+    "retry": "إعادة المحاولة",
+    "back": "رجوع",
+    "close": "إغلاق",
+    "save": "حفظ",
+    "cancel": "إلغاء"
+  }
+}

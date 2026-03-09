@@ -1,0 +1,85 @@
+{
+  "app": {
+    "name": "Fan Pulse",
+    "tagline": "Real-time fan sentiment for football"
+  },
+  "nav": {
+    "home": "Home",
+    "sentiments": "Sentiments",
+    "ratings": "Ratings",
+    "rivals": "Rivals",
+    "more": "More"
+  },
+  "home": {
+    "greeting": "Your Pulse",
+    "subtitle": "How your clubs' fans are feeling right now",
+    "noData": "No sentiment data yet for your clubs.",
+    "fanMood": "Fan Mood",
+    "recentMatches": "Recent Matches",
+    "viewAll": "View All"
+  },
+  "sentiments": {
+    "title": "Match Sentiments",
+    "poweredBy": "Powered by Gemini AI + Web Search",
+    "realTimeData": "real-time fan data",
+    "updated": "Updated",
+    "refresh": "Refresh",
+    "updating": "Updating...",
+    "autoRefresh": "Auto-refreshing every 60s for live matches",
+    "all": "All",
+    "live": "Live",
+    "today": "Today",
+    "finished": "Finished"
+  },
+  "rivals": {
+    "title": "Rivalry Hub",
+    "subtitle": "Which fanbase is feeling better? Live sentiment face-offs.",
+    "awaitingData": "Awaiting match data for real sentiment",
+    "intensity": "intensity"
+  },
+  "ratings": {
+    "title": "Player Ratings",
+    "subtitle": "Fan-rated player performances"
+  },
+  "more": {
+    "title": "More",
+    "standings": "League Standings",
+    "weeklyRatings": "Weekly Ratings",
+    "admin": "Admin Panel",
+    "settings": "Settings",
+    "about": "About"
+  },
+  "onboarding": {
+    "welcome": "Welcome to Fan Pulse",
+    "subtitle": "Your personal football sentiment tracker",
+    "selectLeagues": "Select your leagues",
+    "selectClubs": "Pick your clubs",
+    "continue": "Continue",
+    "getStarted": "Get Started",
+    "clubsSelected": "clubs selected"
+  },
+  "pro": {
+    "title": "Fan Pulse Pro",
+    "subtitle": "Get the complete fan intelligence experience",
+    "upgrade": "Upgrade to Pro",
+    "perMonth": "/month",
+    "freeTrial": "7-day free trial",
+    "cancelAnytime": "Cancel anytime",
+    "maybeLater": "Maybe later"
+  },
+  "share": {
+    "title": "Share Mood Card",
+    "copy": "Copy",
+    "copied": "Copied",
+    "fanMoodBattle": "Fan Mood Battle"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "back": "Back",
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel"
+  }
+}

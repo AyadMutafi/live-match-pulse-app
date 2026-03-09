@@ -1,0 +1,85 @@
+{
+  "app": {
+    "name": "Fan Pulse",
+    "tagline": "Sentiment des fans en temps réel"
+  },
+  "nav": {
+    "home": "Accueil",
+    "sentiments": "Sentiments",
+    "ratings": "Notes",
+    "rivals": "Rivaux",
+    "more": "Plus"
+  },
+  "home": {
+    "greeting": "Votre Pouls",
+    "subtitle": "Comment les fans de vos clubs se sentent maintenant",
+    "noData": "Pas encore de données de sentiment pour vos clubs.",
+    "fanMood": "Humeur Fan",
+    "recentMatches": "Matchs Récents",
+    "viewAll": "Voir Tout"
+  },
+  "sentiments": {
+    "title": "Sentiments du Match",
+    "poweredBy": "Propulsé par Gemini AI + Recherche Web",
+    "realTimeData": "données fans en temps réel",
+    "updated": "Mis à jour",
+    "refresh": "Rafraîchir",
+    "updating": "Mise à jour...",
+    "autoRefresh": "Rafraîchissement auto toutes les 60s pour les matchs en direct",
+    "all": "Tous",
+    "live": "En Direct",
+    "today": "Aujourd'hui",
+    "finished": "Terminé"
+  },
+  "rivals": {
+    "title": "Centre des Rivalités",
+    "subtitle": "Quels fans sont les plus heureux? Confrontations de sentiment en direct.",
+    "awaitingData": "En attente des données du match pour le sentiment réel",
+    "intensity": "intensité"
+  },
+  "ratings": {
+    "title": "Notes des Joueurs",
+    "subtitle": "Performances des joueurs notées par les fans"
+  },
+  "more": {
+    "title": "Plus",
+    "standings": "Classement de la Ligue",
+    "weeklyRatings": "Notes Hebdomadaires",
+    "admin": "Panneau Admin",
+    "settings": "Paramètres",
+    "about": "À Propos"
+  },
+  "onboarding": {
+    "welcome": "Bienvenue sur Fan Pulse",
+    "subtitle": "Votre tracker personnel de sentiment football",
+    "selectLeagues": "Sélectionnez vos ligues",
+    "selectClubs": "Choisissez vos clubs",
+    "continue": "Continuer",
+    "getStarted": "Commencer",
+    "clubsSelected": "clubs sélectionnés"
+  },
+  "pro": {
+    "title": "Fan Pulse Pro",
+    "subtitle": "Obtenez l'expérience complète d'intelligence fan",
+    "upgrade": "Passer à Pro",
+    "perMonth": "/mois",
+    "freeTrial": "7 jours d'essai gratuit",
+    "cancelAnytime": "Annulez quand vous voulez",
+    "maybeLater": "Peut-être plus tard"
+  },
+  "share": {
+    "title": "Partager la Carte Humeur",
+    "copy": "Copier",
+    "copied": "Copié",
+    "fanMoodBattle": "Bataille d'Humeur Fan"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur s'est produite",
+    "retry": "Réessayer",
+    "back": "Retour",
+    "close": "Fermer",
+    "save": "Sauvegarder",
+    "cancel": "Annuler"
+  }
+}
