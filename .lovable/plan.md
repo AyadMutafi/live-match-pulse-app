@@ -1,90 +1,124 @@
-# Plan: Fix Outdated Data and Enhance App for Diverse Audience
-
-## Problem Summary
-
-The app has two core issues:
-
-1. **Outdated/stale data** - Multiple components use hardcoded mock data from Oct-Dec 2025, and the live match API calls are failing
-2. **Limited audience appeal** - The app currently targets a narrow set of clubs and lacks features that would attract fans from different nationalities and age groups
-
----
-
-## Part 1: Fix Outdated Data
-
-### Issue 1: Failing Supabase Connections
-
-All network requests to Supabase are returning "Failed to fetch." The `fetch-matches` edge function needs to be redeployed and tested to restore data flow.
-
-**Action:** Redeploy the `fetch-matches` edge function and verify the `FOOTBALL_DATA_API_KEY` secret is still valid.
-
-### Issue 2: Hardcoded Mock Data in Components
-
-Several components display static data instead of fetching from the database or APIs:
 
 
-| Component               | Problem                                                           |
-| ----------------------- | ----------------------------------------------------------------- |
-| `ClubSentimentOverview` | Hardcoded mock data with "Oct 26" dates                           |
-| `RivalryWatch`          | Hardcoded mock data with "Oct 26, 2025" to "Jan 5, 2026" dates    |
-| `LiveSocialFeed`        | Static sample posts, never fetches real data                      |
-| `LeagueStandings`       | Entirely generated with `Math.random()` -- no real standings data |
-| `WeeklyRatings`         | Uses fallback mock player data                                    |
+# Investor-Grade Evaluation & Strategic Enhancement Plan
 
+## Current State Assessment
 
-**Actions:**
+### Strengths
+- **Solid architecture**: 5-tab navigation, personalized onboarding, 25 clubs across 5 leagues, 12 rivalries
+- **Real data pipeline**: Supabase + Gemini AI sentiment analysis with edge functions
+- **Viral mechanics**: Shareable mood cards with Web Share API, WhatsApp, and X integration
+- **Engagement**: Sentiment alerts, rivalry tug-of-war, club deep-dives with follow/unfollow
+- **i18n**: 7 languages with RTL support
+- **Design system**: Dark mode, color scheme variations, density settings, animation speed controls
 
-- Replace `ClubSentimentOverview` mock data with dynamic data sourced from the `matches` and `social_posts` tables, calculating sentiment from recent match results and social post scores
-- Replace `RivalryWatch` mock data with dynamic data from the `matches` table, pulling actual upcoming fixtures between rival clubs
-- Update `LiveSocialFeed` to query the `social_posts` table for real posts, keeping the mock data only as a fallback when no data exists
-- Update `LeagueStandings` to fetch real standings from the football-data.org API via a new edge function (`fetch-standings`)
-- Add a visible "Last Updated" timestamp and a manual refresh button to the main dashboard so users can see when data was last fetched and force a refresh
+### Critical Gaps Identified
 
-### Issue 3: Smart Refresh Not Triggering Properly
-
-The `useMatches` hook fires `fetch-matches` on mount and every 5 minutes, but when the function fails, there is no user-visible error or retry mechanism.
-
-**Action:** Add error handling with a user-visible banner showing connection issues and a manual "Retry" button when data fails to load.
+1. **No authentication** — Everything is localStorage-based. No cross-device sync, no user identity, no leaderboard possible. This is the single biggest blocker to retention and monetization.
+2. **No dark mode toggle exposed** — Dark theme CSS exists but there's no UI toggle to activate it. Users are stuck on light mode.
+3. **No gamification/predictions** — The plan included a Fan Predictions game but it was never built. Zero daily return incentive.
+4. **No PWA install prompt** — `vite-plugin-pwa` is installed but there's no manifest or service worker config visible. Users can't "install" the app.
+5. **No pull-to-refresh** — Mobile-first app with no pull-to-refresh gesture. Feels static.
+6. **MoreTab Pro link is a no-op** — The "Fan Pulse Pro" menu item has `action: () => {}`. Dead click.
+7. **No loading/splash screen** — App boots to blank white before content loads.
+8. **No error boundaries** — If Supabase or Gemini fails, the whole tab crashes silently.
+9. **No offline support** — Zero caching strategy. No data = blank screen.
+10. **Sentiment data can be empty** — When no snapshots exist, users see "Awaiting data" everywhere, which feels broken rather than intentional.
 
 ---
 
-## Part 2: Enhance App for Diverse Audience
+## Strategic Enhancement Plan
 
-### Enhancement 1: Expand League Coverage
+### Phase 1: Dark Mode + PWA + Polish (Quick Wins)
 
-Currently the app only monitors 7 clubs across 2 leagues. To attract fans from more nationalities:
+**Dark mode toggle**: Add a sun/moon toggle in `AppHeader.tsx` that sets `document.documentElement.classList.toggle('dark')` and persists to localStorage.
 
-- Add support for **Serie A** (Italy), **Bundesliga** (Germany), **Ligue 1** (France), and **Primeira Liga** (Portugal) in the target clubs configuration
-- Allow users to **choose their favorite leagues and clubs** from a settings page (stored in `user_favorite_teams` table which already exists)
-- Make the dashboard sections filter based on the user's selected clubs
+**Fix MoreTab Pro link**: Wire the Pro menu item to open the existing `ProValueScreen`.
 
-### Enhancement 2: Multi-Language Sentiment Labels
+**Splash screen**: Add a branded 1-second splash with the 📡 logo and "Fan Pulse" text before the app renders, using a simple CSS animation.
 
-Replace English-only sentiment labels with universal emoji-based indicators that work across languages. The app already uses emojis for sentiment -- this will be extended to ensure all labels are emoji-first with minimal text.
+**PWA manifest**: Configure `vite-plugin-pwa` with proper manifest, icons, and offline fallback page. Enable "Add to Home Screen" prompt.
+
+**Error boundaries**: Wrap each tab content in a React error boundary that shows a friendly "Something went wrong — tap to retry" card instead of crashing.
+
+### Phase 2: Fan Predictions Game (Retention Driver)
+
+**Pre-match prediction widget** on the Home tab:
+- Before each upcoming match, show: "How will [Club] fans feel after this match?"
+- User picks from 5 emoji options (🔥😍🙂😤💩)
+- Store prediction in localStorage (no auth yet) with match ID + timestamp
+- After the match, compare prediction vs actual sentiment from `sentiment_snapshots`
+- Show accuracy percentage and streak counter
+- Display a "Prediction History" card showing recent predictions and results
+
+**Fan leaderboard** (local-only initially):
+- Track total predictions, accuracy %, and current streak
+- Show a "Your Stats" card on the Home tab
+- When auth is added later, this becomes a global leaderboard
+
+### Phase 3: Enhanced Empty States & Onboarding
+
+**Smart empty states**: When no sentiment data exists, show contextual content instead of "Awaiting data":
+- Upcoming match schedule for the club
+- Historical rivalry facts
+- "Sentiment will update when [Club] plays next on [date]"
+- Quick action to explore other clubs that DO have data
+
+**Improved onboarding**: Add a brief 3-screen tutorial after club selection:
+1. "We track fan mood from X.com in real-time" (with animation)
+2. "Predict how fans will feel before matches" (show prediction widget preview)
+3. "Share mood cards with friends" (show mood card preview)
+
+### Phase 4: Live Match Experience
+
+**Match day mode**: When a match is currently live (status = "LIVE"):
+- Pulse animation on the match card
+- Auto-refresh sentiment every 60 seconds
+- Show the `SentimentTimeline` chart inline
+- "🔴 LIVE" badge with match minute
+- Goal event markers on the timeline
+
+**Pull-to-refresh**: Add a pull-to-refresh gesture on the Home tab that re-fetches all sentiment data with a satisfying animation.
+
+### Phase 5: Social & Viral Amplification
+
+**Match day stories**: Auto-generate a "Match Day Story" — a vertical, Instagram-story-style card sequence showing:
+1. Pre-match mood comparison
+2. Key sentiment shift moments
+3. Final mood verdict
+
+Users can share the entire story as a series of images.
+
+**Fan reactions feed**: Show a scrolling feed of anonymized fan reactions (pulled from X.com data the app already analyzes) below each match sentiment card. Makes the app feel alive and social.
+
+**Referral mechanic**: "Share Fan Pulse with a friend" card in the More tab. When shared, the link includes a UTM parameter. Track installs (when auth exists) for future rewards.
 
 ---
 
-## Technical Details
+## Files to Create
+- `src/components/DarkModeToggle.tsx` — sun/moon toggle component
+- `src/components/FanPrediction.tsx` — prediction widget
+- `src/components/PredictionHistory.tsx` — prediction results tracker
+- `src/components/SplashScreen.tsx` — branded loading screen
+- `src/components/ErrorBoundary.tsx` — graceful error handling
+- `src/components/PullToRefresh.tsx` — pull-to-refresh wrapper
+- `src/components/MatchDayStory.tsx` — story-style shareable content
+- `src/hooks/usePredictions.tsx` — prediction state management
 
-### New Edge Function: `fetch-standings`
+## Files to Modify
+- `src/components/AppHeader.tsx` — add dark mode toggle
+- `src/components/MoreTab.tsx` — fix Pro link, add referral card
+- `src/components/HomeTab.tsx` — add prediction widget, pull-to-refresh, better empty states
+- `src/pages/Index.tsx` — add splash screen, error boundaries
+- `src/components/RivalryHub.tsx` — improved empty states
+- `vite.config.ts` — PWA configuration
 
-- Calls `football-data.org/v4/competitions/{id}/standings` for each monitored league
-- Stores results in a new `league_standings` table
-- Refreshes every 6 hours (standings don't change frequently)
+## Priority Order
+1. Dark mode toggle + fix MoreTab Pro link (immediate UX wins)
+2. Splash screen + error boundaries (professionalism)
+3. Fan Predictions game (retention — the killer feature)
+4. PWA install + pull-to-refresh (mobile experience)
+5. Enhanced empty states (polish)
+6. Match day live experience (engagement)
+7. Story-style sharing (viral growth)
 
-### Database Changes
-
-- New table: `league_standings` with columns for `league_id`, `team_name`, `position`, `played`, `won`, `drawn`, `lost`, `goals_for`, `goals_against`, `points`, `form`, `updated_at`
-- New table: `user_display_preferences` with columns for `user_id`, `font_size`, `simplified_view`, `favorite_leagues`
-
-### Files to Modify
-
-1. `src/components/ClubSentimentOverview.tsx` -- Replace mock data with dynamic queries
-2. `src/components/RivalryWatch.tsx` -- Replace mock data with dynamic queries
-3. `src/components/LiveSocialFeed.tsx` -- Add real data fetching
-4. `src/components/LeagueStandings.tsx` -- Replace random generation with API data
-5. `src/pages/Index.tsx` -- Add error banner and manual refresh button
-6. `src/hooks/useMatches.tsx` -- Add better error handling and retry logic
-7. `src/lib/constants.ts` -- Expand target clubs (optional, based on user preference)
-8. New: `supabase/functions/fetch-standings/index.ts`
-9. New: `src/components/ConnectionErrorBanner.tsx`
-10. New: `src/components/WhyThisMatters.tsx` -- Cultural context cards
