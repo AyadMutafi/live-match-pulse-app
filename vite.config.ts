@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icon-512x512.png", "robots.txt"],
+      includeAssets: ["icon-512x512.png", "robots.txt", "favicon.ico"],
       manifest: {
         name: "Live Fan Pulse - Football Analytics",
         short_name: "Fan Pulse",
