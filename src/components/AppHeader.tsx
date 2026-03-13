@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Crown } from "lucide-react";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { ProValueScreen } from "@/components/ProValueScreen";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { AnimatePresence } from "framer-motion";
 
 export function AppHeader() {
@@ -16,7 +17,8 @@ export function AppHeader() {
             <span className="text-2xl">📡</span>
             <h1 className="text-lg font-bold text-foreground">Fan Pulse</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <DarkModeToggle />
             <Badge
               variant="outline"
               className="text-[10px] gap-1 border-primary/30 text-primary cursor-pointer hover:bg-primary/10 transition-colors"
