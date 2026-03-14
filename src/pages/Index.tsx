@@ -66,7 +66,7 @@ const Index = () => {
                 />
               )}
               {activeTab === "sentiments" && <MatchSentiments />}
-              {activeTab === "ratings" && <PlayerRatingsTab />}
+              {activeTab === "ratings" && <FanRatingsTab />}
               {activeTab === "rivals" && <RivalryHub />}
               {activeTab === "more" && <MoreTab />}
             </ErrorBoundary>
