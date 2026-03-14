@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Home, BarChart3, Star, Swords, MoreHorizontal } from "lucide-react";
+import { Home, BarChart3, Heart, Swords, MoreHorizontal } from "lucide-react";
 
 interface BottomNavigationProps {
   activeTab: string;
@@ -9,7 +9,7 @@ interface BottomNavigationProps {
 const navItems = [
   { id: "home", icon: Home, label: "Home" },
   { id: "sentiments", icon: BarChart3, label: "Sentiments" },
-  { id: "ratings", icon: Star, label: "Ratings" },
+  { id: "ratings", icon: Heart, label: "Rate" },
   { id: "rivals", icon: Swords, label: "Rivals" },
   { id: "more", icon: MoreHorizontal, label: "More" },
 ];
