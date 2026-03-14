@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { MatchSentiments } from "@/components/MatchSentiments";
-import { PlayerRatingsTab } from "@/components/PlayerRatingsTab";
+import { FanRatingsTab } from "@/components/FanRatingsTab";
 import { HomeTab } from "@/components/HomeTab";
 import { RivalryHub } from "@/components/RivalryHub";
 import { MoreTab } from "@/components/MoreTab";
