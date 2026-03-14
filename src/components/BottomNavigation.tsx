@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Home, BarChart3, Star, Swords, MoreHorizontal } from "lucide-react";
+import { Home, BarChart3, Heart, Swords, MoreHorizontal } from "lucide-react";
 
 interface BottomNavigationProps {
   activeTab: string;
