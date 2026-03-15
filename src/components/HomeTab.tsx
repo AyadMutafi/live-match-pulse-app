@@ -9,10 +9,8 @@ import { TARGET_CLUBS, getClubInfo, getSentimentCategory } from "@/lib/constants
 import { TrendingUp, Flame, Clock, ChevronRight, Share2, Target, Calendar } from "lucide-react";
 import { SentimentAlert } from "@/components/SentimentAlert";
 import { ShareableMoodCard } from "@/components/ShareableMoodCard";
-import { FanPrediction } from "@/components/FanPrediction";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { getTeamLogo } from "@/lib/teamLogos";
-import { usePredictions } from "@/hooks/usePredictions";
 
 interface HomeTabProps {
   favoriteClubs: string[];
