@@ -160,39 +160,13 @@ export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
       >
         <SentimentAlert favoriteClubs={favoriteClubs} enabled={true} />
 
-        {/* Greeting + Stats */}
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-foreground">Your Pulse 📡</h2>
-            <p className="text-sm text-muted-foreground">
-              How your clubs' fans are feeling right now
-            </p>
-          </div>
-          {stats.total > 0 && (
-            <Badge variant="secondary" className="text-[10px] gap-1">
-              <Target className="w-3 h-3" />
-              {Math.round((stats.correct / stats.total) * 100)}% accuracy
-            </Badge>
-          )}
+        {/* Greeting */}
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Your Pulse 📡</h2>
+          <p className="text-sm text-muted-foreground">
+            How your clubs' fans are feeling right now
+          </p>
         </div>
-
-        {/* Prediction Widget for upcoming matches */}
-        {upcomingMatches.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Calendar className="w-4 h-4" /> Predict Fan Mood
-            </h3>
-            {upcomingMatches.slice(0, 2).map((match) => (
-              <FanPrediction
-                key={match.id}
-                matchId={match.id}
-                homeTeam={match.home_team?.name || "Home"}
-                awayTeam={match.away_team?.name || "Away"}
-                matchDate={match.match_date}
-              />
-            ))}
-          </div>
-        )}
 
         {/* Club Sentiment Cards */}
         {clubSentiments.length > 0 ? (
