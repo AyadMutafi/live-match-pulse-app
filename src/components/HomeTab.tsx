@@ -6,11 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { TARGET_CLUBS, getClubInfo, getSentimentCategory } from "@/lib/constants";
-import { TrendingUp, Flame, Clock, ChevronRight, Share2, Target, Calendar } from "lucide-react";
+import { TrendingUp, Flame, Clock, ChevronRight, Share2 } from "lucide-react";
 import { SentimentAlert } from "@/components/SentimentAlert";
 import { ShareableMoodCard } from "@/components/ShareableMoodCard";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { getTeamLogo } from "@/lib/teamLogos";
+import { FanVoiceTweets } from "@/components/FanVoiceTweets";
+import { FanWordCloud } from "@/components/FanWordCloud";
+import { FanSentimentCard } from "@/components/FanSentimentCard";
+import { FanReactionTimeline } from "@/components/FanReactionTimeline";
 
 interface HomeTabProps {
   favoriteClubs: string[];
