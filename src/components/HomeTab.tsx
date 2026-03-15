@@ -251,6 +251,27 @@ export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
           </Card>
         </div>
 
+        {/* Fan Voice Section */}
+        <FanVoiceTweets teamName={favoriteClubs[0] || "Manchester United"} />
+        <FanWordCloud teamName={favoriteClubs[0] || "Manchester United"} />
+
+        {clubSentiments.length > 0 && (
+          <FanSentimentCard
+            teamName={clubSentiments[0].clubName}
+            shortName={clubSentiments[0].shortName}
+            sentiment={clubSentiments[0].sentiment}
+            emoji={clubSentiments[0].emoji}
+            label={clubSentiments[0].label}
+          />
+        )}
+
+        {recentMatches.length > 0 && (
+          <FanReactionTimeline
+            homeTeam={recentMatches[0].home_team?.name || "Home"}
+            awayTeam={recentMatches[0].away_team?.name || "Away"}
+          />
+        )}
+
         {/* Recent Matches */}
         {recentMatches.length > 0 && (
           <div className="space-y-3">
