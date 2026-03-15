@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { TARGET_CLUBS, getClubInfo, getSentimentCategory } from "@/lib/constants";
-import { TrendingUp, Flame, Clock, ChevronRight, Share2, Target, Calendar } from "lucide-react";
+import { TrendingUp, Flame, Clock, ChevronRight, Share2 } from "lucide-react";
 import { SentimentAlert } from "@/components/SentimentAlert";
 import { ShareableMoodCard } from "@/components/ShareableMoodCard";
-import { FanPrediction } from "@/components/FanPrediction";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { getTeamLogo } from "@/lib/teamLogos";
-import { usePredictions } from "@/hooks/usePredictions";
+import { FanVoiceTweets } from "@/components/FanVoiceTweets";
+import { FanWordCloud } from "@/components/FanWordCloud";
+import { FanSentimentCard } from "@/components/FanSentimentCard";
+import { FanReactionTimeline } from "@/components/FanReactionTimeline";
 
 interface HomeTabProps {
   favoriteClubs: string[];
@@ -47,7 +49,6 @@ export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
   const [upcomingMatches, setUpcomingMatches] = useState<RecentMatch[]>([]);
   const [shareMatch, setShareMatch] = useState<RecentMatch | null>(null);
-  const { stats } = usePredictions();
 
   const fetchHomeData = useCallback(async () => {
     try {
@@ -163,39 +164,13 @@ export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
       >
         <SentimentAlert favoriteClubs={favoriteClubs} enabled={true} />
 
-        {/* Greeting + Stats */}
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-foreground">Your Pulse 📡</h2>
-            <p className="text-sm text-muted-foreground">
-              How your clubs' fans are feeling right now
-            </p>
-          </div>
-          {stats.total > 0 && (
-            <Badge variant="secondary" className="text-[10px] gap-1">
-              <Target className="w-3 h-3" />
-              {Math.round((stats.correct / stats.total) * 100)}% accuracy
-            </Badge>
-          )}
+        {/* Greeting */}
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Your Pulse 📡</h2>
+          <p className="text-sm text-muted-foreground">
+            How your clubs' fans are feeling right now
+          </p>
         </div>
-
-        {/* Prediction Widget for upcoming matches */}
-        {upcomingMatches.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Calendar className="w-4 h-4" /> Predict Fan Mood
-            </h3>
-            {upcomingMatches.slice(0, 2).map((match) => (
-              <FanPrediction
-                key={match.id}
-                matchId={match.id}
-                homeTeam={match.home_team?.name || "Home"}
-                awayTeam={match.away_team?.name || "Away"}
-                matchDate={match.match_date}
-              />
-            ))}
-          </div>
-        )}
 
         {/* Club Sentiment Cards */}
         {clubSentiments.length > 0 ? (
@@ -275,6 +250,27 @@ export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
             </CardContent>
           </Card>
         </div>
+
+        {/* Fan Voice Section */}
+        <FanVoiceTweets teamName={favoriteClubs[0] || "Manchester United"} />
+        <FanWordCloud teamName={favoriteClubs[0] || "Manchester United"} />
+
+        {clubSentiments.length > 0 && (
+          <FanSentimentCard
+            teamName={clubSentiments[0].clubName}
+            shortName={clubSentiments[0].shortName}
+            sentiment={clubSentiments[0].sentiment}
+            emoji={clubSentiments[0].emoji}
+            label={clubSentiments[0].label}
+          />
+        )}
+
+        {recentMatches.length > 0 && (
+          <FanReactionTimeline
+            homeTeam={recentMatches[0].home_team?.name || "Home"}
+            awayTeam={recentMatches[0].away_team?.name || "Away"}
+          />
+        )}
 
         {/* Recent Matches */}
         {recentMatches.length > 0 && (
