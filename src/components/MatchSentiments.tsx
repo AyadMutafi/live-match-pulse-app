@@ -346,7 +346,10 @@ export function MatchSentiments() {
   const { data: matches, isLoading: matchesLoading, error: matchesError } = useMatches();
   const queryClient = useQueryClient();
 
-  const filtered = (matches || []).filter(m => {
+  // Pre-filter to only La Liga, Premier League, Serie A (+ continental involving those teams)
+  const targetMatches = (matches || []).filter(isTargetLeagueMatch);
+
+  const filtered = targetMatches.filter(m => {
     const ms = getMatchStatus(m);
     if (league !== "All" && getLeague(m) !== league) return false;
     if (status !== "all" && ms.status !== status) return false;
