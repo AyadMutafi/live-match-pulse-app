@@ -374,7 +374,7 @@ export function MatchSentiments() {
   }, [queryClient]);
 
   const isLoading = matchesLoading || sentimentsLoading;
-  const availableLeagues = ["All", ...Array.from(new Set((matches || []).map(m => getLeague(m))))];
+  const availableLeagues = ["All", ...Array.from(new Set(targetMatches.map(m => getLeague(m))))];
 
   // Find latest search time
   const latestSearch = sentiments
