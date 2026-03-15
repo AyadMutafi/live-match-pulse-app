@@ -110,6 +110,40 @@ function getLeague(match: Match): string {
   return match.competition || match.home_team?.league || "Unknown";
 }
 
+// Only show matches from these 3 leagues (domestic + continental)
+const TARGET_LEAGUES = [
+  "premier league",
+  "primera division", // La Liga
+  "la liga",
+  "serie a",
+];
+
+const CONTINENTAL_COMPETITIONS = [
+  "champions league",
+  "uefa champions league",
+  "europa league",
+  "uefa europa league",
+  "conference league",
+  "uefa europa conference league",
+];
+
+const TARGET_LEAGUE_TEAMS_LEAGUES = ["Premier League", "Primera Division", "La Liga", "Serie A"];
+
+function isTargetLeagueMatch(match: Match): boolean {
+  const comp = (match.competition || "").toLowerCase();
+  // Direct domestic league match
+  if (TARGET_LEAGUES.some(l => comp.includes(l))) return true;
+  // Continental match involving a team from one of the 3 target leagues
+  if (CONTINENTAL_COMPETITIONS.some(c => comp.includes(c))) {
+    const homeLeague = match.home_team?.league || "";
+    const awayLeague = match.away_team?.league || "";
+    return TARGET_LEAGUE_TEAMS_LEAGUES.some(l =>
+      homeLeague.includes(l) || awayLeague.includes(l)
+    );
+  }
+  return false;
+}
+
 function parseTeamSentimentResponse(data: any, teamName: string): TeamSentimentData {
   const positive = data.percentages?.positive ?? 50;
   const negative = data.percentages?.negative ?? 20;
@@ -312,7 +346,10 @@ export function MatchSentiments() {
   const { data: matches, isLoading: matchesLoading, error: matchesError } = useMatches();
   const queryClient = useQueryClient();
 
-  const filtered = (matches || []).filter(m => {
+  // Pre-filter to only La Liga, Premier League, Serie A (+ continental involving those teams)
+  const targetMatches = (matches || []).filter(isTargetLeagueMatch);
+
+  const filtered = targetMatches.filter(m => {
     const ms = getMatchStatus(m);
     if (league !== "All" && getLeague(m) !== league) return false;
     if (status !== "all" && ms.status !== status) return false;
@@ -337,7 +374,7 @@ export function MatchSentiments() {
   }, [queryClient]);
 
   const isLoading = matchesLoading || sentimentsLoading;
-  const availableLeagues = ["All", ...Array.from(new Set((matches || []).map(m => getLeague(m))))];
+  const availableLeagues = ["All", ...Array.from(new Set(targetMatches.map(m => getLeague(m))))];
 
   // Find latest search time
   const latestSearch = sentiments
