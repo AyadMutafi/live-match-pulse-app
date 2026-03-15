@@ -46,7 +46,7 @@ export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
   const [upcomingMatches, setUpcomingMatches] = useState<RecentMatch[]>([]);
   const [shareMatch, setShareMatch] = useState<RecentMatch | null>(null);
 
-
+  const fetchHomeData = useCallback(async () => {
     try {
       const { data: matches } = await supabase
         .from("matches")
