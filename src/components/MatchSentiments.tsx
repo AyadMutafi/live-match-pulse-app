@@ -110,6 +110,40 @@ function getLeague(match: Match): string {
   return match.competition || match.home_team?.league || "Unknown";
 }
 
+// Only show matches from these 3 leagues (domestic + continental)
+const TARGET_LEAGUES = [
+  "premier league",
+  "primera division", // La Liga
+  "la liga",
+  "serie a",
+];
+
+const CONTINENTAL_COMPETITIONS = [
+  "champions league",
+  "uefa champions league",
+  "europa league",
+  "uefa europa league",
+  "conference league",
+  "uefa europa conference league",
+];
+
+const TARGET_LEAGUE_TEAMS_LEAGUES = ["Premier League", "Primera Division", "La Liga", "Serie A"];
+
+function isTargetLeagueMatch(match: Match): boolean {
+  const comp = (match.competition || "").toLowerCase();
+  // Direct domestic league match
+  if (TARGET_LEAGUES.some(l => comp.includes(l))) return true;
+  // Continental match involving a team from one of the 3 target leagues
+  if (CONTINENTAL_COMPETITIONS.some(c => comp.includes(c))) {
+    const homeLeague = match.home_team?.league || "";
+    const awayLeague = match.away_team?.league || "";
+    return TARGET_LEAGUE_TEAMS_LEAGUES.some(l =>
+      homeLeague.includes(l) || awayLeague.includes(l)
+    );
+  }
+  return false;
+}
+
 function parseTeamSentimentResponse(data: any, teamName: string): TeamSentimentData {
   const positive = data.percentages?.positive ?? 50;
   const negative = data.percentages?.negative ?? 20;
