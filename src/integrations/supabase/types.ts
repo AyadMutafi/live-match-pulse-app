@@ -510,6 +510,54 @@ export type Database = {
         }
         Relationships: []
       }
+      player_sentiment_scores: {
+        Row: {
+          analyzed_at: string
+          avg_likes: number | null
+          avg_reposts: number | null
+          created_at: string
+          id: string
+          league: string
+          player_name: string
+          position: string | null
+          posts_analyzed: number
+          sample_posts: Json | null
+          sentiment_score: number
+          source: string | null
+          team: string
+        }
+        Insert: {
+          analyzed_at?: string
+          avg_likes?: number | null
+          avg_reposts?: number | null
+          created_at?: string
+          id?: string
+          league: string
+          player_name: string
+          position?: string | null
+          posts_analyzed?: number
+          sample_posts?: Json | null
+          sentiment_score?: number
+          source?: string | null
+          team: string
+        }
+        Update: {
+          analyzed_at?: string
+          avg_likes?: number | null
+          avg_reposts?: number | null
+          created_at?: string
+          id?: string
+          league?: string
+          player_name?: string
+          position?: string | null
+          posts_analyzed?: number
+          sample_posts?: Json | null
+          sentiment_score?: number
+          source?: string | null
+          team?: string
+        }
+        Relationships: []
+      }
       players: {
         Row: {
           created_at: string
