@@ -65,17 +65,18 @@ const PLAYER_INPUTS = [
 
 // ── Loading steps ─────────────────────────────────────────────────
 const LOADING_STEPS = [
-  { icon: "🔍", text: "Searching web for player reactions..." },
+  { icon: "🔍", text: "Firecrawl searching X.com for fan reactions..." },
+  { icon: "📊", text: "Extracting post text & engagement metrics..." },
   { icon: "🤖", text: "Gemini AI analyzing fan sentiment..." },
-  { icon: "⭐", text: "Calculating player ratings..." },
+  { icon: "⭐", text: "Calculating player ratings & saving to DB..." },
 ];
 
-// ── Data hook ─────────────────────────────────────────────────────
+// ── Data hook (Firecrawl + Gemini pipeline) ───────────────────────
 function usePlayerSentiments() {
   return useQuery({
     queryKey: ["player-sentiments-live"],
     queryFn: async (): Promise<{ players: PlayerData[]; analyzedAt: string }> => {
-      const { data, error } = await supabase.functions.invoke("fetch-player-sentiments", {
+      const { data, error } = await supabase.functions.invoke("firecrawl-player-sentiment", {
         body: { players: PLAYER_INPUTS },
       });
 
