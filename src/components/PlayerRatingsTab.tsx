@@ -169,10 +169,10 @@ export function PlayerRatingsTab() {
       <div className="text-center pt-2 pb-1">
         <p className="text-xs text-muted-foreground uppercase tracking-widest">⭐ Player Ratings</p>
         <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
-          <span>🤖 Powered by Gemini AI + Web Search</span>
+          <span>🔥 Powered by Firecrawl + Gemini AI</span>
           <span>•</span>
           <span className="font-bold">𝕏</span>
-          <span>real-time data</span>
+          <span>live fan data</span>
         </p>
       </div>
 
