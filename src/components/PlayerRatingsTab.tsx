@@ -65,17 +65,18 @@ const PLAYER_INPUTS = [
 
 // ── Loading steps ─────────────────────────────────────────────────
 const LOADING_STEPS = [
-  { icon: "🔍", text: "Searching web for player reactions..." },
+  { icon: "🔍", text: "Firecrawl searching X.com for fan reactions..." },
+  { icon: "📊", text: "Extracting post text & engagement metrics..." },
   { icon: "🤖", text: "Gemini AI analyzing fan sentiment..." },
-  { icon: "⭐", text: "Calculating player ratings..." },
+  { icon: "⭐", text: "Calculating player ratings & saving to DB..." },
 ];
 
-// ── Data hook ─────────────────────────────────────────────────────
+// ── Data hook (Firecrawl + Gemini pipeline) ───────────────────────
 function usePlayerSentiments() {
   return useQuery({
     queryKey: ["player-sentiments-live"],
     queryFn: async (): Promise<{ players: PlayerData[]; analyzedAt: string }> => {
-      const { data, error } = await supabase.functions.invoke("fetch-player-sentiments", {
+      const { data, error } = await supabase.functions.invoke("firecrawl-player-sentiment", {
         body: { players: PLAYER_INPUTS },
       });
 
@@ -168,10 +169,10 @@ export function PlayerRatingsTab() {
       <div className="text-center pt-2 pb-1">
         <p className="text-xs text-muted-foreground uppercase tracking-widest">⭐ Player Ratings</p>
         <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
-          <span>🤖 Powered by Gemini AI + Web Search</span>
+          <span>🔥 Powered by Firecrawl + Gemini AI</span>
           <span>•</span>
           <span className="font-bold">𝕏</span>
-          <span>real-time data</span>
+          <span>live fan data</span>
         </p>
       </div>
 
@@ -305,9 +306,11 @@ export function PlayerRatingsTab() {
       {/* Footer */}
       <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground pt-2 pb-4">
         <span className="font-bold text-xs">𝕏</span>
-        <span>Real-time web search data</span>
+        <span>Firecrawl live data</span>
         <span>•</span>
-        <span className="text-[hsl(var(--ai-green))]">🤖 Gemini AI</span>
+        <span className="text-[hsl(var(--ai-green))]">🤖 Gemini AI sentiment</span>
+        <span>•</span>
+        <span>Saved to Supabase</span>
       </div>
     </div>
   );

@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.fetch-configured-sentiment]
 verify_jwt = false
+
+[functions.firecrawl-player-sentiment]
+verify_jwt = false
