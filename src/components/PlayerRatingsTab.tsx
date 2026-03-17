@@ -306,9 +306,11 @@ export function PlayerRatingsTab() {
       {/* Footer */}
       <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground pt-2 pb-4">
         <span className="font-bold text-xs">𝕏</span>
-        <span>Real-time web search data</span>
+        <span>Firecrawl live data</span>
         <span>•</span>
-        <span className="text-[hsl(var(--ai-green))]">🤖 Gemini AI</span>
+        <span className="text-[hsl(var(--ai-green))]">🤖 Gemini AI sentiment</span>
+        <span>•</span>
+        <span>Saved to Supabase</span>
       </div>
     </div>
   );
