@@ -274,6 +274,10 @@ export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
           />
         )}
 
+        {/* UCL Bracket & Comeback Widget */}
+        <UCLBracket />
+        <ComebackProbabilityWidget />
+
         {/* Recent Matches */}
         {recentMatches.length > 0 && (
           <div className="space-y-3">
