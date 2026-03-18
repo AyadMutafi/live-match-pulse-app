@@ -15,6 +15,8 @@ import { FanVoiceTweets } from "@/components/FanVoiceTweets";
 import { FanWordCloud } from "@/components/FanWordCloud";
 import { FanSentimentCard } from "@/components/FanSentimentCard";
 import { FanReactionTimeline } from "@/components/FanReactionTimeline";
+import { ComebackProbabilityWidget } from "@/components/ComebackProbabilityWidget";
+import { UCLBracket } from "@/components/UCLBracket";
 
 interface HomeTabProps {
   favoriteClubs: string[];
