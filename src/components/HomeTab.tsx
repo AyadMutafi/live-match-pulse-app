@@ -15,6 +15,8 @@ import { FanVoiceTweets } from "@/components/FanVoiceTweets";
 import { FanWordCloud } from "@/components/FanWordCloud";
 import { FanSentimentCard } from "@/components/FanSentimentCard";
 import { FanReactionTimeline } from "@/components/FanReactionTimeline";
+import { ComebackProbabilityWidget } from "@/components/ComebackProbabilityWidget";
+import { UCLBracket } from "@/components/UCLBracket";
 
 interface HomeTabProps {
   favoriteClubs: string[];
@@ -271,6 +273,10 @@ export function HomeTab({ favoriteClubs, onNavigate }: HomeTabProps) {
             awayTeam={recentMatches[0].away_team?.name || "Away"}
           />
         )}
+
+        {/* UCL Bracket & Comeback Widget */}
+        <UCLBracket />
+        <ComebackProbabilityWidget />
 
         {/* Recent Matches */}
         {recentMatches.length > 0 && (

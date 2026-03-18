@@ -131,7 +131,7 @@ Provide 2-3 themes, 3-5 recent form entries, and 3 sample tweets.
 Use emojis: 🔥(90-100) 😍(70-89) 🙂(50-69) 😐(30-49) 😤(10-29) 💩(0-9).`;
 
         const geminiResp = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${geminiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
