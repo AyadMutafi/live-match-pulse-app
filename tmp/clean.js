@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function main() { await prisma.sentiment.deleteMany({ where: { match: { round: null } } }); await prisma.match.deleteMany({ where: { round: null } }); console.log('Deleted null round mock matches'); } main().finally(() => prisma.$disconnect());

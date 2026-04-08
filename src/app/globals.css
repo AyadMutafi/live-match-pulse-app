@@ -1,0 +1,312 @@
+@import "tailwindcss";
+
+/* ── Fan Pulse Ultra — Stitch "Electric Arena" Design System ─────────────── */
+
+@layer base {
+  :root {
+    /* Light mode (accessible fallback) */
+    --background: 0 0% 98%;
+    --foreground: 240 10% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 8%;
+    --primary: 263 72% 54%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 43 96% 56%;         /* Championship Gold #fcc025 */
+    --secondary-foreground: 38 100% 18%;
+    --muted: 240 5% 94%;
+    --muted-foreground: 240 5% 45%;
+    --accent: 263 72% 54%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 349 84% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 88%;
+    --input: 240 6% 88%;
+    --ring: 263 72% 54%;
+    --radius: 0.75rem;
+
+    /* Stitch surface tiers */
+    --surface: 0 0% 98%;
+    --surface-container-low: 240 5% 94%;
+    --surface-container: 240 5% 91%;
+    --surface-container-high: 240 5% 87%;
+    --surface-bright: 0 0% 100%;
+    --on-surface-variant: 240 5% 50%;
+  }
+
+  .dark {
+    /* Dark mode — exact Stitch "Electric Arena" palette */
+    --background: 240 11% 7%;        /* #0e0e13 — "The void" */
+    --foreground: 255 6% 97%;        /* #f8f5fd — on-surface */
+    --card: 240 11% 10%;             /* #19191f — surface-container */
+    --card-foreground: 255 6% 97%;
+    --popover: 240 11% 12%;
+    --popover-foreground: 255 6% 97%;
+    --primary: 265 100% 80%;         /* #bd9dff — Electric Violet */
+    --primary-foreground: 266 100% 28%; /* #3c0089 */
+    --secondary: 43 96% 56%;         /* #fcc025 — Championship Gold (PRO only) */
+    --secondary-foreground: 38 100% 18%; /* #563e00 */
+    --muted: 240 9% 14%;             /* #1f1f26 — surface-container-high */
+    --muted-foreground: 255 3% 68%;  /* #acaab1 — on-surface-variant */
+    --accent: 265 72% 65%;           /* primary-dim #8a4cfc */
+    --accent-foreground: 255 6% 97%;
+    --destructive: 349 100% 72%;     /* #ff6e84 — error */
+    --destructive-foreground: 349 100% 18%; /* #490013 */
+    --border: 240 8% 29%;            /* #48474d — outline-variant */
+    --input: 240 8% 29%;
+    --ring: 265 100% 80%;
+
+    /* Stitch surface tiers (dark) */
+    --surface: 240 11% 7%;
+    --surface-container-low: 240 11% 9%;   /* #131318 */
+    --surface-container: 240 11% 10%;      /* #19191f */
+    --surface-container-high: 240 11% 12%; /* #1f1f26 */
+    --surface-container-highest: 240 9% 16%; /* #25252c */
+    --surface-bright: 240 9% 19%;          /* #2b2b33 */
+    --on-surface-variant: 255 3% 68%;      /* #acaab1 */
+
+    /* Semantic sentiment colors */
+    --positive: 142 71% 45%;   /* #22c55e */
+    --negative: 0 91% 61%;     /* #ef4444 */
+    --neutral: 43 96% 56%;     /* #fbbf24 */
+  }
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+}
+
+/* ── Base reset ─────────────────────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', var(--font-inter), system-ui, sans-serif;
+    font-feature-settings: "cv02","cv03","cv04","cv11";
+    font-size: calc(14px * var(--font-scale));
+    line-height: var(--spacing);
+    font-weight: var(--font-weight-body);
+  }
+
+  /* Disable animations for seniors */
+  .classic-mode * {
+    animation-duration: 0.001ms !important;
+    transition: none !important;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
+  .scrollbar-none { scrollbar-width: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+}
+
+/* ── Stitch Glass Card ───────────────────────────────────────────────────── */
+/* Matches the "surface-container" elevated tier from Stitch design system  */
+.glass-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border) / 0.6);
+  border-radius: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Dark mode glass effect — simulates backdrop-blur + inner highlight */
+.dark .glass-card {
+  background: hsl(var(--surface-container-high));
+  border-color: hsl(var(--on-surface-variant) / 0.10);
+  box-shadow: inset 0 1px 0 hsl(var(--on-surface-variant) / 0.08);
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  border-color: hsl(var(--primary) / 0.35);
+  box-shadow: 0 8px 32px hsl(var(--primary) / 0.12);
+}
+
+/* ── Stitch PRO Gold chip ────────────────────────────────────────────────── */
+.pro-badge {
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  border-radius: 99px;
+  text-transform: uppercase;
+}
+
+/* ── Stitch Primary CTA gradient ─────────────────────────────────────────── */
+.btn-primary-gradient {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: 99px;
+  font-weight: 800;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.btn-primary-gradient:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+/* ── Sentiment colors (semantic) ─────────────────────────────────────────── */
+.sentiment-positive { color: #48e5d0; }   /* tertiary-dim */
+.sentiment-negative { color: #ff6e84; }   /* error */
+.sentiment-neutral  { color: #fcc025; }   /* secondary/gold */
+
+/* ── Sentiment Bar (Stitch style) ────────────────────────────────────────── */
+.sentiment-bar {
+  height: 8px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: hsl(var(--muted));
+}
+
+.sentiment-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.sentiment-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  animation: pulse-sweep 2s infinite ease-in-out;
+}
+
+@keyframes pulse-sweep {
+  0% { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(200%) skewX(-15deg); }
+}
+
+.sentiment-fill.positive {
+  background: linear-gradient(90deg, #48e5d0, #22c55e);
+  box-shadow: 0 0 12px #48e5d060;
+}
+
+.sentiment-fill.negative {
+  background: linear-gradient(90deg, #ff6e84, #ef4444);
+  box-shadow: 0 0 12px #ff6e8460;
+}
+
+/* ── Score display ───────────────────────────────────────────────────────── */
+.score-display {
+  font-size: clamp(30px, 7vw, 44px);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  @apply text-foreground;
+}
+
+/* ── Bottom navigation ───────────────────────────────────────────────────── */
+.bottom-nav {
+  background: hsl(var(--background) / 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid hsl(var(--border) / 0.5);
+  position: sticky;
+  bottom: 0;
+  z-index: 50;
+}
+
+/* ── Stitch Live indicator ───────────────────────────────────────────────── */
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+}
+
+/* ── Match card left accent border ──────────────────────────────────────── */
+.league-ucl    { border-left: 4px solid #fbbf24 !important; }
+.league-pl     { border-left: 4px solid #bd9dff !important; }
+.league-laliga { border-left: 4px solid #ff6e84 !important; }
+
+/* ── Fan War bar ─────────────────────────────────────────────────────────── */
+@keyframes warFill {
+  0%   { width: 0%; opacity: 0; }
+  15%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+.war-bar-fill {
+  animation: warFill 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Animations ──────────────────────────────────────────────────────────── */
+@keyframes fillBar { from { width: 0; } }
+
+.animate-fill { animation: fillBar 1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up { animation: fadeUp 0.4s ease-out forwards; }
+
+/* ── Typography scale (Stitch) ───────────────────────────────────────────── */
+.text-display-lg { font-size: calc(3.5rem * var(--font-scale));  font-weight: var(--font-weight-title); letter-spacing: -0.02em; }
+.text-display-md { font-size: calc(2.75rem * var(--font-scale)); font-weight: var(--font-weight-title); letter-spacing: -0.02em; }
+.text-headline   { font-size: calc(2rem * var(--font-scale));    font-weight: 700; }
+.text-title-lg   { font-size: calc(1.375rem * var(--font-scale)); font-weight: 600; }
+.text-label      { font-size: calc(0.75rem * var(--font-scale));  font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+
+/* ── Stitch surface layer utilities ─────────────────────────────────────── */
+.surface          { background: hsl(var(--surface)); }
+.surface-low      { background: hsl(var(--surface-container-low, var(--muted))); }
+.surface-high     { background: hsl(var(--surface-container-high, var(--card))); }
+.surface-bright   { background: hsl(var(--surface-bright, var(--card))); }
+
+/* ── Glow effects ────────────────────────────────────────────────────────── */
+.glow-primary {
+  box-shadow: 0 0 24px hsl(var(--primary) / 0.25), 0 0 8px hsl(var(--primary) / 0.15);
+}
+
+.glow-gold {
+  box-shadow: 0 0 24px #fcc02540, 0 0 8px #fcc02520;
+}

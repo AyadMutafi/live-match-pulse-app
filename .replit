@@ -1,0 +1,11 @@
+run = "npm run build && npm start"
+
+[nix]
+channel = "stable-23_11"
+
+[deployment]
+run = ["sh", "-c", "npm run build && npm start"]
+deploymentTarget = "nodejs"
+
+[env]
+PORT = "3000"

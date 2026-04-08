@@ -1,0 +1,16 @@
+{
+  "name": "Fan Pulse",
+  "short_name": "Fan Pulse",
+  "description": "Live AI-powered football fan sentiment tracking.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#04050f",
+  "theme_color": "#04050f",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
