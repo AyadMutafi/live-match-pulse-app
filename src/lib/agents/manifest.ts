@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { scrapePlayerSentiment, scrapeMatchSentiment } from '@/lib/firecrawl';
+import { scrapePlayerSentiment, scrapeMatchSentiment, scrapeFromSource } from '@/lib/firecrawl';
 import { analyzeSentimentWithAI } from '@/lib/ai-analysis';
 import { updateRivalsAnalysis } from './rivals-journalist';
 
@@ -147,13 +147,14 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
       const source = await db.dataSource.findUnique({ where: { id: sourceId } });
       if (!source) return { error: 'Source not found' };
 
-      const query = source.account
-        ? source.account
-        : source.hashtag
-        ? source.hashtag
-        : source.url;
+      // Build the right query based on source type
+      const query = source.type === 'ACCOUNT'
+        ? (source.account || source.name)
+        : source.type === 'HASHTAG'
+        ? (source.hashtag || source.name)
+        : source.name;
 
-      const result = await scrapePlayerSentiment(query, source.name || 'unknown');
+      const result = await scrapeFromSource(source.type, query, source.url);
       return result;
     }
   }

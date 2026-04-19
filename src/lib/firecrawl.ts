@@ -173,4 +173,59 @@ export async function scrapeMatchSentiment(homeTeam: string, awayTeam: string, h
   }
 }
 
+/**
+ * Scrapes content from an admin-defined DataSource.
+ * Unlike scrapePlayerSentiment, this uses the raw query directly
+ * without any multi-language player name wrapping.
+ */
+export async function scrapeFromSource(
+  sourceType: string,
+  query: string,
+  sourceUrl?: string
+) {
+  try {
+    console.log(`[scrapeFromSource] type=${sourceType}, query="${query}"`);
+
+    // Build the search query based on source type
+    let searchQuery: string;
+
+    if (sourceType === 'ACCOUNT') {
+      // For accounts, search for content "from:" that account
+      const handle = query.startsWith('@') ? query.slice(1) : query;
+      searchQuery = `from:${handle}`;
+    } else if (sourceType === 'HASHTAG') {
+      searchQuery = query.startsWith('#') ? query : `#${query}`;
+    } else {
+      searchQuery = query;
+    }
+
+    console.log(`[scrapeFromSource] Searching: "${searchQuery}"`);
+    const result = await firecrawl.v1.search(searchQuery, {
+      limit: 5,
+      scrapeOptions: { formats: ['markdown'] }
+    });
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to search');
+    }
+
+    const combinedContent = result.data
+      .map((item: any) => `Source: ${item.url}\n\nContent:\n${item.markdown || ''}`)
+      .join('\n\n---\n\n');
+
+    return {
+      success: true,
+      content: combinedContent,
+      url: `search://${searchQuery}`,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('[scrapeFromSource] Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
 export default firecrawl;
