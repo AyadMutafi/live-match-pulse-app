@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { scrapePlayerSentiment, scrapeMatchSentiment, scrapeFromSource } from '@/lib/firecrawl';
 import { analyzeSentimentWithAI } from '@/lib/ai-analysis';
+import { scrapeWithGrok } from '@/lib/grok-scraper';
 import { updateRivalsAnalysis } from './rivals-journalist';
 
 /**
@@ -79,13 +80,17 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
       if (entityType === 'player') {
         const player = await db.player.findUnique({ where: { id: entityId } });
         if (!player) return { error: 'Player not found' };
-        const result = await scrapePlayerSentiment(player.name, player.team);
-        return result;
+        if (process.env.XAI_API_KEY) {
+          return await scrapeWithGrok(player.name, player.team);
+        }
+        return await scrapePlayerSentiment(player.name, player.team);
       } else {
         const match = await db.match.findUnique({ where: { id: entityId } });
         if (!match) return { error: 'Match not found' };
-        const result = await scrapeMatchSentiment(match.homeTeam, match.awayTeam, overrideQuery || '#FanPulse');
-        return result;
+        if (process.env.XAI_API_KEY) {
+          return await scrapeWithGrok(`${match.homeTeam} vs ${match.awayTeam}`, overrideQuery || 'live match');
+        }
+        return await scrapeMatchSentiment(match.homeTeam, match.awayTeam, overrideQuery || '#FanPulse');
       }
     }
   },
@@ -153,6 +158,10 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
         : source.type === 'HASHTAG'
         ? (source.hashtag || source.name)
         : source.name;
+
+      if (process.env.XAI_API_KEY) {
+        return await scrapeWithGrok(query, source.name || 'unknown source');
+      }
 
       const result = await scrapeFromSource(source.type, query, source.url);
       return result;
