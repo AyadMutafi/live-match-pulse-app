@@ -11,6 +11,14 @@ export async function GET(request: Request) {
     // 1. Get status info via Scout Agent
     const status = await AGENT_TOOLS.get_app_status.execute({});
     const liveMatches = status.liveMatches || [];
+    
+    await db.agentActivity.create({
+      data: {
+        agent: 'Scout', action: 'get_app_status', target: 'Global System',
+        status: 'success', message: `Discovered ${liveMatches.length} live matches`
+      }
+    });
+    
     const results = [];
 
     // 2. Analyst Agent: Scrape Live Matches
@@ -59,7 +67,28 @@ export async function GET(request: Request) {
             matchId: match.id,
             analysisText: `Fierce battle in the digital arena! Fans of ${match.homeTeam} are at ${homeAnalysis.sentiment}% pulse, while ${match.awayTeam} supporters are feeling ${awayAnalysis.sentiment}%. The momentum swings are profound.`
           });
+
+          await db.agentActivity.create({
+            data: {
+              agent: 'Journalist', action: 'publish_intel', target: `${match.homeTeam} vs ${match.awayTeam}`,
+              status: 'success', message: 'Published volatile rival intel'
+            }
+          });
         }
+
+        await db.agentActivity.create({
+          data: {
+            agent: 'Analyst', action: 'scrape_match', target: `${match.homeTeam} vs ${match.awayTeam}`,
+            status: 'success', message: `Analyzed sentiment (${homeAnalysis.sentiment} vs ${awayAnalysis.sentiment})`
+          }
+        });
+      } else {
+        await db.agentActivity.create({
+          data: {
+            agent: 'Analyst', action: 'scrape_match', target: `${match.homeTeam} vs ${match.awayTeam}`,
+            status: 'failed', message: 'Failed or skipped scraping social data'
+          }
+        });
       }
       
       results.push({ type: 'match', id: match.id, success: matchResult?.success });
@@ -80,6 +109,14 @@ export async function GET(request: Request) {
         await db.dataSource.update({
           where: { id: source.id },
           data: { lastScraped: new Date() }
+        });
+
+        await db.agentActivity.create({
+          data: {
+            agent: 'Analyst', action: 'scrape_source', target: source.name,
+            status: sourceResult?.success ? 'success' : 'failed',
+            message: sourceResult?.success ? 'Successfully ingested pulse data' : 'Extraction failed'
+          }
         });
 
         await new Promise(r => setTimeout(r, 2000));

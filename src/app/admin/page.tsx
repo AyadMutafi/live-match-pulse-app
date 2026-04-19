@@ -36,10 +36,21 @@ type DataSource = {
   user: { username: string }
 }
 
+type AgentActivity = {
+  id: string
+  agent: string
+  action: string
+  target: string
+  status: string
+  message: string | null
+  timestamp: string
+}
+
 export default function AdminPage() {
   const [session, setSession] = useState<Session | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [sources, setSources] = useState<DataSource[]>([])
+  const [activities, setActivities] = useState<AgentActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('curation')
   const [showAddUser, setShowAddUser] = useState(false)
@@ -51,15 +62,17 @@ export default function AdminPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [sessionRes, sourcesRes] = await Promise.all([
+        const [sessionRes, sourcesRes, activitiesRes] = await Promise.all([
           fetch('/api/auth/session'), 
-          fetch('/api/admin/sources')
+          fetch('/api/admin/sources'),
+          fetch('/api/admin/activity')
         ])
         
         if (!sessionRes.ok) return router.push('/login')
         const sessionData = await sessionRes.json()
         setSession(sessionData)
         setSources(await sourcesRes.json())
+        setActivities(await activitiesRes.json())
         
         if (sessionData.role === 'ADMIN') {
           const usersRes = await fetch('/api/admin/users')
@@ -189,6 +202,17 @@ export default function AdminPage() {
                     <span className="text-[12px] font-black uppercase tracking-widest">Pulse Sources</span>
                 </div>
                 <ChevronRight className={`w-4 h-4 transition-transform ${activeTab === 'curation' ? 'rotate-90' : ''}`} />
+            </button>
+            
+            <button 
+                onClick={() => setActiveTab('activity')}
+                className={`w-full flex items-center justify-between p-4 rounded-xl transition-all ${activeTab === 'activity' ? 'bg-primary/10 border border-primary/20 text-primary shadow-lg shadow-primary/5' : 'text-muted-foreground hover:bg-muted/30 hover:text-foreground'}`}
+            >
+                <div className="flex items-center gap-3">
+                    <Activity className="w-4 h-4" />
+                    <span className="text-[12px] font-black uppercase tracking-widest">Agent Activity</span>
+                </div>
+                <ChevronRight className={`w-4 h-4 transition-transform ${activeTab === 'activity' ? 'rotate-90' : ''}`} />
             </button>
             
             {isAdmin && (
@@ -330,6 +354,68 @@ export default function AdminPage() {
                                             </td>
                                         </tr>
                                     ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </motion.div>
+                )}
+
+                {activeTab === 'activity' && (
+                    <motion.div 
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        className="space-y-6"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-xl font-black uppercase tracking-tighter italic text-emerald-500">Agent Telemetry</h2>
+                                <p className="text-[11px] text-muted-foreground font-black uppercase tracking-widest mt-1">Live feed of autonomous operations</p>
+                            </div>
+                        </div>
+
+                        <div className="glass-card overflow-hidden">
+                            <table className="w-full text-left">
+                                <thead className="bg-muted/40 border-b border-border">
+                                    <tr>
+                                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Time</th>
+                                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Agent</th>
+                                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Target</th>
+                                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status & Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {activities.map(a => (
+                                        <tr key={a.id} className="hover:bg-muted/20 transition-colors">
+                                            <td className="p-4 whitespace-nowrap text-[11px] font-bold text-muted-foreground">
+                                                {new Date(a.timestamp).toLocaleString()}
+                                            </td>
+                                            <td className="p-4">
+                                                <span className={`text-[10px] font-black uppercase px-2 py-1 rounded ${
+                                                  a.agent.includes('Scout') ? 'bg-blue-500/10 text-blue-500' : 
+                                                  a.agent.includes('Journalist') ? 'bg-purple-500/10 text-purple-500' : 
+                                                  'bg-primary/10 text-primary'}`}>
+                                                    {a.agent}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="text-[12px] font-bold">{a.target}</span>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${a.status === 'success' ? 'bg-emerald-500' : 'bg-destructive'}`} />
+                                                    <span className="text-[11px] text-muted-foreground">{a.message || a.action}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {activities.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="p-8 text-center text-[11px] font-black uppercase tracking-widest text-muted-foreground/50">
+                                                No agent activity recorded yet
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>

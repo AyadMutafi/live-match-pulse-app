@@ -65,3 +65,13 @@ model DataSource {
   hashtag     String?
   clubId      String?
 }
+
+model AgentActivity {
+  id          String   @id @default(cuid())
+  agent       String   // "Scout", "Analyst", "Journalist"
+  action      String   // e.g., "scrape_match", "scrape_source", "publish_intel"
+  target      String   // e.g., "Barcelona vs Newcastle", "@FabrizioRomano"
+  status      String   // "success", "failed"
+  message     String?
+  timestamp   DateTime @default(now())
+}
