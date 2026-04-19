@@ -316,14 +316,12 @@ function SentimentsContent() {
     fetch('/api/matches')
       .then(res => res.json())
       .then(data => {
+        const matchesArray = data.matches || []
         // Only keep matches for CORE_CLUBS, or matches where findClub returns a valid mapping
-        const filtered = data.filter((m: Match) => {
-          const homeMapped = findClub(m.homeTeam)
-          const awayMapped = findClub(m.awayTeam)
-          
-          return CORE_CLUBS.some(c => m.homeTeam.includes(c) || m.awayTeam.includes(c)) ||
-                 homeMapped !== undefined || awayMapped !== undefined
-        })
+        const filtered = matchesArray.map((m: any) => ({
+          ...m,
+          round: m.round || "Champions League" // Fallback since round was removed from schema
+        }))
         setAllMatches(filtered)
         setLoading(false)
       })
@@ -409,7 +407,7 @@ function SentimentsContent() {
   if (!mounted) return null
 
   return (
-    <div className="px-4 py-6 space-y-5 max-w-md mx-auto min-h-screen pb-32 relative">
+    <div className="px-4 md:px-8 py-6 md:py-8 space-y-5 max-w-md md:max-w-full mx-auto min-h-screen pb-32 md:pb-12 relative">
       {/* Header */}
       <div className="text-center space-y-2 relative z-10 mb-4">
         <h2 className="text-[30px] font-black tracking-tighter leading-none uppercase italic text-foreground">
@@ -497,13 +495,13 @@ function SentimentsContent() {
       </div>
 
       {/* ─── Match Cards ─── */}
-      <div className="space-y-5 relative z-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 relative z-10">
         {loading ? (
-          <div className="text-center py-16 bg-muted/5 rounded-3xl border-2 border-dashed border-border/50 animate-pulse">
+          <div className="text-center py-16 bg-muted/5 rounded-3xl border-2 border-dashed border-border/50 animate-pulse md:col-span-full">
              <p className="text-foreground font-black text-lg tracking-tight">Syncing Live Pulses...</p>
           </div>
         ) : displayMatches.length === 0 ? (
-          <div className="text-center py-16 bg-muted/5 rounded-3xl border-2 border-dashed border-border/50">
+          <div className="text-center py-16 bg-muted/5 rounded-3xl border-2 border-dashed border-border/50 md:col-span-full">
             <Zap className="w-10 h-10 mx-auto mb-3 text-muted-foreground/20" />
             <p className="text-foreground font-black text-lg tracking-tight">No Signals Detected</p>
             <p className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest mt-1">

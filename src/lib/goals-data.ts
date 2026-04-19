@@ -42,8 +42,91 @@ export type GoalHighlight = {
 
 export const GOALS_FEED: GoalHighlight[] = [
   // ═══════════════════════════════════════════════════════════
-  //  MATCHDAY 30
+  //  MATCHDAY 31 (LATEST)
   // ═══════════════════════════════════════════════════════════
+  {
+    id: 'md31-vini-1',
+    player: 'Vinícius Júnior',
+    club: 'Real Madrid',
+    opponent: 'Girona',
+    minute: 18,
+    goalType: 'curler',
+    caption: 'Vini Jr found the angle from nowhere! 🇧🇷 Technical excellence at the Bernabéu',
+    league: 'La Liga',
+    matchScore: '1-1',
+    sources: [
+      {
+        platform: 'x',
+        handle: '@LaLigaEN',
+        displayName: 'LaLiga English',
+        verified: true,
+        url: 'https://x.com/LaLigaEN',
+        label: 'La Liga',
+      },
+      {
+        platform: 'x',
+        handle: '@realmadrid',
+        displayName: 'Real Madrid C.F.',
+        verified: true,
+        url: 'https://x.com/realmadrid',
+        label: 'Real Madrid',
+      },
+    ],
+    matchday: 'Matchday 31',
+    date: '2026-04-10',
+    tags: ['vini', 'curler', 'joga bonito'],
+    accentColor: '#FEBE10',
+  },
+  {
+    id: 'md31-salah-1',
+    player: 'Mo Salah',
+    club: 'Liverpool',
+    opponent: 'Man City',
+    minute: 44,
+    goalType: 'solo-run',
+    caption: 'Salah dancing through the City defense! 🕺 The Egyptian King strikes again!',
+    league: 'Premier League',
+    matchScore: '1-1',
+    sources: [
+      {
+        platform: 'x',
+        handle: '@LFC',
+        displayName: 'Liverpool FC',
+        verified: true,
+        url: 'https://x.com/LFC',
+        label: 'Liverpool',
+      },
+    ],
+    matchday: 'Matchday 31',
+    date: '2026-04-08',
+    tags: ['clutch', 'solo', 'title race'],
+    accentColor: '#C8102E',
+  },
+  {
+    id: 'md31-lewandowski-1',
+    player: 'Robert Lewandowski',
+    club: 'Barcelona',
+    opponent: 'Atleti',
+    minute: 55,
+    goalType: 'header',
+    caption: 'Lewy towering above everyone! 🦾 Clinical as always in the big games',
+    league: 'La Liga',
+    matchScore: '3-0',
+    sources: [
+      {
+        platform: 'x',
+        handle: '@FCBarcelona',
+        displayName: 'FC Barcelona',
+        verified: true,
+        url: 'https://x.com/FCBarcelona',
+        label: 'Barcelona',
+      },
+    ],
+    matchday: 'Matchday 31',
+    date: '2026-04-08',
+    tags: ['header', 'striker', 'form'],
+    accentColor: '#A50044',
+  },
   {
     id: 'md30-haaland-1',
     player: 'Erling Haaland',

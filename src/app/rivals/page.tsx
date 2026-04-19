@@ -198,7 +198,10 @@ export default function RivalsPage() {
     const loadMatches = async () => {
       try {
         const res = await fetch('/api/matches')
-        if (res.ok) setMatches(await res.json())
+        if (res.ok) {
+          const data = await res.json()
+          setMatches(data.matches || [])
+        }
       } catch (e) {
         console.error('Failed to load rivals', e)
       } finally {
@@ -209,7 +212,7 @@ export default function RivalsPage() {
   }, [])
 
   return (
-    <div className="px-4 py-5 space-y-6 max-w-md mx-auto min-h-screen pb-32">
+    <div className="px-4 md:px-8 py-5 md:py-8 space-y-6 max-w-md md:max-w-full mx-auto min-h-screen pb-32 md:pb-12">
       
       {/* Header */}
       <div className="text-center py-4">
@@ -230,14 +233,14 @@ export default function RivalsPage() {
       </div>
 
       {/* Rivalry cards */}
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-4">
             <Activity className="w-8 h-8 text-primary animate-spin" />
             <span className="text-[11px] font-black tracking-widest uppercase opacity-50">Calibrating Arena...</span>
           </div>
         ) : matches.length === 0 ? (
-          <div className="py-12 text-center border-2 border-dashed border-border rounded-3xl opacity-50">
+          <div className="py-12 text-center border-2 border-dashed border-border rounded-3xl opacity-50 md:col-span-full">
             <Swords className="w-10 h-10 mx-auto mb-3" />
             <p className="text-[13px] font-black tracking-widest uppercase italic">No Battles Found</p>
           </div>

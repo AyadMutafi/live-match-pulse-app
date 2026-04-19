@@ -1,16 +1,8 @@
 import { NextResponse } from 'next/server'
-import prisma from "@/lib/prisma"
+
+// Tweet model has been removed from the schema.
+// This endpoint returns an empty array for backward compatibility.
 
 export async function GET() {
-  try {
-    const tweets = await prisma.tweet.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 12,
-    })
-    
-    return NextResponse.json(tweets)
-  } catch (error: any) {
-    console.error('Error fetching tweets:', error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
-  }
+  return NextResponse.json([])
 }

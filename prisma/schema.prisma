@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/client"
 }
 
 datasource db {
@@ -9,86 +8,60 @@ datasource db {
 }
 
 model Player {
-  id           String      @id @default(cuid())
-  name         String
-  team         String
-  position     String
-  sentiment    Int
-  tweets       Int
-  aiConfidence Float
-  form         String
-  lastUpdated  DateTime    @updatedAt
-  sentiments   Sentiment[]
+  id            String   @id @default(cuid())
+  name          String
+  team          String
+  position      String
+  sentiment     Int      @default(0)
+  tweets        Int      @default(0)
+  aiConfidence  Int      @default(0)
+  form          String?
+  lastUpdated   DateTime @default(now())
+  sentiments    Sentiment[]
 }
 
 model Match {
-  id             String       @id @default(cuid())
+  id             String   @id @default(cuid())
   homeTeam       String
   awayTeam       String
-  homeScore      Int
-  awayScore      Int
-  status         String
+  homeScore      Int      @default(0)
+  awayScore      Int      @default(0)
+  status         String   @default("upcoming")
   league         String
-  round          String?
   date           DateTime
-  aggregateScore String?
-  homeSentiment  Int
-  awaySentiment  Int
+  aggregateHome  Int      @default(0)
+  aggregateAway  Int      @default(0)
+  homeSentiment  Int      @default(0)
+  awaySentiment  Int      @default(0)
+  volatility     Float    @default(0.0)
+  momentum       Float    @default(0.0)
+  predictedScore Int      @default(0)
   psycheJSON     String?
-  events         String?
-  lastUpdated    DateTime     @updatedAt
+  lastUpdated    DateTime @default(now())
   sentiments     Sentiment[]
-  dataSources    DataSource[]
 }
 
 model Sentiment {
   id        String   @id @default(cuid())
-  playerId  String?
-  matchId   String?
   score     Int
   source    String
-  themes    String
-  breakdown String
+  themes    String?
+  breakdown String?
   timestamp DateTime @default(now())
-  match     Match?   @relation(fields: [matchId], references: [id])
+  playerId  String?
+  matchId   String?
   player    Player?  @relation(fields: [playerId], references: [id])
-}
-
-model User {
-  id           String       @id @default(cuid())
-  username     String       @unique
-  password     String
-  role         String       @default("EDITOR") // "ADMIN" | "EDITOR"
-  assignedTeam String? // e.g., "real-madrid"
-  createdAt    DateTime     @default(now())
-  dataSources  DataSource[]
+  match     Match?   @relation(fields: [matchId], references: [id])
 }
 
 model DataSource {
   id          String   @id @default(cuid())
   name        String
-  type        String // 'HASHTAG' | 'ACCOUNT'
+  type        String
   url         String
   isActive    Boolean  @default(true)
-  lastScraped DateTime @default(now())
-  userId      String?
-  matchId     String?
-  clubId      String? // Filter for Specialists
-  user        User?    @relation(fields: [userId], references: [id])
-  match       Match?   @relation(fields: [matchId], references: [id])
-}
-
-model Tweet {
-  id            String   @id @default(cuid())
-  author        String
-  handle        String
-  content       String
-  sentiment     Int
-  likes         Int      @default(0)
-  replies       Int      @default(0)
-  retweets      Int      @default(0)
-  url           String
-  avatarBg      String
-  avatarInitial String
-  createdAt     DateTime @default(now())
+  lastScraped DateTime?
+  account     String?
+  hashtag     String?
+  clubId      String?
 }

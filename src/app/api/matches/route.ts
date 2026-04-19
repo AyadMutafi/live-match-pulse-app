@@ -1,22 +1,21 @@
-import { NextResponse } from 'next/server'
-import prisma from "@/lib/prisma"
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
 
-export const dynamic = 'force-dynamic'
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const matches = await prisma.match.findMany({
-      orderBy: { date: 'desc' },
-      include: {
-        sentiments: {
-          orderBy: { timestamp: 'desc' },
-          take: 1
-        }
-      }
-    })
-    return NextResponse.json(matches)
+    const matches = await db.match.findMany({
+      orderBy: { date: 'desc' }
+    });
+    
+    return NextResponse.json({
+      matches,
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    console.error('Error fetching matches:', error)
-    return NextResponse.json({ error: 'Failed to load matches' }, { status: 500 })
+    console.error('Error fetching matches:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch matches' },
+      { status: 500 }
+    );
   }
 }

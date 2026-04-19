@@ -147,10 +147,10 @@ export default function TeamOfTheWeek() {
     
     // 1. Identify valid roles for this slot
     const validPositions: string[] = []
-    if (['ST', 'LW', 'RW'].includes(pos.role)) validPositions.push('Forward')
-    if (['CM', 'CAM', 'LM', 'RM'].includes(pos.role)) validPositions.push('Midfielder')
-    if (['LB', 'CB', 'RB'].includes(pos.role)) validPositions.push('Defender')
-    if (pos.role === 'GK') validPositions.push('Goalkeeper')
+    if (['ST', 'LW', 'RW'].includes(pos.role)) validPositions.push('Forward', 'ST', 'LW', 'RW');
+    if (['CM', 'CAM', 'LM', 'RM'].includes(pos.role)) validPositions.push('Midfielder', 'CM', 'CAM', 'LM', 'RM');
+    if (['LB', 'CB', 'RB'].includes(pos.role)) validPositions.push('Defender', 'LB', 'CB', 'RB');
+    if (pos.role === 'GK') validPositions.push('Goalkeeper', 'GK');
 
     // 2. Find the highest-rated available player matching the position
     p = sortedPlayers.find(player => 

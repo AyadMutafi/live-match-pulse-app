@@ -62,15 +62,6 @@ export async function GET(request: Request) {
       const homeScore = match.score?.fullTime?.home ?? 0;
       const awayScore = match.score?.fullTime?.away ?? 0;
 
-      let roundName = 'Unknown';
-      if (match.matchday) {
-        roundName = `Matchday ${match.matchday}`;
-      } else if (match.stage) {
-        roundName = match.stage.replace(/_/g, ' ').toLowerCase()
-          .replace(/\b\w/g, (l: string) => l.toUpperCase());
-      }
-      
-      const matchExternalId = `fd_${match.id}`;
       const matchDateObj = new Date(match.utcDate);
 
       const existingMatch = await prisma.match.findFirst({
@@ -88,8 +79,7 @@ export async function GET(request: Request) {
              homeScore: homeScore,
              awayScore: awayScore,
              status: mappedStatus,
-             date: matchDateObj,
-             round: roundName
+             date: matchDateObj
            }
          });
       } else {
@@ -101,7 +91,6 @@ export async function GET(request: Request) {
              awayScore: awayScore,
              status: mappedStatus,
              league: leagueName,
-             round: roundName,
              date: matchDateObj,
              homeSentiment: 50,
              awaySentiment: 50
