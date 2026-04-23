@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { scrapePlayerSentiment, scrapeMatchSentiment, scrapeFromSource } from '@/lib/firecrawl';
 import { analyzeSentimentWithAI } from '@/lib/ai-analysis';
 import { scrapeWithGrok } from '@/lib/grok-scraper';
+import { mineLocalSentiment } from '@/lib/local-miner';
 import { updateRivalsAnalysis } from './rivals-journalist';
 
 /**
@@ -80,17 +81,31 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
       if (entityType === 'player') {
         const player = await db.player.findUnique({ where: { id: entityId } });
         if (!player) return { error: 'Player not found' };
+
+        let result;
         if (process.env.XAI_API_KEY) {
-          return await scrapeWithGrok(player.name, player.team);
+          result = await scrapeWithGrok(player.name, player.team);
+          if (result.success) return result;
         }
-        return await scrapePlayerSentiment(player.name, player.team);
+
+        result = await scrapePlayerSentiment(player.name, player.team);
+        if (result.success) return result;
+
+        return await mineLocalSentiment(`${player.name} ${player.team}`, player.name);
       } else {
         const match = await db.match.findUnique({ where: { id: entityId } });
         if (!match) return { error: 'Match not found' };
+
+        let result;
         if (process.env.XAI_API_KEY) {
-          return await scrapeWithGrok(`${match.homeTeam} vs ${match.awayTeam}`, overrideQuery || 'live match');
+          result = await scrapeWithGrok(`${match.homeTeam} vs ${match.awayTeam}`, overrideQuery || 'live match');
+          if (result.success) return result;
         }
-        return await scrapeMatchSentiment(match.homeTeam, match.awayTeam, overrideQuery || '#FanPulse');
+
+        result = await scrapeMatchSentiment(match.homeTeam, match.awayTeam, overrideQuery || '#FanPulse');
+        if (result.success) return result;
+
+        return await mineLocalSentiment(`${match.homeTeam} vs ${match.awayTeam}`, `${match.homeTeam} vs ${match.awayTeam}`);
       }
     }
   },
@@ -159,12 +174,17 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
         ? (source.hashtag || source.name)
         : source.name;
 
+      let result;
       if (process.env.XAI_API_KEY) {
-        return await scrapeWithGrok(query, source.name || 'unknown source');
+        result = await scrapeWithGrok(query, source.name || 'unknown source');
+        if (result.success) return result;
       }
 
-      const result = await scrapeFromSource(source.type, query, source.url);
-      return result;
+      result = await scrapeFromSource(source.type, query, source.url);
+      if (result.success) return result;
+
+      // Ultimate fallback: zero-cost local miner
+      return await mineLocalSentiment(query, source.name || source.type);
     }
   }
 };
