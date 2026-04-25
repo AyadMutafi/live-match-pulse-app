@@ -16,8 +16,15 @@ model Player {
   tweets        Int      @default(0)
   aiConfidence  Int      @default(0)
   form          String?
+  imageUrl      String?
+  country       String?
+  shirtNumber   Int?
+  weekNumber    Int      @default(0)
+  season        String   @default("2024-25")
   lastUpdated   DateTime @default(now())
   sentiments    Sentiment[]
+
+  @@index([weekNumber, season])
 }
 
 model Match {
@@ -39,6 +46,8 @@ model Match {
   psycheJSON     String?
   lastUpdated    DateTime @default(now())
   sentiments     Sentiment[]
+
+  @@index([date])
 }
 
 model Sentiment {
@@ -52,6 +61,10 @@ model Sentiment {
   matchId   String?
   player    Player?  @relation(fields: [playerId], references: [id])
   match     Match?   @relation(fields: [matchId], references: [id])
+
+  @@index([playerId])
+  @@index([matchId])
+  @@index([timestamp])
 }
 
 model DataSource {
@@ -74,4 +87,6 @@ model AgentActivity {
   status      String   // "success", "failed"
   message     String?
   timestamp   DateTime @default(now())
+
+  @@index([timestamp])
 }

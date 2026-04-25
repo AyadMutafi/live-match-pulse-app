@@ -12,6 +12,8 @@ type Props = {
   showName?: boolean
   /** If true, shows abbreviation below instead of shortName */
   useAbbr?: boolean
+  /** If true, tells Next.js Image to preload (use for above-the-fold LCP images) */
+  priority?: boolean
 }
 
 /**
@@ -21,17 +23,16 @@ type Props = {
 const espnLogo = (id: number) => `https://a.espncdn.com/i/teamlogos/soccer/500/${id}.png`
 
 /**
- * Comprehensive map of EVERY opponent team that appears in the
- * 2023-24 PL + La Liga dataset (openfootball) to their verified ESPN CDN logo.
- * Key = exact team name string as it appears in season-matches.json
+ * Comprehensive map of team name strings (as they appear in the DB) to ESPN CDN logos.
+ * Covers La Liga MD33/34, Premier League MD33/34, UCL SF + QF teams.
  */
 const ALL_TEAM_LOGOS: Record<string, string> = {
-  // ── Premier League ───────────────────────────────
-  'AFC Bournemouth':                espnLogo(349),
+  // ── Premier League ──────────────────────────────────────────────────────────
   'Arsenal FC':                     espnLogo(359),
+  'AFC Bournemouth':                espnLogo(349),
   'Aston Villa FC':                 espnLogo(362),
   'Brentford FC':                   espnLogo(337),
-  'Brighton & Hove Albion FC':      espnLogo(331),
+  "Brighton & Hove Albion FC":      espnLogo(331),
   'Burnley FC':                     espnLogo(379),
   'Chelsea FC':                     espnLogo(363),
   'Crystal Palace FC':              espnLogo(384),
@@ -47,54 +48,96 @@ const ALL_TEAM_LOGOS: Record<string, string> = {
   'Tottenham Hotspur FC':           espnLogo(367),
   'West Ham United FC':             espnLogo(371),
   'Wolverhampton Wanderers FC':     espnLogo(380),
-
-  // ── La Liga ──────────────────────────────────────
-  'Athletic Club':                  espnLogo(93),
-  'CA Osasuna':                     espnLogo(97),
-  'Club Atlético de Madrid':        espnLogo(1068),
-  'Cádiz CF':                       espnLogo(9811),
-  'Deportivo Alavés':               espnLogo(96),
-  'FC Barcelona':                   espnLogo(83),
-  'Getafe CF':                      espnLogo(2922),
-  'Girona FC':                      espnLogo(9812),
-  'Granada CF':                     espnLogo(9785),
-  'RC Celta de Vigo':               espnLogo(85),
-  'RCD Mallorca':                   espnLogo(84),
-  'Rayo Vallecano de Madrid':       espnLogo(101),
-  'Real Betis Balompié':            espnLogo(244),
-  'Real Madrid CF':                 espnLogo(86),
-  'Real Sociedad de Fútbol':        espnLogo(89),
-  'Sevilla FC':                     espnLogo(243),
-  'UD Almería':                     espnLogo(9797),
-  'UD Las Palmas':                  espnLogo(9831),
-  'Valencia CF':                    espnLogo(94),
-  'Villarreal CF':                  espnLogo(102),
-  'LAFC':                           espnLogo(18924),
-  'Bayern Munich':                  espnLogo(132),
-  'Atalanta':                       espnLogo(104),
-  'Galatasaray':                    espnLogo(443),
-  'PSG':                            espnLogo(160),
-  'Paris Saint-Germain':            espnLogo(160),
-  'Inter Milan':                    espnLogo(110),
-  'Porto':                          espnLogo(437),
-  'Newcastle United':               espnLogo(361),
-  'Barcelona':                      espnLogo(83),
-  'Real Madrid':                    espnLogo(86),
-  'Liverpool':                      espnLogo(364),
+  // PL short names (as used in DB match records)
   'Arsenal':                        espnLogo(359),
+  'Bournemouth':                    espnLogo(349),
+  'Aston Villa':                    espnLogo(362),
+  'Brentford':                      espnLogo(337),
+  'Brighton':                       espnLogo(331),
+  "Brighton & Hove Albion":         espnLogo(331),
+  'Burnley':                        espnLogo(379),
   'Chelsea':                        espnLogo(363),
+  'Crystal Palace':                 espnLogo(384),
+  'Everton':                        espnLogo(368),
+  'Fulham':                         espnLogo(370),
+  'Leeds United':                   espnLogo(357),
+  'Liverpool':                      espnLogo(364),
   'Man City':                       espnLogo(382),
   'Manchester City':                espnLogo(382),
   'Man United':                     espnLogo(360),
   'Manchester United':              espnLogo(360),
+  'Newcastle United':               espnLogo(361),
+  'Nottm Forest':                   espnLogo(393),
+  'Nottingham Forest':              espnLogo(393),
+  'Sunderland':                     espnLogo(371),
   'Tottenham':                      espnLogo(367),
+  'Tottenham Hotspur':              espnLogo(367),
+  'West Ham':                       espnLogo(371),
+  'West Ham United':                espnLogo(371),
+  'Wolverhampton':                  espnLogo(380),
+  'Wolverhampton Wanderers':        espnLogo(380),
+
+  // ── La Liga ─────────────────────────────────────────────────────────────────
+  'FC Barcelona':                   espnLogo(83),
+  'Real Madrid CF':                 espnLogo(86),
+  'Club Atletico de Madrid':        espnLogo(1068),
+  'Athletic Club':                  espnLogo(93),
+  'CA Osasuna':                     espnLogo(97),
+  'Getafe CF':                      espnLogo(2922),
+  'Girona FC':                      espnLogo(9812),
+  'RC Celta de Vigo':               espnLogo(85),
+  'RCD Mallorca':                   espnLogo(84),
+  'Rayo Vallecano de Madrid':       espnLogo(101),
+  'Real Betis Balompie':            espnLogo(244),
+  'Real Sociedad de Futbol':        espnLogo(89),
+  'Valencia CF':                    espnLogo(94),
+  'Villarreal CF':                  espnLogo(102),
+  'Sevilla FC':                     espnLogo(243),
+  // La Liga short names (as used in DB match records)
+  'Barcelona':                      espnLogo(83),
+  'Real Madrid':                    espnLogo(86),
+  'Athletic Bilbao':                espnLogo(93),
+  'Athletic':                       espnLogo(93),
+  'Osasuna':                        espnLogo(97),
+  'Getafe':                         espnLogo(2922),
+  'Girona':                         espnLogo(9812),
+  'Celta Vigo':                     espnLogo(85),
+  'Celta de Vigo':                  espnLogo(85),
+  'Mallorca':                       espnLogo(84),
+  'Rayo Vallecano':                 espnLogo(101),
+  'Real Betis':                     espnLogo(244),
+  'Real Sociedad':                  espnLogo(89),
+  'Sevilla':                        espnLogo(243),
+  'Valencia':                       espnLogo(94),
+  'Villarreal':                     espnLogo(102),
+  'Elche':                          espnLogo(9807),
+  'Elche CF':                       espnLogo(9807),
+
+  // ── UCL / Bundesliga / Ligue 1 ──────────────────────────────────────────────
+  'PSG':                            espnLogo(160),
+  'Paris Saint-Germain':            espnLogo(160),
+  'Paris SG':                       espnLogo(160),
+  'Bayern Munich':                  espnLogo(132),
+  'FC Bayern Munich':               espnLogo(132),
+  'Bayern':                         espnLogo(132),
+  'Atletico Madrid':                espnLogo(1068),
+  'Atletico de Madrid':             espnLogo(1068),
+  'Atleti':                         espnLogo(1068),
+  'Sporting CP':                    espnLogo(437),
+  'Sporting':                       espnLogo(437),
+  'Sporting Lisbon':                espnLogo(437),
+  'Inter Milan':                    espnLogo(110),
+  'Atalanta':                       espnLogo(104),
+  'Porto':                          espnLogo(437),
+  'Galatasaray':                    espnLogo(443),
+  'LAFC':                           espnLogo(18924),
 }
 
 /**
  * Renders a club badge.
- * Priority: 1) Local /clubs/ PNG for core 7  2) ESPN CDN for all others  3) Emoji fallback
+ * Priority: 1) Local /clubs/ PNG for core clubs  2) ESPN CDN for all others  3) Emoji fallback
  */
-export function ClubLogo({ club, size = 40, className = '', showName = false, useAbbr = false }: Props) {
+export function ClubLogo({ club, size = 40, className = '', showName = false, useAbbr = false, priority = false }: Props) {
   const found = findClub(club)
   const externalUrl = ALL_TEAM_LOGOS[club]
 
@@ -113,6 +156,7 @@ export function ClubLogo({ club, size = 40, className = '', showName = false, us
             height={size}
             style={{ objectFit: 'contain', width: '100%', height: '100%' }}
             unoptimized
+            priority={priority}
           />
         </div>
       ) : externalUrl ? (

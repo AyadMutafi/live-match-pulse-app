@@ -26,7 +26,7 @@ Format the output as clear Markdown text so our sentiment analyzer can parse it 
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'grok-beta', // free tier
+        model: 'grok-4.20', // updated to the latest 2026 stable flagship
         messages: [
           { role: 'system', content: 'You are an elite, real-time social media scraper specialized in global football culture.' },
           { role: 'user', content: prompt }

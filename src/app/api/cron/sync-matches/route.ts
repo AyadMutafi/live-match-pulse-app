@@ -101,6 +101,17 @@ export async function GET(request: Request) {
       upsertedCount++;
     }
 
+    // Log the successful activity for telemetry
+    await prisma.agentActivity.create({
+      data: {
+        agent: 'Journalist',
+        action: 'sync_matches',
+        target: `${dateFromStr} to ${dateToStr}`,
+        status: 'success',
+        message: `Synced ${upsertedCount} matches from football-data.org API`
+      }
+    });
+
     return NextResponse.json({
       success: true,
       message: `Successfully synchronized ${upsertedCount} matches`,
@@ -109,6 +120,18 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error('[Cron/Sync Error]:', error);
+    
+    // Log the failure for telemetry
+    await prisma.agentActivity.create({
+      data: {
+        agent: 'Journalist',
+        action: 'sync_matches',
+        target: 'external_api',
+        status: 'failed',
+        message: error.message
+      }
+    }).catch(() => {}); // Don't crash if logging fails
+
     return NextResponse.json({ error: 'Failed to process match synchronization', msg: error.message }, { status: 500 });
   }
 }

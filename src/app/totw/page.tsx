@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Activity, TrendingUp, ChevronLeft, ChevronRight, Zap, Share2, Sparkles, X, Siren, Skull, Flame, BarChart3, SignalHigh } from 'lucide-react'
+import { Activity, TrendingUp, ChevronLeft, ChevronRight, Zap, Share2, Sparkles, X, Siren, Skull, Flame, BarChart3, SignalHigh, Star } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ClubLogo } from '@/components/ClubLogo'
 import { useLanguage } from '@/context/LanguageContext'
 import { ShareButton } from '@/components/ShareButton'
 import { Button } from '@/components/ui/button'
+import { getPlayerImage } from '@/lib/player-images'
+import { canPlayInSlot, getPositionTabCode } from '@/lib/positions'
 
 type Player = {
   id: string; name: string; team: string; position: string; sentiment: number;
@@ -20,8 +22,8 @@ const getSignalInsight = (p: Player, isCrisis: boolean) => {
   const primaryTheme = themeList[0] || 'In Review';
   
   if (isCrisis) {
-    if (p.sentiment < 30) return `DEVASTATING SIGNAL: ${p.name} is currently radiating a level of negative resonance not seen since last season. Arena metrics indicate "${primaryTheme}" is the primary driver of this 𝕏 meltdown.`;
-    if (p.sentiment < 50) return `UNDER PRESSURE: The digital feeds in ${p.team} circles have turned critical. High-frequency signals of "${primaryTheme}" are flooding the colosseum.`;
+    if (p.sentiment < 25) return `DEVASTATING SIGNAL: ${p.name} is currently radiating a level of negative resonance not seen since last season. Arena metrics indicate "${primaryTheme}" is the primary driver of this 𝕏 meltdown.`;
+    if (p.sentiment < 40) return `UNDER PRESSURE: The digital feeds in ${p.team} circles have turned critical. High-frequency signals of "${primaryTheme}" are flooding the colosseum.`;
     return `COLD FRONT: ${p.name}'s pulse is fading. The social atmosphere is shifting toward skepticism, with "${primaryTheme}" trending in recent extracts.`;
   } else {
     if (p.sentiment > 90) return `ARENA SOVEREIGN: ${p.name} has effectively annexed the digital landscape. Current signals for "${primaryTheme}" are hitting absolute peak saturation.`;
@@ -32,16 +34,42 @@ const getSignalInsight = (p: Player, isCrisis: boolean) => {
 
 const getPlayerEmoji = (sentiment: number, isCrisis: boolean) => {
   if (isCrisis) {
-    if (sentiment < 60) return { emoji: '🤬', color: '#f43f5e', label: 'CRITICAL MELTDOWN' }
-    if (sentiment < 65) return { emoji: '😡', color: '#fb7185', label: 'HIGH TENSION' }
-    if (sentiment < 70) return { emoji: '😤', color: '#fda4af', label: 'UNDER SCRUTINY' }
-    return { emoji: '🫠', color: '#fecdd3', label: 'FADING PULSE' }
+    // Crisis players have genuinely LOW sentiment — sorted ascending from database
+    if (sentiment < 15) return { emoji: '🤬', color: '#dc2626', label: 'CATASTROPHIC' }
+    if (sentiment < 25) return { emoji: '😡', color: '#ef4444', label: 'CRITICAL MELTDOWN' }
+    if (sentiment < 35) return { emoji: '😤', color: '#f87171', label: 'HIGH TENSION' }
+    if (sentiment < 45) return { emoji: '😟', color: '#fca5a5', label: 'UNDER SCRUTINY' }
+    if (sentiment < 55) return { emoji: '🫠', color: '#fecdd3', label: 'FADING PULSE' }
+    return { emoji: '😐', color: '#94a3b8', label: 'LUKEWARM' }
   }
-  // Elite XI logic
-  if (sentiment > 90) return { emoji: '🤩', color: '#10b981', label: 'ABSOLUTE SOVEREIGN' }
-  if (sentiment > 85) return { emoji: '🔥', color: '#34d399', label: 'ON FIRE' }
-  if (sentiment > 75) return { emoji: '⚡', color: '#6ee7b7', label: 'ELECTRIC FORM' }
-  return { emoji: '✨', color: '#a7f3d0', label: 'TOP SPEC' }
+  // Elite XI logic — high sentiment = strong fan approval
+  if (sentiment >= 95) return { emoji: '👑', color: '#fbbf24', label: 'GOAT STATUS' }
+  if (sentiment >= 90) return { emoji: '🤩', color: '#10b981', label: 'ABSOLUTE SOVEREIGN' }
+  if (sentiment >= 85) return { emoji: '🔥', color: '#34d399', label: 'ON FIRE' }
+  if (sentiment >= 75) return { emoji: '⚡', color: '#6ee7b7', label: 'ELECTRIC FORM' }
+  if (sentiment >= 65) return { emoji: '✨', color: '#a7f3d0', label: 'TOP SPEC' }
+  return { emoji: '👍', color: '#d1fae5', label: 'SOLID' }
+}
+
+function getContextualThemes(player: Player, isCrisis: boolean): string[] {
+  const baseThemes = player.sentiments?.[0]?.themes?.split(',').map(t => t.trim()).filter(Boolean)
+  
+  if (baseThemes && baseThemes.length > 0) {
+    return baseThemes
+  }
+  
+  // Fallback themes based on sentiment level
+  if (isCrisis) {
+    if (player.sentiment < 20) return ['DISASTER', 'MELTDOWN', 'CRISIS']
+    if (player.sentiment < 35) return ['STRUGGLING', 'PRESSURE', 'SCRUTINY']
+    if (player.sentiment < 50) return ['COLD', 'FADING', 'QUIET']
+    return ['LUKEWARM', 'AVERAGE', 'FORGETTABLE']
+  } else {
+    if (player.sentiment >= 95) return ['GOAT', 'LEGENDARY', 'UNSTOPPABLE']
+    if (player.sentiment >= 90) return ['ELITE', 'DOMINANT', 'CLASS']
+    if (player.sentiment >= 80) return ['FORM', 'MAGIC', 'STAR']
+    return ['SOLID', 'RELIABLE', 'GOOD']
+  }
 }
 
 // Formation templates
@@ -84,7 +112,61 @@ const FORMATIONS = {
     { top: '72%', left: '50%', role: 'CB' },
     { top: '68%', left: '75%', role: 'CB' },
     { top: '88%', left: '50%', role: 'GK' },
+  ],
+  '3-4-3': [
+    { top: '10%', left: '50%', role: 'ST' },
+    { top: '18%', left: '25%', role: 'LW' },
+    { top: '18%', left: '75%', role: 'RW' },
+    { top: '42%', left: '20%', role: 'CM' },
+    { top: '45%', left: '50%', role: 'CM' },
+    { top: '42%', left: '80%', role: 'CM' },
+    { top: '70%', left: '15%', role: 'CB' },
+    { top: '72%', left: '38%', role: 'CB' },
+    { top: '72%', left: '62%', role: 'CB' },
+    { top: '70%', left: '85%', role: 'CB' },
+    { top: '88%', left: '50%', role: 'GK' },
+  ],
+  '5-3-2': [
+    { top: '12%', left: '35%', role: 'ST' },
+    { top: '12%', left: '65%', role: 'ST' },
+    { top: '42%', left: '25%', role: 'CM' },
+    { top: '45%', left: '50%', role: 'CM' },
+    { top: '42%', left: '75%', role: 'CM' },
+    { top: '68%', left: '10%', role: 'LB' },
+    { top: '70%', left: '28%', role: 'CB' },
+    { top: '72%', left: '50%', role: 'CB' },
+    { top: '70%', left: '72%', role: 'CB' },
+    { top: '68%', left: '90%', role: 'RB' },
+    { top: '88%', left: '50%', role: 'GK' },
   ]
+}
+
+function selectBestFormation(players: Player[]): keyof typeof FORMATIONS {
+  const forwards = players.filter(p => p.position === 'Forward').length
+  const midfielders = players.filter(p => p.position === 'Midfielder').length
+  const defenders = players.filter(p => p.position === 'Defender').length
+  const goalkeepers = players.filter(p => p.position === 'Goalkeeper').length
+
+  // Must have a goalkeeper fallback
+  if (goalkeepers === 0) return '4-3-3'
+
+  // 3-5-2: Good for teams with fewer defenders, more midfielders
+  if (defenders <= 3 && midfielders >= 5) return '3-5-2'
+  
+  // 4-4-2: Classic for balanced teams with 2 strikers
+  if (forwards === 2 && defenders >= 4) return '4-4-2'
+  
+  // 4-3-3: Best for attacking teams with 3 forwards
+  if (forwards >= 3 && defenders >= 4) return '4-3-3'
+  
+  // 3-4-3: Attacking with 3 defenders
+  if (defenders === 3 && forwards >= 3) return '3-4-3'
+  
+  // 5-3-2: Defensive
+  if (defenders >= 5) return '5-3-2'
+  
+  // Default fallback
+  return '4-3-3'
 }
 
 export default function TeamOfTheWeek() {
@@ -93,19 +175,35 @@ export default function TeamOfTheWeek() {
   const [activeTab, setActiveTab] = useState('Forwards')
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
   const [mode, setMode] = useState<'elite' | 'crisis'>('elite')
+  const [selectedWeek, setSelectedWeek] = useState('current')
   const { t } = useLanguage()
+
+  // Dynamically calculate current week from season start
+  const seasonStart = new Date('2024-08-16')
+  const currentWeek = Math.max(1, Math.floor((Date.now() - seasonStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1)
+
+  const weeks = [
+    { id: 'current', label: 'This Week' },
+    { id: 'last', label: 'Last Week' },
+    ...Array.from({ length: Math.min(currentWeek - 1, 8) }, (_, i) => ({
+      id: `week-${currentWeek - 1 - i}`,
+      label: `GW ${currentWeek - 1 - i}`
+    }))
+  ]
 
   useEffect(() => {
     const loadPlayers = async () => {
+      setLoading(true)
       try {
-        const res = await fetch('/api/players')
+        const res = await fetch(`/api/players?week=${selectedWeek}`)
         if (res.ok) setPlayers(await res.json())
+        else setPlayers([])
       } finally {
         setLoading(false)
       }
     }
     loadPlayers()
-  }, [])
+  }, [selectedWeek])
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-32 gap-4">
@@ -118,14 +216,7 @@ export default function TeamOfTheWeek() {
   const sortedPlayers = [...players].sort((a,b) => isCrisis ? a.sentiment - b.sentiment : b.sentiment - a.sentiment)
   const top11 = sortedPlayers.slice(0, 11)
 
-  // Choose the best formation based on Top 11 data
-  const fwdsIn11 = top11.filter(p => p.position === 'Forward').length
-  const midsIn11 = top11.filter(p => p.position === 'Midfielder').length
-  const defsIn11 = top11.filter(p => p.position === 'Defender').length
-
-  let selectedFormat: keyof typeof FORMATIONS = '4-3-3'
-  if (defsIn11 <= 3 && fwdsIn11 >= 2) selectedFormat = '3-5-2'
-  else if (midsIn11 >= 4 && fwdsIn11 <= 2) selectedFormat = '4-4-2'
+  const selectedFormat = selectBestFormation(top11)
 
   const activeFormation = FORMATIONS[selectedFormat]
 
@@ -145,16 +236,9 @@ export default function TeamOfTheWeek() {
   const pitchPlayers = activeFormation.map((pos) => {
     let p: Player | null = null
     
-    // 1. Identify valid roles for this slot
-    const validPositions: string[] = []
-    if (['ST', 'LW', 'RW'].includes(pos.role)) validPositions.push('Forward', 'ST', 'LW', 'RW');
-    if (['CM', 'CAM', 'LM', 'RM'].includes(pos.role)) validPositions.push('Midfielder', 'CM', 'CAM', 'LM', 'RM');
-    if (['LB', 'CB', 'RB'].includes(pos.role)) validPositions.push('Defender', 'LB', 'CB', 'RB');
-    if (pos.role === 'GK') validPositions.push('Goalkeeper', 'GK');
-
-    // 2. Find the highest-rated available player matching the position
+    // 2. Find the highest-rated available player matching the position using tactical slot matching
     p = sortedPlayers.find(player => 
-      validPositions.includes(player.position) && !usedIds.has(player.id)
+      canPlayInSlot(player.position, pos.role) && !usedIds.has(player.id)
     ) || null
 
     if (p) usedIds.add(p.id)
@@ -187,6 +271,23 @@ export default function TeamOfTheWeek() {
             </button>
         </div>
 
+        {/* Week / Matchday Selector */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 w-full">
+          {weeks.map(week => (
+            <button
+              key={week.id}
+              onClick={() => setSelectedWeek(week.id)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex-shrink-0 border whitespace-nowrap ${
+                selectedWeek === week.id
+                  ? (isCrisis ? 'bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-500/25' : 'bg-foreground text-background border-foreground shadow-lg')
+                  : 'bg-muted/20 text-muted-foreground border-border/20 hover:bg-muted/50'
+              }`}
+            >
+              {week.label}
+            </button>
+          ))}
+        </div>
+
         <div className="space-y-2">
             <h2 className={`text-[42px] font-black tracking-tighter leading-none uppercase italic drop-shadow-2xl transition-colors duration-500 ${isCrisis ? 'text-rose-500' : 'text-foreground'}`}>
                 {isCrisis ? 'Crisis Radar' : 'Pulse Elite'}
@@ -201,6 +302,13 @@ export default function TeamOfTheWeek() {
 
       {/* 2. Pitch Arena (Premium Digital Interaction) */}
       <div className={`relative w-full rounded-[40px] overflow-hidden shadow-2xl border-4 transition-colors duration-700 ${isCrisis ? 'border-rose-950/40 bg-rose-950/20' : 'border-background bg-emerald-950/40'}`} style={{ paddingBottom: '140%' }}>
+        {/* Formation Badge */}
+        <div className="absolute top-4 left-4 z-30">
+          <span className="text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl bg-background/80 backdrop-blur-md border border-border/50">
+            {selectedFormat}
+          </span>
+        </div>
+        
         {/* Grass texture & Digital Grid */}
         <div className={`absolute inset-0 transition-opacity duration-700 ${isCrisis ? 'opacity-30 bg-[radial-gradient(circle_at_center,#f43f5e10_0%,transparent_70%)]' : 'bg-[radial-gradient(circle_at_center,rgba(52,211,153,0.1)_0%,transparent_70%)]'}`} />
         <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
@@ -240,9 +348,17 @@ export default function TeamOfTheWeek() {
                   const playerDetails = getPlayerEmoji(p.sentiment, isCrisis)
                   return (
                     <div className="relative flex items-center justify-center w-full h-full text-center">
-                      <span className="text-[28px] leading-none drop-shadow-md z-10 transition-transform group-hover:scale-110">
-                          {playerDetails.emoji}
-                      </span>
+                      {p && getPlayerImage(p.name) ? (
+                        <img 
+                          src={getPlayerImage(p.name)} 
+                          alt={p.name}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-white/20 z-10"
+                        />
+                      ) : (
+                        <span className="text-[28px] leading-none drop-shadow-md z-10 transition-transform group-hover:scale-110">
+                            {playerDetails.emoji}
+                        </span>
+                      )}
                       <div className="absolute -bottom-2 -right-2 bg-background rounded-xl p-1 border-2 border-border z-30 shadow-xl">
                         <ClubLogo club={p.team} size={20} />
                       </div>
@@ -309,8 +425,8 @@ export default function TeamOfTheWeek() {
                             {potw.position} <span className={`w-1.5 h-1.5 rounded-full ${isCrisis ? 'bg-rose-500' : 'bg-primary'}`} /> {potw.team}
                         </p>
                         <div className="flex gap-2 mt-5">
-                            {(isCrisis ? ['MELTDOWN', 'STRUGGLING', 'COLD'] : ['GOAT', 'ELITE', 'MAGIC']).map(tag => (
-                                <span key={tag} className="text-[10px] font-black px-3 py-1 bg-muted rounded-xl border border-border/50 opacity-40">#{tag}</span>
+                            {getContextualThemes(potw, isCrisis).slice(0, 3).map(tag => (
+                                <span key={tag} className="text-[10px] font-black px-3 py-1 bg-muted rounded-xl border border-border/50">#{tag.toUpperCase()}</span>
                             ))}
                         </div>
                     </div>
@@ -332,16 +448,13 @@ export default function TeamOfTheWeek() {
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               }`}
             >
-              {tab.substring(0, 3)}
+              {getPositionTabCode(tab)}
             </button>
           ))}
         </div>
         
         <div className="p-4 space-y-4">
-          {players.filter(p => 
-            activeTab.toLowerCase().includes(p.position.toLowerCase()) || 
-            p.position.toLowerCase().startsWith(activeTab.toLowerCase().substring(0, 3))
-          )
+          {players.filter(p => canPlayInSlot(p.position, activeTab))
             .sort((a, b) => isCrisis ? a.sentiment - b.sentiment : b.sentiment - a.sentiment)
             .slice(0, 5)
             .map((p, idx) => {
@@ -362,6 +475,46 @@ export default function TeamOfTheWeek() {
                  </button>
                )
             })}
+        </div>
+      </section>
+
+      {/* Honorable Mentions - Players ranked 12-18 */}
+      <section className="glass-card shadow-xl overflow-hidden border border-border/50">
+        <div className="p-4 border-b border-border bg-muted/20">
+          <h4 className="text-[12px] font-black uppercase tracking-widest flex items-center gap-2">
+            <Star className="w-4 h-4 text-secondary" />
+            Honorable Mentions
+          </h4>
+          <p className="text-[10px] text-muted-foreground mt-1">Just missed the XI</p>
+        </div>
+        
+        <div className="p-3 flex gap-3 overflow-x-auto scrollbar-none">
+          {sortedPlayers.slice(11, 18).map(p => {
+            const s = getPlayerEmoji(p.sentiment, isCrisis)
+            return (
+              <button
+                key={p.id}
+                onClick={() => setSelectedPlayer(p)}
+                className="flex-shrink-0 flex flex-col items-center gap-2 p-3 rounded-2xl bg-muted/20 hover:bg-muted/40 transition-all group border border-transparent hover:border-primary/20"
+              >
+                <div 
+                  className="w-12 h-12 rounded-xl bg-background border-2 flex items-center justify-center text-2xl shadow-lg group-hover:scale-110 transition-transform"
+                  style={{ borderColor: s.color }}
+                >
+                  {s.emoji}
+                </div>
+                <div className="text-center min-w-[60px]">
+                  <p className="text-[11px] font-black text-foreground truncate uppercase tracking-tight">
+                    {p.name.split(' ').pop()}
+                  </p>
+                  <p className="text-[10px] font-black tabular-nums" style={{ color: s.color }}>
+                    {p.sentiment}%
+                  </p>
+                </div>
+                <ClubLogo club={p.team} size={20} />
+              </button>
+            )
+          })}
         </div>
       </section>
 
@@ -441,19 +594,13 @@ export default function TeamOfTheWeek() {
                          
                          <div className="grid gap-1.5">
                             {['REDDIT', 'X'].map((source) => {
-                               const lat = selectedPlayer.sentiments?.find((s: any) => s.source === source);
-                               let val = lat?.score || selectedPlayer.sentiment;
+                               const sourceData = selectedPlayer.sentiments?.find((s: any) => s.source === source);
                                
-                               // Guaranteed Pulse De-coupling: Ensures X and Reddit are distinct 
-                               const jitterBase = (selectedPlayer.id.charCodeAt(0) % 4) + 1; 
-                               if (source === 'X') {
-                                  val = Math.max(0, val - jitterBase);
-                               } else {
-                                  // Reddit is usually slightly more 'stable' or 'clinical' – offset differently
-                                  val = Math.min(100, Math.round(val + (jitterBase * 0.5)));
-                               }
+                               // Use real score from database for this specific source, or fall back to main sentiment
+                               const val = sourceData?.score ?? selectedPlayer.sentiment;
                                
-                               const theme = lat?.themes?.split(',')[0] || (source === 'X' ? 'Momentum Feedback' : 'Tactical Consensus');
+                               // Use real theme from database for this specific source, or use a default
+                               const theme = sourceData?.themes?.split(',')[0] || (source === 'X' ? 'Momentum Feedback' : 'Tactical Consensus');
                                
                                return (
                                   <div key={source} className="bg-card/60 backdrop-blur-md rounded-xl p-2.5 px-3 border border-white/10 relative overflow-hidden group/source shadow-lg">

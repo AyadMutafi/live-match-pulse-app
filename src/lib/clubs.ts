@@ -1,6 +1,6 @@
 /**
  * Fan Pulse — Club registry
- * The 7 powerhouse clubs tracked by this app.
+ * UCL 2025-26 Semi-finalists + supporting clubs tracked by this app.
  */
 
 export type Club = {
@@ -8,7 +8,7 @@ export type Club = {
   name: string
   shortName: string
   abbr: string
-  league: 'La Liga' | 'Premier League'
+  league: 'La Liga' | 'Premier League' | 'Bundesliga' | 'Ligue 1' | 'Primeira Liga'
   logo: string           // path under /clubs/
   primaryColor: string   // hex — for background tints
   textColor: string      // hex — for text on primaryColor bg
@@ -16,27 +16,17 @@ export type Club = {
 }
 
 export const CLUBS: Club[] = [
+  // ── UCL 2025-26 SEMI-FINALISTS ──
   {
-    id: 'real-madrid',
-    name: 'Real Madrid',
-    shortName: 'Real Madrid',
-    abbr: 'RMA',
-    league: 'La Liga',
-    logo: '/clubs/real-madrid.png',
-    primaryColor: '#FFFFFF',
-    textColor: '#0a0a1a',
-    emoji: '👑',
-  },
-  {
-    id: 'barcelona',
-    name: 'FC Barcelona',
-    shortName: 'Barcelona',
-    abbr: 'BAR',
-    league: 'La Liga',
-    logo: '/clubs/barcelona.png',
-    primaryColor: '#A50044',
+    id: 'psg',
+    name: 'Paris Saint-Germain',
+    shortName: 'PSG',
+    abbr: 'PSG',
+    league: 'Ligue 1',
+    logo: '/clubs/psg.png',
+    primaryColor: '#003370',
     textColor: '#ffffff',
-    emoji: '🔴🔵',
+    emoji: '🔵🔴',
   },
   {
     id: 'arsenal',
@@ -50,15 +40,50 @@ export const CLUBS: Club[] = [
     emoji: '🔴',
   },
   {
-    id: 'chelsea',
-    name: 'Chelsea',
-    shortName: 'Chelsea',
-    abbr: 'CHE',
-    league: 'Premier League',
-    logo: '/clubs/chelsea.png',
-    primaryColor: '#034694',
+    id: 'atletico-madrid',
+    name: 'Atlético Madrid',
+    shortName: 'Atlético Madrid',
+    abbr: 'ATM',
+    league: 'La Liga',
+    logo: '/clubs/atletico-madrid.png',
+    primaryColor: '#CB3524',
     textColor: '#ffffff',
-    emoji: '🔵',
+    emoji: '🔴⚪',
+  },
+  {
+    id: 'bayern-munich',
+    name: 'Bayern Munich',
+    shortName: 'Bayern Munich',
+    abbr: 'BAY',
+    league: 'Bundesliga',
+    logo: '/clubs/bayern-munich.png',
+    primaryColor: '#DC052D',
+    textColor: '#ffffff',
+    emoji: '🔴⚪',
+  },
+
+  // ── ELIMINATED QF CLUBS ──
+  {
+    id: 'barcelona',
+    name: 'FC Barcelona',
+    shortName: 'Barcelona',
+    abbr: 'BAR',
+    league: 'La Liga',
+    logo: '/clubs/barcelona.png',
+    primaryColor: '#A50044',
+    textColor: '#ffffff',
+    emoji: '🔴🔵',
+  },
+  {
+    id: 'real-madrid',
+    name: 'Real Madrid',
+    shortName: 'Real Madrid',
+    abbr: 'RMA',
+    league: 'La Liga',
+    logo: '/clubs/real-madrid.png',
+    primaryColor: '#FFFFFF',
+    textColor: '#0a0a1a',
+    emoji: '👑',
   },
   {
     id: 'liverpool',
@@ -70,6 +95,30 @@ export const CLUBS: Club[] = [
     primaryColor: '#C8102E',
     textColor: '#ffffff',
     emoji: '🦅',
+  },
+  {
+    id: 'sporting-cp',
+    name: 'Sporting CP',
+    shortName: 'Sporting CP',
+    abbr: 'SCP',
+    league: 'La Liga',
+    logo: '/clubs/sporting-cp.png',
+    primaryColor: '#008236',
+    textColor: '#ffffff',
+    emoji: '🦁',
+  },
+
+  // ── PREMIER LEAGUE ──
+  {
+    id: 'chelsea',
+    name: 'Chelsea',
+    shortName: 'Chelsea',
+    abbr: 'CHE',
+    league: 'Premier League',
+    logo: '/clubs/chelsea.png',
+    primaryColor: '#034694',
+    textColor: '#ffffff',
+    emoji: '🔵',
   },
   {
     id: 'man-city',
@@ -95,14 +144,18 @@ export const CLUBS: Club[] = [
   },
 ]
 
+
 /** Lookup by any of: id, name, shortName, abbr (case-insensitive) */
 export function findClub(query: string): Club | undefined {
   const q = query.toLowerCase().trim()
-  
-  // Custom manual mappings for Football-Data.org weird shortNames
+
+  // Custom manual mappings for known aliases
   if (['barça', 'barca'].includes(q)) return CLUBS.find(c => c.id === 'barcelona')
-  if (['atleti', 'atlético', 'atletico madrid'].includes(q)) return undefined // Atleti isn't in core clubs but this prevents crashing
-  
+  if (['atleti', 'atlético madrid', 'atletico madrid', 'atlético de madrid', 'atletico de madrid'].includes(q)) return CLUBS.find(c => c.id === 'atletico-madrid')
+  if (['psg', 'paris saint-germain', 'paris sg', 'paris saint germain'].includes(q)) return CLUBS.find(c => c.id === 'psg')
+  if (['bayern', 'fc bayern', 'fc bayern munich', 'fcb'].includes(q)) return CLUBS.find(c => c.id === 'bayern-munich')
+  if (['sporting', 'sporting lisbon', 'sporting cp'].includes(q)) return CLUBS.find(c => c.id === 'sporting-cp')
+
   return CLUBS.find(c =>
     c.id === q ||
     c.abbr.toLowerCase() === q ||

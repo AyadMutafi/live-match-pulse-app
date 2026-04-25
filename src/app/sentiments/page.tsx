@@ -19,8 +19,7 @@ const CORE_CLUBS = CLUBS.map(c => c.name).concat(
 type Match = {
   id: string
   date: string
-  originalDate: string
-  round: string
+  round: string   // synthesised client-side (not in DB schema)
   homeTeam: string
   awayTeam: string
   homeScore: number | null

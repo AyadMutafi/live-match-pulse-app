@@ -438,19 +438,7 @@ export default function GoalsPage() {
         </span>
       </div>
 
-      {/* CSS animation */}
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
+      {/* fadeInUp animation is defined in globals.css */}
     </div>
   )
 }

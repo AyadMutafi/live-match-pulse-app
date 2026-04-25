@@ -30,15 +30,45 @@ function generateDeepAnalysis(match: Match) {
   const weakerTeam = isHomeDominant ? match.awayTeam : match.homeTeam;
   const totalHeat = Math.floor(match.homeSentiment * 0.6 + match.awaySentiment * 0.4);
 
+  // Deterministic hash based on match ID to ensure consistent output for hydration, while varying across different matches
+  const hash = match.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
   if (diff < 10) {
-    return `ARENA STATUS: TENSE POLARIZATION (${totalHeat}%). The fans are locked in a digital stalemate. Neither ${match.homeTeam} nor ${match.awayTeam} has established a linguistic perimeter. We are seeing high-frequency signals of mutual respect masking extreme underlying anxiety. A classic "Cold War" of words.`;
+    const templates = [
+      `ARENA STATUS: TENSE POLARIZATION (${totalHeat}%). The fans are locked in a digital stalemate. Neither ${match.homeTeam} nor ${match.awayTeam} has established a linguistic perimeter. We are seeing high-frequency signals of mutual respect masking extreme underlying anxiety. A classic "Cold War" of words.`,
+      `TACTICAL DEADLOCK (${totalHeat}%). The sentiment battleground between ${match.homeTeam} and ${match.awayTeam} is gridlocked. Fan chatter remains perfectly balanced on the razor's edge. It's a high-stakes staring contest where neither fanbase is willing to blink.`,
+      `PULSE EQUILIBRIUM (${totalHeat}%). Total parity in the social arena. ${match.homeTeam} and ${match.awayTeam} supporters are exchanging digital blows, but neither side is yielding ground. The tension is palpable as they await a catalyst.`,
+      `NEUTRAL ZONE ENGAGED (${totalHeat}%). Both ${match.homeTeam} and ${match.awayTeam} camps are holding their breath. The sentiment radar shows an absolute tie, with cautious optimism being heavily guarded by defensive posting strategies.`,
+      `SYMMETRIC TENSION (${totalHeat}%). A perfect storm of apprehension surrounds the ${match.homeTeam} vs ${match.awayTeam} clash. The intelligence feed is choked with contradictory narratives, resulting in a perfectly balanced emotional standoff.`,
+      `ARENA STATUS: ZERO SUM (${totalHeat}%). Every positive pulse from ${match.homeTeam} is instantly neutralized by ${match.awayTeam}'s digital response force. It's an unrelenting trench war of hashtags with no clear victor in sight.`,
+      `STATIC FEED (${totalHeat}%). The emotional frequency between ${match.homeTeam} and ${match.awayTeam} has flatlined into perfect equilibrium. Both sets of fans are exhibiting severe pre-match/mid-match anxiety, refusing to tempt fate with bold claims.`
+    ];
+    return templates[hash % templates.length];
   }
 
   if (diff < 30) {
-    return `MARCH STATUS: STRATEGIC SHIFT (${totalHeat}%). ${dominantTeam} has successfully seized the narrative high-ground. Their fan-mentions are surfacing with 2.4x the intensity of ${weakerTeam}. While NOT a total rout, ${weakerTeam} fans are currently operating in "Defensive Denial" mode, waiting for a catalyst to breach the Arena's sentiment wall.`;
+    const templates = [
+      `MARCH STATUS: STRATEGIC SHIFT (${totalHeat}%). ${dominantTeam} has successfully seized the narrative high-ground. Their fan-mentions are surfacing with greater intensity than ${weakerTeam}. While NOT a total rout, ${weakerTeam} fans are currently operating in "Defensive Denial" mode.`,
+      `MOMENTUM SWING (${totalHeat}%). The digital winds are favoring ${dominantTeam}. We're detecting a sustained surge in confident chatter, forcing ${weakerTeam} supporters into a reactive, defensive posture across social channels.`,
+      `NARRATIVE CONTROL (${totalHeat}%). ${dominantTeam} is dictating the conversational pace. Their fanbase has established a beachhead of optimism, while the ${weakerTeam} timeline is characterized by nervous coping mechanisms and tentative support.`,
+      `PULSE ADVANTAGE (${totalHeat}%). A clear sentiment gap is emerging. ${dominantTeam} fans are amplifying their digital footprint, casting a shadow over the ${weakerTeam} camp, which is currently experiencing a mild crisis of faith.`,
+      `TACTICAL ASCENDANCY (${totalHeat}%). The social data heavily skews toward ${dominantTeam}. They've breached the emotional defenses of ${weakerTeam}, whose fans are relying on historical stats and cautious hope to weather the current digital storm.`,
+      `ARENA STATUS: TILTING (${totalHeat}%). The sentiment scales have tipped decisively. ${dominantTeam}'s supporters are radiating aggressive optimism. Conversely, ${weakerTeam}'s digital garrison is showing cracks under the sustained narrative pressure.`,
+      `VIBE SHIFT DETECTED (${totalHeat}%). ${dominantTeam} has captured the emotional momentum of the timeline. The volume of celebratory and confident posts is drowning out ${weakerTeam}, relegating them to the digital margins for now.`
+    ];
+    return templates[hash % templates.length];
   }
 
-  return `ARENA STATUS: ABSOLUTE DOMINANCE (${totalHeat}%). The High-Fire Arena has identified a clear sovereign. ${dominantTeam} is currently flooding the 𝕏 intelligence streams with overwhelming positive resonance. The ${weakerTeam} fanbase is effectively silenced; their digital footprints are retreating as the "Arena Mastery" tag hits critical mass. A complete psychological annexation.`;
+  const templates = [
+    `ARENA STATUS: ABSOLUTE DOMINANCE (${totalHeat}%). The High-Fire Arena has identified a clear sovereign. ${dominantTeam} is currently flooding the intelligence streams with overwhelming positive resonance. The ${weakerTeam} fanbase is effectively silenced.`,
+    `PSYCHOLOGICAL ROUT (${totalHeat}%). Total capitulation detected from the ${weakerTeam} camp. ${dominantTeam} fans have initiated a digital blitzkrieg, completely annexing the timeline with euphoric engagement. A sentiment massacre.`,
+    `NARRATIVE ANNIHILATION (${totalHeat}%). The sentiment disparity is catastrophic. ${dominantTeam} is operating at peak digital arrogance, while ${weakerTeam} supporters have completely abandoned the public square, retreating into private group chats.`,
+    `PULSE SUPREMACY (${totalHeat}%). Unmitigated disaster for ${weakerTeam}'s social presence. ${dominantTeam} has established absolute hegemony over the match narrative. The opposing fanbase's heartbeat has effectively flatlined on our radars.`,
+    `DIGITAL CONQUEST (${totalHeat}%). ${dominantTeam} fans are marching uncontested through the social arena. The sheer volume of their positive sentiment has caused a complete systemic collapse of ${weakerTeam}'s digital morale.`,
+    `ARENA STATUS: OVERWHELMING SIEGE (${totalHeat}%). ${weakerTeam}'s defenses have been utterly shattered. ${dominantTeam} is projecting maximum dominance across all tracked metrics, resulting in a chilling silence from the opposition.`,
+    `EMOTIONAL APEX (${totalHeat}%). ${dominantTeam} has reached sentiment nirvana. Their fans are driving a massive wave of euphoria that has completely washed away any resistance from ${weakerTeam}. Total narrative victory.`
+  ];
+  return templates[hash % templates.length];
 }
 
 // ── Fan War Card ─────────────────────────────────────────────────────────────

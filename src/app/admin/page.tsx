@@ -33,7 +33,6 @@ type DataSource = {
   type: string
   url: string
   clubId: string | null
-  user: { username: string }
 }
 
 type AgentActivity = {
@@ -268,7 +267,7 @@ export default function AdminPage() {
                                 <div key={s.id} className="glass-card p-5 group flex flex-col h-full bg-surface-container-high relative overflow-hidden">
                                      {/* Owner Badge */}
                                      <div className="absolute top-2 right-2 text-[8px] font-black text-muted-foreground items-center gap-1 flex opacity-40">
-                                        <UserCircle className="w-2.5 h-2.5" /> {s.user?.username || 'System'}
+                                        <UserCircle className="w-2.5 h-2.5" /> System
                                      </div>
 
                                     <div className="flex items-center gap-3 mb-4">

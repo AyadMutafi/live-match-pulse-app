@@ -42,7 +42,127 @@ export type GoalHighlight = {
 
 export const GOALS_FEED: GoalHighlight[] = [
   // ═══════════════════════════════════════════════════════════
-  //  MATCHDAY 31 (LATEST)
+  //  MATCHDAY 33 (LATEST - April 2026)
+  // ═══════════════════════════════════════════════════════════
+  {
+    id: 'md33-mbappe-1',
+    player: 'Kylian Mbappé',
+    club: 'Real Madrid',
+    opponent: 'Alavés',
+    minute: 30,
+    goalType: 'solo-run',
+    caption: 'Mbappé leaves three defenders behind! ⚡️ Relentless pace at the Bernabéu.',
+    league: 'La Liga',
+    matchScore: '2-1',
+    sources: [
+      {
+        platform: 'x',
+        handle: '@LaLigaEN',
+        displayName: 'LaLiga English',
+        verified: true,
+        url: 'https://x.com/LaLigaEN',
+        label: 'La Liga',
+      },
+      {
+        platform: 'x',
+        handle: '@realmadrid',
+        displayName: 'Real Madrid C.F.',
+        verified: true,
+        url: 'https://x.com/realmadrid',
+        label: 'Real Madrid',
+      }
+    ],
+    matchday: 'Matchday 33',
+    date: '2026-04-21',
+    tags: ['pace', 'mbappe', 'solo'],
+    accentColor: '#FEBE10',
+  },
+  {
+    id: 'md33-haaland-1',
+    player: 'Erling Haaland',
+    club: 'Manchester City',
+    opponent: 'Arsenal',
+    minute: 68,
+    goalType: 'counter-attack',
+    caption: 'Haaland on the counter to break Arsenal hearts! 💔 Devastating finish.',
+    league: 'Premier League',
+    matchScore: '2-1',
+    sources: [
+      {
+        platform: 'x',
+        handle: '@premierleague',
+        displayName: 'Premier League',
+        verified: true,
+        url: 'https://x.com/premierleague',
+        label: 'PL Official',
+      },
+      {
+        platform: 'x',
+        handle: '@ManCity',
+        displayName: 'Manchester City',
+        verified: true,
+        url: 'https://x.com/ManCity',
+        label: 'Man City',
+      }
+    ],
+    matchday: 'Matchday 33',
+    date: '2026-04-19',
+    tags: ['counter', 'haaland', 'title race'],
+    accentColor: '#6CABDD',
+  },
+  {
+    id: 'md33-salah-1',
+    player: 'Mo Salah',
+    club: 'Liverpool',
+    opponent: 'Everton',
+    minute: 71,
+    goalType: 'curler',
+    caption: 'Salah curling it in the Merseyside Derby! 👑 Classic Mo.',
+    league: 'Premier League',
+    matchScore: '2-1',
+    sources: [
+      {
+        platform: 'x',
+        handle: '@LFC',
+        displayName: 'Liverpool FC',
+        verified: true,
+        url: 'https://x.com/LFC',
+        label: 'Liverpool',
+      }
+    ],
+    matchday: 'Matchday 33',
+    date: '2026-04-19',
+    tags: ['derby', 'salah', 'curler'],
+    accentColor: '#C8102E',
+  },
+  {
+    id: 'md33-yamal-1',
+    player: 'Lamine Yamal',
+    club: 'Barcelona',
+    opponent: 'Celta Vigo',
+    minute: 40,
+    goalType: 'penalty',
+    caption: 'Ice cold penalty from the boy wonder 🧊 Yamal sends Barça top.',
+    league: 'La Liga',
+    matchScore: '1-0',
+    sources: [
+      {
+        platform: 'x',
+        handle: '@FCBarcelona',
+        displayName: 'FC Barcelona',
+        verified: true,
+        url: 'https://x.com/FCBarcelona',
+        label: 'Barcelona',
+      }
+    ],
+    matchday: 'Matchday 33',
+    date: '2026-04-22',
+    tags: ['penalty', 'wonderkid', 'clutch'],
+    accentColor: '#A50044',
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  //  MATCHDAY 31
   // ═══════════════════════════════════════════════════════════
   {
     id: 'md31-vini-1',
