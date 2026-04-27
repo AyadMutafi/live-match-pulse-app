@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Swords, Activity, TrendingUp, Thermometer, Zap } from 'lucide-react'
 import { ClubLogo } from '@/components/ClubLogo'
 import { useLanguage } from '@/context/LanguageContext'
 import { ShareButton } from '@/components/ShareButton'
 import { Button } from '@/components/ui/button'
+import { getRoundContext, type RoundContext } from '@/lib/competition-rounds'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -217,6 +218,34 @@ function FanWarCard({ match }: { match: Match }) {
   )
 }
 
+function RoundContextBanner({ matches }: { matches: Match[] }) {
+  const ctx = useMemo(() => {
+    if (matches.length === 0) return null;
+    const sample = matches.find(m => m.league.includes('Champions')) || matches[0];
+    const league = sample.league.includes('Champions') ? 'UCL' : 
+                   sample.league.includes('Premier') ? 'Premier League' : 'La Liga';
+    
+    return getRoundContext("Quarter-Finals", "UCL") || 
+           getRoundContext("GW33", "Premier League") || 
+           getRoundContext("J33", "La Liga");
+  }, [matches]);
+
+  if (!ctx) return null;
+
+  return (
+    <div className="relative rounded-[32px] overflow-hidden border-2 p-5 mb-6 shadow-xl" style={{ borderColor: `${ctx.accent}30`, background: `${ctx.accent}05` }}>
+      <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[80px] opacity-20 pointer-events-none" style={{ background: ctx.accent }} />
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xl">{ctx.moodEmoji}</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] italic" style={{ color: ctx.accent }}>{ctx.label} Atmosphere</span>
+      </div>
+      <p className="text-[14px] font-bold text-foreground leading-relaxed italic border-l-2 pl-4" style={{ borderColor: ctx.accent }}>
+        "{ctx.narrative}"
+      </p>
+    </div>
+  );
+}
+
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function RivalsPage() {
@@ -261,6 +290,8 @@ export default function RivalsPage() {
           Fan Wars are updated live via <span className="text-primary italic">Firecrawl Smart-Search</span> on 𝕏. Stand your ground.
         </p>
       </div>
+
+      <RoundContextBanner matches={matches} />
 
       {/* Rivalry cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

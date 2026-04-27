@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Share2,
   ThumbsUp,
@@ -138,7 +138,7 @@ function MatchdayIntelligence({ matches }: { matches: Match[] }) {
   return (
     <div className="relative rounded-[32px] overflow-hidden border border-border/40 bg-gradient-to-br from-background/40 to-muted/10 backdrop-blur-xl p-5 mb-8 shadow-2xl group">
       {/* Accent glow */}
-      <div className=\"absolute -top-24 -right-24 w-64 h-64 rounded-full blur-[100px] opacity-10 pointer-events-none\" style={{ background: activeRound.accent }} />
+      <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full blur-[100px] opacity-10 pointer-events-none" style={{ background: activeRound.accent }} />
       
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -218,6 +218,25 @@ export default function FanPulseDemo() {
     }
     fetchData();
   }, []);
+
+  const featuredMatch = useMemo(() => {
+    const finished = matches.filter(m => m.status === 'finished');
+    return finished.length > 0 ? finished[0] : matches[0];
+  }, [matches]);
+
+  const upcomingMatches = useMemo(() => {
+    return matches
+      .filter(m => m.status !== 'finished')
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(0, 4);
+  }, [matches]);
+
+  const recentMatches = useMemo(() => {
+    return matches
+      .filter(m => m.status === 'finished')
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+  }, [matches]);
 
   useEffect(() => {
     if (matches.length > 0 && quotes.length === 0) {
@@ -349,16 +368,6 @@ export default function FanPulseDemo() {
   }
 
   // ── Derived Data ───────────────────────────────────────────────────────────
-  const featuredMatch =
-    matches.find((m) => m.status === "live") ||
-    matches.find((m) => m.status === "finished") ||
-    matches[0];
-
-  const upcomingMatches = matches.filter((m) => m.status === "upcoming");
-  const recentMatches = matches
-    .filter((m) => m.status === "finished")
-    .slice(0, 3);
-
   const topPlayers = [...players]
     .sort((a, b) => b.sentiment - a.sentiment)
     .slice(0, 6);
@@ -402,7 +411,7 @@ export default function FanPulseDemo() {
       )}
 
       {/* ── Matchday Intelligence ────────────────────────────────────────── */}
-      <MatchdayIntelligence matches={allMatches} />
+      <MatchdayIntelligence matches={matches} />
 
       {/* ── 1. Dynamic Club Mood Card ────────────────────────────────────── */}
       {featuredMatch && (
