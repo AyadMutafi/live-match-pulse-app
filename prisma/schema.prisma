@@ -8,21 +8,24 @@ datasource db {
 }
 
 model Player {
-  id            String   @id @default(cuid())
-  name          String
-  team          String
-  position      String
-  sentiment     Int      @default(0)
-  tweets        Int      @default(0)
-  aiConfidence  Int      @default(0)
-  form          String?
-  imageUrl      String?
-  country       String?
-  shirtNumber   Int?
-  weekNumber    Int      @default(0)
-  season        String   @default("2024-25")
-  lastUpdated   DateTime @default(now())
-  sentiments    Sentiment[]
+  id              String    @id @default(cuid())
+  name            String
+  team            String
+  position        String
+  sentiment       Int       @default(0)
+  tweets          Int       @default(0)
+  aiConfidence    Int       @default(0)
+  form            String?
+  imageUrl        String?
+  country         String?
+  shirtNumber     Int?
+  weekNumber      Int       @default(0)
+  season          String    @default("2024-25")
+  positiveTheme   String?
+  negativeTheme   String?
+  lastThemeUpdate DateTime?
+  lastUpdated     DateTime  @default(now())
+  sentiments      Sentiment[]
 
   @@index([weekNumber, season])
 }
@@ -89,4 +92,28 @@ model AgentActivity {
   timestamp   DateTime @default(now())
 
   @@index([timestamp])
+}
+
+model Goal {
+  id           String   @id @default(cuid())
+  player       String
+  club         String
+  opponent     String
+  minute       Int
+  goalType     String
+  caption      String
+  league       String
+  matchScore   String
+  matchday     String
+  date         String
+  tags         String
+  accentColor  String
+  
+  // Video support
+  videoUrl     String?
+  thumbnailUrl String?
+  videoSource  String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

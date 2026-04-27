@@ -17,6 +17,8 @@ import Script from "next/script";
 import { ClubLogo } from "@/components/ClubLogo";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
+import { getRoundContext, type RoundContext } from "@/lib/competition-rounds";
+import { CLUBS } from "@/lib/clubs";
 
 declare global {
   interface Window {
@@ -35,6 +37,9 @@ interface Player {
   tweets: number;
   aiConfidence: number;
   form: string | null;
+  positiveTheme: string | null;
+  negativeTheme: string | null;
+  lastThemeUpdate: string | null;
 }
 
 interface Match {
@@ -95,6 +100,90 @@ function SentimentBadge({ score }: { score: number }) {
     </span>
   );
 }
+
+// ── Matchday Intelligence ───────────────────────────────────────────────────
+
+function MatchdayIntelligence({ matches }: { matches: Match[] }) {
+  const activeRound = useMemo(() => {
+    if (matches.length === 0) return null;
+    // Find closest match to now
+    const now = Date.now();
+    let best = matches[0].status || "";
+    let minDiff = Infinity;
+    for (const m of matches) {
+      const d = Math.abs(new Date(m.date).getTime() - now);
+      if (d < minDiff) {
+        minDiff = d;
+        // Logic to extract round name if available or use league name
+        // On home page, we'll try to find a UCL or PL round
+      }
+    }
+    
+    // For home page, let's just default to a few known ones for the "active" view
+    // or try to match against matches[0].league
+    const sampleMatch = matches.find(m => m.league.includes('Champions')) || matches[0];
+    if (!sampleMatch) return null;
+    
+    const league = sampleMatch.league.includes('Champions') ? 'UCL' : 
+                   sampleMatch.league.includes('Premier') ? 'Premier League' : 'La Liga';
+    
+    // Return context for the first round that has it for this league
+    return getRoundContext("Quarter-Finals", "UCL") || 
+           getRoundContext("GW33", "Premier League") || 
+           getRoundContext("J33", "La Liga");
+  }, [matches]);
+
+  if (!activeRound) return null;
+
+  return (
+    <div className="relative rounded-[32px] overflow-hidden border border-border/40 bg-gradient-to-br from-background/40 to-muted/10 backdrop-blur-xl p-5 mb-8 shadow-2xl group">
+      {/* Accent glow */}
+      <div className=\"absolute -top-24 -right-24 w-64 h-64 rounded-full blur-[100px] opacity-10 pointer-events-none\" style={{ background: activeRound.accent }} />
+      
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{activeRound.moodEmoji}</span>
+          <div>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 leading-none">Intelligence Feed</h4>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[13px] font-black uppercase tracking-wider italic" style={{ color: activeRound.accent }}>{activeRound.label}</span>
+              {activeRound.isLive && <span className="flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 uppercase tracking-wider animate-pulse">🔴 Live Pulse</span>}
+            </div>
+          </div>
+        </div>
+        <Link href="/sentiments" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 hover:text-primary transition-colors flex items-center gap-1">
+          Full Report <Zap className="w-3 h-3" />
+        </Link>
+      </div>
+
+      <p className="text-[15px] font-bold text-foreground leading-snug italic mb-5 pr-12">
+        "{activeRound.narrative}"
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="p-3 rounded-2xl bg-muted/20 border border-border/30">
+          <p className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-40">Fan Mood Summary</p>
+          <p className="text-[12px] font-medium text-foreground/80 leading-relaxed">{activeRound.fanMoodSummary}</p>
+        </div>
+        
+        {activeRound.keyPlayers.length > 0 && (
+          <div className="p-3 rounded-2xl bg-muted/20 border border-border/30">
+            <p className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-40">Featured Performer</p>
+            <div className="flex items-center gap-3">
+              <ClubLogo club={activeRound.keyPlayers[0].club} size={32} />
+              <div>
+                <p className="text-[12px] font-black uppercase tracking-tight">{activeRound.keyPlayers[0].name}</p>
+                <p className="text-[10px] font-medium text-muted-foreground/60 italic leading-none">{activeRound.keyPlayers[0].moment}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page Component ──────────────────────────────────────────────────────
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 
@@ -312,6 +401,9 @@ export default function FanPulseDemo() {
         </div>
       )}
 
+      {/* ── Matchday Intelligence ────────────────────────────────────────── */}
+      <MatchdayIntelligence matches={allMatches} />
+
       {/* ── 1. Dynamic Club Mood Card ────────────────────────────────────── */}
       {featuredMatch && (
         <div className="glass-card flex flex-col sm:flex-row items-center justify-between p-6 relative overflow-hidden bg-gradient-to-br from-card/80 to-muted/30 border-primary/20 shadow-xl group hover:border-primary/40 transition-all min-h-[160px] gap-8">
@@ -523,7 +615,13 @@ export default function FanPulseDemo() {
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <ClubLogo club={player.team} size={14} />
                         <span className="text-[10px] font-bold text-muted-foreground/60">{player.position}</span>
+                        {player.lastThemeUpdate && (Date.now() - new Date(player.lastThemeUpdate).getTime()) < 3600000 && (
+                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 uppercase tracking-wider">🔴 Live</span>
+                        )}
                       </div>
+                      {player.positiveTheme && (
+                        <p className="text-[9px] font-bold text-emerald-400/70 mt-1 truncate">✦ {player.positiveTheme.split(',')[0]}</p>
+                      )}
                       <div className="mt-1.5 h-1 rounded-full overflow-hidden bg-muted">
                         <div className="h-full rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" style={{ width: `${player.sentiment}%` }} />
                       </div>
@@ -565,7 +663,13 @@ export default function FanPulseDemo() {
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <ClubLogo club={player.team} size={14} />
                         <span className="text-[10px] font-bold text-muted-foreground/60">{player.position}</span>
+                        {player.lastThemeUpdate && (Date.now() - new Date(player.lastThemeUpdate).getTime()) < 3600000 && (
+                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md bg-red-500/20 text-red-400 uppercase tracking-wider">🔴 Live</span>
+                        )}
                       </div>
+                      {player.negativeTheme && (
+                        <p className="text-[9px] font-bold text-red-400/70 mt-1 truncate">⚠ {player.negativeTheme.split(',')[0]}</p>
+                      )}
                       <div className="mt-1.5 h-1 rounded-full overflow-hidden bg-muted">
                         <div className="h-full rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]" style={{ width: `${player.sentiment}%` }} />
                       </div>

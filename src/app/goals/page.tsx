@@ -215,6 +215,41 @@ function GoalCard({ goal, index }: { goal: GoalHighlight; index: number }) {
         ))}
       </div>
 
+      {/* ── Inline Video Player ── */}
+      {goal.videoUrl && (
+        <div className="mx-5 mb-4 relative rounded-[20px] overflow-hidden bg-black/80 aspect-video border border-border/40 group/video shadow-inner">
+          {goal.videoSource === 'mp4' ? (
+            <video 
+              src={goal.videoUrl} 
+              poster={goal.thumbnailUrl}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover/video:scale-[1.02]"
+              controls
+              controlsList="nodownload"
+            />
+          ) : goal.videoSource === 'youtube' ? (
+            <iframe
+              src={goal.videoUrl}
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <div className="w-full h-full relative cursor-pointer">
+              <img 
+                src={goal.thumbnailUrl || 'https://images.unsplash.com/photo-1518605368461-1ee0677c3e55?q=80&w=1000'} 
+                className="w-full h-full object-cover opacity-80 group-hover/video:opacity-100 transition-opacity duration-500" 
+                alt={`${goal.player} goal`} 
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-full bg-background/60 backdrop-blur-md flex items-center justify-center border border-border/50 text-foreground group-hover/video:scale-110 group-hover/video:bg-background/80 shadow-xl transition-all duration-300">
+                  <Play className="w-6 h-6 ml-1.5" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Watch section — multiple source buttons ── */}
       <div className="px-5 pb-3 space-y-2">
         <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 flex items-center gap-1.5">

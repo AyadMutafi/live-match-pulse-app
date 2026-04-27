@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { scrapePlayerSentiment, scrapeMatchSentiment } from '@/lib/firecrawl';
 import { db } from '@/lib/db';
 import { analyzeSentimentWithAI } from '@/lib/ai-analysis';
+import { extractThemes } from '@/lib/theme-extractor';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,12 +29,18 @@ export async function POST(request: NextRequest) {
       const player = playerId ? await db.player.findUnique({ where: { id: playerId } }) : null;
       const analysis = await analyzeSentimentWithAI(scrapeResult.content, playerName, player?.sentiment || 50);
 
+      // Extract structured themes from the scraped content
+      const themes = await extractThemes(scrapeResult.content, playerName);
+
       // Update database if playerId provided
       if (playerId) {
         await db.player.update({
           where: { id: playerId },
           data: {
-            sentiment: Math.max(0, Math.min(100, analysis.sentiment)), // Clamp to 0-100 for UI consistency if needed
+            sentiment: Math.max(0, Math.min(100, analysis.sentiment)),
+            positiveTheme: themes.positiveThemes.join(','),
+            negativeTheme: themes.negativeThemes.join(','),
+            lastThemeUpdate: new Date(),
             lastUpdated: new Date()
           }
         });
@@ -44,8 +51,10 @@ export async function POST(request: NextRequest) {
             score: analysis.sentiment,
             source: 'firecrawl',
             themes: JSON.stringify({
-              positive: analysis.positiveThemes,
-              negative: analysis.negativeThemes,
+              positive: themes.positiveThemes,
+              negative: themes.negativeThemes,
+              trending: themes.trendingTopics,
+              fanMood: themes.fanMood,
               volatility: analysis.volatility,
               momentum: analysis.momentum
             }),
@@ -59,6 +68,7 @@ export async function POST(request: NextRequest) {
         success: true,
         playerName,
         ...analysis,
+        themes,
         scrapedAt: scrapeResult.timestamp,
         source: 'firecrawl'
       });

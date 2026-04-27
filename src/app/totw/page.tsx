@@ -176,6 +176,11 @@ export default function TeamOfTheWeek() {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
   const [mode, setMode] = useState<'elite' | 'crisis'>('elite')
   const [selectedWeek, setSelectedWeek] = useState('current')
+  const [userVote, setUserVote] = useState<'agree' | 'disagree' | null>(null)
+  const [voteAgree, setVoteAgree] = useState(247)
+  const [voteDisagree, setVoteDisagree] = useState(83)
+  const [alternativeSuggestion, setAlternativeSuggestion] = useState('')
+  const [suggestionSubmitted, setSuggestionSubmitted] = useState(false)
   const { t } = useLanguage()
 
   // Dynamically calculate current week from season start
@@ -190,6 +195,44 @@ export default function TeamOfTheWeek() {
       label: `GW ${currentWeek - 1 - i}`
     }))
   ]
+
+  // Persist vote in localStorage per mode+week key
+  useEffect(() => {
+    const key = `totw-vote-${mode}-${selectedWeek}`
+    const saved = localStorage.getItem(key)
+    if (saved) {
+      const { vote, agree, disagree, suggestion, submitted } = JSON.parse(saved)
+      setUserVote(vote)
+      setVoteAgree(agree)
+      setVoteDisagree(disagree)
+      setAlternativeSuggestion(suggestion || '')
+      setSuggestionSubmitted(submitted || false)
+    } else {
+      setUserVote(null)
+      setVoteAgree(247)
+      setVoteDisagree(83)
+      setAlternativeSuggestion('')
+      setSuggestionSubmitted(false)
+    }
+  }, [mode, selectedWeek])
+
+  const handleVote = (vote: 'agree' | 'disagree') => {
+    if (userVote === vote) return // already voted this
+    const newAgree = vote === 'agree' ? voteAgree + 1 : (userVote === 'agree' ? voteAgree - 1 : voteAgree)
+    const newDisagree = vote === 'disagree' ? voteDisagree + 1 : (userVote === 'disagree' ? voteDisagree - 1 : voteDisagree)
+    setUserVote(vote)
+    setVoteAgree(newAgree)
+    setVoteDisagree(newDisagree)
+    const key = `totw-vote-${mode}-${selectedWeek}`
+    localStorage.setItem(key, JSON.stringify({ vote, agree: newAgree, disagree: newDisagree, suggestion: alternativeSuggestion, submitted: suggestionSubmitted }))
+  }
+
+  const handleSuggestionSubmit = () => {
+    if (!alternativeSuggestion.trim()) return
+    setSuggestionSubmitted(true)
+    const key = `totw-vote-${mode}-${selectedWeek}`
+    localStorage.setItem(key, JSON.stringify({ vote: userVote, agree: voteAgree, disagree: voteDisagree, suggestion: alternativeSuggestion, submitted: true }))
+  }
 
   useEffect(() => {
     const loadPlayers = async () => {
@@ -518,7 +561,146 @@ export default function TeamOfTheWeek() {
         </div>
       </section>
 
-      {/* 5. Sentiment Detail Modal (Interactivity Audit) */}
+      {/* 5. Fan Verdict — Agree / Disagree with the AI */}
+      {(() => {
+        const total = voteAgree + voteDisagree
+        const agreePercent = total > 0 ? Math.round((voteAgree / total) * 100) : 75
+        const disagreePercent = 100 - agreePercent
+        return (
+          <section className={`glass-card shadow-xl overflow-hidden border-2 transition-all duration-700 ${isCrisis ? 'border-rose-500/20' : 'border-primary/20'}`}>
+            {/* Header */}
+            <div className={`px-5 pt-5 pb-4 border-b border-border/50 flex items-center justify-between bg-gradient-to-r ${isCrisis ? 'from-rose-500/10' : 'from-primary/10'} to-transparent`}>
+              <div>
+                <h4 className="text-[13px] font-black uppercase tracking-widest flex items-center gap-2">
+                  <span className="text-xl">🗳️</span>
+                  Fan Verdict
+                </h4>
+                <p className="text-[10px] text-muted-foreground/70 mt-0.5 font-semibold">
+                  Do you agree with the AI's {isCrisis ? 'Crisis XI' : 'Team of the Week'}?
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[22px] font-black tabular-nums leading-none" style={{ color: isCrisis ? '#f43f5e' : 'hsl(var(--primary))' }}>
+                  {total.toLocaleString()}
+                </p>
+                <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/50">TOTAL VOTES</p>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Vote Buttons */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => handleVote('agree')}
+                  className={`relative flex flex-col items-center justify-center gap-1.5 py-5 rounded-2xl font-black text-[13px] uppercase tracking-wider transition-all duration-300 border-2 overflow-hidden ${
+                    userVote === 'agree'
+                      ? 'bg-emerald-500 text-white border-emerald-500 scale-[1.03] shadow-xl shadow-emerald-500/30'
+                      : 'bg-emerald-500/5 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/15 hover:scale-[1.02]'
+                  }`}
+                >
+                  <span className="text-3xl">👍</span>
+                  <span>Agree</span>
+                  <span className={`text-[10px] font-bold ${userVote === 'agree' ? 'text-white/80' : 'text-emerald-500/60'}`}>{agreePercent}%</span>
+                  {userVote === 'agree' && (
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                      <span className="text-[10px]">✓</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => handleVote('disagree')}
+                  className={`relative flex flex-col items-center justify-center gap-1.5 py-5 rounded-2xl font-black text-[13px] uppercase tracking-wider transition-all duration-300 border-2 overflow-hidden ${
+                    userVote === 'disagree'
+                      ? 'bg-rose-500 text-white border-rose-500 scale-[1.03] shadow-xl shadow-rose-500/30'
+                      : 'bg-rose-500/5 text-rose-500 border-rose-500/30 hover:bg-rose-500/15 hover:scale-[1.02]'
+                  }`}
+                >
+                  <span className="text-3xl">👎</span>
+                  <span>Disagree</span>
+                  <span className={`text-[10px] font-bold ${userVote === 'disagree' ? 'text-white/80' : 'text-rose-500/60'}`}>{disagreePercent}%</span>
+                  {userVote === 'disagree' && (
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                      <span className="text-[10px]">✓</span>
+                    </div>
+                  )}
+                </button>
+              </div>
+
+              {/* Vote Bar */}
+              {userVote && (
+                <div className="space-y-1.5">
+                  <div className="flex h-2.5 rounded-full overflow-hidden bg-muted">
+                    <div
+                      className="h-full bg-emerald-500 transition-all duration-700 ease-out"
+                      style={{ width: `${agreePercent}%` }}
+                    />
+                    <div
+                      className="h-full bg-rose-500 transition-all duration-700 ease-out"
+                      style={{ width: `${disagreePercent}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[9px] font-black text-emerald-500 uppercase tracking-wider">{voteAgree.toLocaleString()} Agree</span>
+                    <span className="text-[9px] font-black text-rose-500 uppercase tracking-wider">{voteDisagree.toLocaleString()} Disagree</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Contextual AI message */}
+              {userVote && (
+                <div className={`p-3 rounded-2xl border text-center ${
+                  userVote === 'agree'
+                    ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-600'
+                    : 'bg-rose-500/5 border-rose-500/20 text-rose-600'
+                }`}>
+                  <p className="text-[11px] font-black uppercase tracking-wider">
+                    {userVote === 'agree'
+                      ? `🤖 The AI thanks you for your trust. ${agreePercent}% of fans agree.`
+                      : `🤖 Interesting. ${disagreePercent}% of fans also think the AI missed the mark.`
+                    }
+                  </p>
+                </div>
+              )}
+
+              {/* Suggestion input — shown only on disagree */}
+              {userVote === 'disagree' && !suggestionSubmitted && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/70">Who should be in instead?</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={alternativeSuggestion}
+                      onChange={e => setAlternativeSuggestion(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleSuggestionSubmit()}
+                      placeholder="e.g. Rodri, Salah..."
+                      maxLength={50}
+                      className="flex-1 px-3 py-2.5 rounded-xl text-[12px] font-bold bg-muted/30 border border-border/50 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all placeholder:text-muted-foreground/40"
+                    />
+                    <button
+                      onClick={handleSuggestionSubmit}
+                      disabled={!alternativeSuggestion.trim()}
+                      className="px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider bg-foreground text-background hover:opacity-80 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      Send
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {userVote === 'disagree' && suggestionSubmitted && (
+                <div className="p-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 text-center">
+                  <p className="text-[11px] font-black uppercase tracking-wider text-emerald-600">
+                    ✓ Feedback sent! We'll factor it in next week.
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+        )
+      })()}
+
+      {/* 6. Sentiment Detail Modal (Interactivity Audit) */}
       <AnimatePresence>
         {selectedPlayer && (
           <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">

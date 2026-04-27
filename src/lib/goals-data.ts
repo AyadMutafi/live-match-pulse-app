@@ -36,6 +36,9 @@ export type GoalHighlight = {
   date: string
   tags: string[]
   accentColor: string
+  videoUrl?: string
+  thumbnailUrl?: string
+  videoSource?: 'youtube' | 'mp4' | 'twitter' | 'gif'
 }
 
 // ── The curated feed ─────────────────────────────────────────
@@ -76,6 +79,9 @@ export const GOALS_FEED: GoalHighlight[] = [
     date: '2026-04-21',
     tags: ['pace', 'mbappe', 'solo'],
     accentColor: '#FEBE10',
+    videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    thumbnailUrl: 'https://img.a.transfermarkt.technology/portrait/header/342229-1682683695.jpg',
+    videoSource: 'mp4'
   },
   {
     id: 'md33-haaland-1',
@@ -109,6 +115,9 @@ export const GOALS_FEED: GoalHighlight[] = [
     date: '2026-04-19',
     tags: ['counter', 'haaland', 'title race'],
     accentColor: '#6CABDD',
+    videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    thumbnailUrl: 'https://img.a.transfermarkt.technology/portrait/header/418560-1696430472.jpg',
+    videoSource: 'mp4'
   },
   {
     id: 'md33-salah-1',
