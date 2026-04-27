@@ -11,6 +11,8 @@ import {
   ExternalLink,
   RefreshCw,
   AlertCircle,
+  Shield,
+  Search,
 } from "lucide-react";
 import Link from "next/link";
 import Script from "next/script";
@@ -58,6 +60,16 @@ interface Match {
   volatility: number;
   momentum: number;
   predictedScore: number;
+}
+
+interface AgentActivity {
+  id: string;
+  agent: string;
+  action: string;
+  target: string;
+  status: string;
+  message: string | null;
+  timestamp: string;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -183,6 +195,71 @@ function MatchdayIntelligence({ matches }: { matches: Match[] }) {
   );
 }
 
+
+
+// ── Agent Activity Feed ─────────────────────────────────────────────────────
+
+function AgentActivityFeed({ activities, onTrigger, isTriggering }: { activities: AgentActivity[], onTrigger: () => void, isTriggering: boolean }) {
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-4 px-1">
+        <h3 className="text-[13px] font-black uppercase tracking-wider text-primary flex items-center gap-2">
+          <Shield className="w-4 h-4" />
+          The Brain (Autonomous)
+        </h3>
+        <button 
+          onClick={onTrigger}
+          disabled={isTriggering}
+          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/20 hover:bg-primary hover:text-black transition-all active:scale-95 disabled:opacity-50"
+        >
+          {isTriggering ? (
+            <>
+              <RefreshCw className="w-3 h-3 animate-spin" />
+              Processing
+            </>
+          ) : (
+            <>
+              <Zap className="w-3 h-3 fill-primary" />
+              Trigger
+            </>
+          )}
+        </button>
+      </div>
+      <div className="glass-card shadow-xl overflow-hidden divide-y divide-border/50">
+        {activities.length === 0 ? (
+          <div className="p-8 text-center opacity-30">
+            <Search className="w-5 h-5 mx-auto mb-2" />
+            <p className="text-[10px] font-bold uppercase tracking-widest">Scanning Arena...</p>
+          </div>
+        ) : (
+          activities.map((activity) => (
+            <div key={activity.id} className="p-4 bg-muted/5 hover:bg-muted/10 transition-colors group">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className={`text-[9px] font-black uppercase tracking-widest ${
+                  activity.agent === 'Scout' ? 'text-amber-400' : 'text-emerald-400'
+                }`}>
+                  {activity.agent} Agent
+                </span>
+                <span className="text-[8px] font-medium text-muted-foreground/40 tabular-nums uppercase">
+                  {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <p className="text-[12px] font-bold text-foreground leading-tight italic">
+                {activity.action.replace(/_/g, ' ')}: {activity.target.length > 20 ? activity.target.substring(0, 20) + '...' : activity.target}
+              </p>
+              {activity.message && (
+                <p className="text-[10px] text-muted-foreground/60 mt-1.5 line-clamp-2 leading-relaxed">
+                  {activity.message}
+                </p>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ── Main Page Component ──────────────────────────────────────────────────────
 
 // ── Main Page ────────────────────────────────────────────────────────────────
@@ -190,8 +267,11 @@ function MatchdayIntelligence({ matches }: { matches: Match[] }) {
 export default function FanPulseDemo() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [allMatches, setAllMatches] = useState<Match[]>([]);
+  const [agentActivities, setAgentActivities] = useState<AgentActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFetchingQuotes, setIsFetchingQuotes] = useState(false);
+  const [isTriggeringAgent, setIsTriggeringAgent] = useState(false);
   const [quotes, setQuotes] = useState<{team: string, handle: string, text: string, likes: string, retweets: string, pulse: string}[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -200,14 +280,23 @@ export default function FanPulseDemo() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [matchesRes, playersRes] = await Promise.all([
-          fetch("/api/matches"),
+        const [pRes, mRes, aRes] = await Promise.all([
           fetch("/api/players"),
+          fetch("/api/matches"),
+          fetch("/api/admin/activities")
         ]);
-        const matchesData = await matchesRes.json();
-        const playersData = await playersRes.json();
-        setMatches(matchesData.matches || []);
-        setPlayers(Array.isArray(playersData) ? playersData : playersData.players || []);
+
+        if (!pRes.ok || !mRes.ok) throw new Error("Critical frequency disconnect");
+
+        const pData = await pRes.json();
+        const mData = await mRes.json();
+        const aData = aRes.ok ? await aRes.json() : { activities: [] };
+
+        setPlayers(pData.players || []);
+        setAgentActivities(aData.activities || []);
+        const matches = mData.matches || [];
+        setMatches(matches);
+        setAllMatches(matches);
         setLastUpdated(new Date());
       } catch (err) {
         console.error("Failed to fetch data:", err);
@@ -219,24 +308,7 @@ export default function FanPulseDemo() {
     fetchData();
   }, []);
 
-  const featuredMatch = useMemo(() => {
-    const finished = matches.filter(m => m.status === 'finished');
-    return finished.length > 0 ? finished[0] : matches[0];
-  }, [matches]);
 
-  const upcomingMatches = useMemo(() => {
-    return matches
-      .filter(m => m.status !== 'finished')
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(0, 4);
-  }, [matches]);
-
-  const recentMatches = useMemo(() => {
-    return matches
-      .filter(m => m.status === 'finished')
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5);
-  }, [matches]);
 
   useEffect(() => {
     if (matches.length > 0 && quotes.length === 0) {
@@ -268,7 +340,6 @@ export default function FanPulseDemo() {
     if (matches.length > 0) {
       try {
         const match = matches[Math.floor(Math.random() * matches.length)];
-        // Attempt to fetch real sentiments from our edge pipeline
         const response = await fetch('/api/scrape', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -276,7 +347,7 @@ export default function FanPulseDemo() {
             type: 'match',
             homeTeam: match.homeTeam,
             awayTeam: match.awayTeam,
-            hashtag: `ucl`, // or match.hashtag if available
+            hashtag: `ucl`,
             matchId: match.id
           })
         });
@@ -285,10 +356,9 @@ export default function FanPulseDemo() {
         
         const data = await response.json();
         
-        // Use representative real quotes or fallback
         if (data.analysis && data.analysis.representativeQuotes && data.analysis.representativeQuotes.length > 0) {
           const freshQuotes = data.analysis.representativeQuotes.map((q: any) => ({
-            team: match.homeTeam, // Fallback assumption
+            team: match.homeTeam,
             handle: q.handle || `@FootballGlobal`,
             text: q.text,
             likes: (Math.random() * 20000).toLocaleString(undefined, {maximumFractionDigits: 0}),
@@ -297,7 +367,6 @@ export default function FanPulseDemo() {
           }));
           setQuotes(freshQuotes);
           
-          // Re-fetch match and player data to show visual momentum shifts
           const [matchesRes, playersRes] = await Promise.all([
             fetch('/api/matches'),
             fetch('/api/players')
@@ -311,35 +380,55 @@ export default function FanPulseDemo() {
             const pData = await playersRes.json();
             setPlayers(Array.isArray(pData) ? pData : pData.players || []);
           }
-        } else {
-          // Keep existing simulated data as a fallback to show UI works while API is rate limited
-          const newQuotes = [
-            {
-              team: match.homeTeam,
-              handle: `@${match.homeTeam.replace(/\s+/g, '')}Intel`,
-              text: `URGENT PULSE: The digital momentum for ${match.homeTeam} has spiked by 15% in the last 10 minutes. Fans are sensing a turning point! ⚡📊`,
-              likes: (Math.random() * 20000).toLocaleString(undefined, {maximumFractionDigits: 0}),
-              retweets: (Math.random() * 5000).toLocaleString(undefined, {maximumFractionDigits: 0}),
-              pulse: `${Math.floor(Math.random() * 40) + 60}%`
-            },
-            {
-              team: match.awayTeam,
-              handle: "@GlobalFootballScanner",
-              text: `Tactical breakdown: ${match.awayTeam} are struggling with the high press. The sentiment is turning cold in the supporters enclosure. 🥶📉`,
-              likes: (Math.random() * 10000).toLocaleString(undefined, {maximumFractionDigits: 0}),
-              retweets: (Math.random() * 2000).toLocaleString(undefined, {maximumFractionDigits: 0}),
-              pulse: `${Math.floor(Math.random() * 30) + 10}%`
-            }
-          ];
-          setQuotes(newQuotes);
         }
       } catch (err) {
         console.error("Fetch Live Quotes Failed", err);
+      } finally {
+        setIsFetchingQuotes(false);
       }
     }
-    
-    setIsFetchingQuotes(false);
   };
+
+  const handleTriggerBrain = async () => {
+    setIsTriggeringAgent(true);
+    try {
+      const res = await fetch('/api/agents/run', {
+        method: 'POST',
+        headers: {
+          'x-paperclip-key': 'fan-pulse-master-key-2026'
+        }
+      });
+      if (res.ok) {
+        const aRes = await fetch("/api/admin/activities");
+        const aData = aRes.ok ? await aRes.json() : { activities: [] };
+        setAgentActivities(aData.activities || []);
+      }
+    } catch (e) {
+      console.error('Failed to trigger agent', e);
+    } finally {
+      setIsTriggeringAgent(false);
+    }
+  };
+
+  // ── Derived Data ───────────────────────────────────────────────────────────
+  const featuredMatch = useMemo(() => {
+    const finished = matches.filter(m => m.status === 'finished');
+    return finished.length > 0 ? finished[0] : matches[0];
+  }, [matches]);
+
+  const upcomingMatches = useMemo(() => {
+    return matches
+      .filter(m => m.status !== 'finished')
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(0, 4);
+  }, [matches]);
+
+  const recentMatches = useMemo(() => {
+    return matches
+      .filter(m => m.status === 'finished')
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+  }, [matches]);
 
 
   // Refresh Twitter widgets after mount
@@ -591,7 +680,14 @@ export default function FanPulseDemo() {
       </div>
 
       {/* ── RIGHT COLUMN ─────────────────────────────────────────────── */}
-      <div className="lg:col-span-4 space-y-6">
+      <div className="lg:col-span-4 space-y-8">
+
+      {/* ── Agent Activity Feed ─────────────────────────────────────────── */}
+      <AgentActivityFeed 
+        activities={agentActivities} 
+        onTrigger={handleTriggerBrain}
+        isTriggering={isTriggeringAgent}
+      />
 
       {/* ── 4. Player Pulse Rankings ──────────────────────────────────────── */}
       {players.length > 0 && (

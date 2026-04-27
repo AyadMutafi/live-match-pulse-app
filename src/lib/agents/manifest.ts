@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { scrapePlayerSentiment, scrapeMatchSentiment, scrapeFromSource } from '@/lib/firecrawl';
 import { analyzeSentimentWithAI } from '@/lib/ai-analysis';
+import { extractThemes } from '@/lib/theme-extractor';
 import { scrapeWithGrok } from '@/lib/grok-scraper';
 import { mineLocalSentiment } from '@/lib/local-miner';
 import { updateRivalsAnalysis } from './rivals-journalist';
@@ -128,6 +129,25 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
     execute: async ({ rawContent, entityLabel, previousScore }) => {
       const analysis = await analyzeSentimentWithAI(rawContent, entityLabel, previousScore || 50);
       return analysis;
+    }
+  },
+
+  /**
+   * Theme Tool: Deep narrative extraction.
+   */
+  extract_themes: {
+    name: 'extract_themes',
+    description: 'Extracts top positive/negative themes and trending topics from raw fan chatter.',
+    parameters: {
+      type: 'object',
+      properties: {
+        rawContent: { type: 'string' },
+        entityLabel: { type: 'string' }
+      },
+      required: ['rawContent', 'entityLabel']
+    },
+    execute: async ({ rawContent, entityLabel }) => {
+      return await extractThemes(rawContent, entityLabel);
     }
   },
 
