@@ -13,14 +13,17 @@ import {
   AlertCircle,
   Shield,
   Search,
+  Wifi,
 } from "lucide-react";
 import Link from "next/link";
 import Script from "next/script";
 import { ClubLogo } from "@/components/ClubLogo";
+import { Tweet } from "react-tweet";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { getRoundContext, type RoundContext } from "@/lib/competition-rounds";
 import { CLUBS } from "@/lib/clubs";
+import { AnimatedCounter, Sparkline, DashboardSkeleton } from "@/components/PulsePolish";
 
 declare global {
   interface Window {
@@ -199,61 +202,132 @@ function MatchdayIntelligence({ matches }: { matches: Match[] }) {
 
 // ── Agent Activity Feed ─────────────────────────────────────────────────────
 
+// ── Pulse Ticker Component ──────────────────────────────────────────────────
+
+function PulseTicker({ matches, players }: { matches: Match[], players: Player[] }) {
+  const tickerItems = useMemo(() => {
+    const items: { label: string, value: string, color: string }[] = [];
+    
+    // Add Match Pulses
+    matches.slice(0, 3).forEach(m => {
+      items.push({
+        label: 'MATCH PULSE',
+        value: `${m.homeTeam} vs ${m.awayTeam}: ${m.homeSentiment}%`,
+        color: m.homeSentiment > 70 ? 'text-emerald-400' : 'text-amber-400'
+      });
+    });
+
+    // Add Player Spikes
+    players.slice(0, 3).forEach(p => {
+      items.push({
+        label: 'PLAYER SPIKE',
+        value: `${p.name} (+${Math.floor(Math.random() * 10) + 5}% Surge)`,
+        color: 'text-primary'
+      });
+    });
+
+    // Add Trending Hashtags
+    ['#UCL', '#CmonArsenal', '#HalaMadrid', '#MiaSanMia'].forEach(tag => {
+      items.push({
+        label: 'TRENDING',
+        value: tag,
+        color: 'text-secondary'
+      });
+    });
+
+    return [...items, ...items]; // Double for seamless loop
+  }, [matches, players]);
+
+  return (
+    <div className="w-full bg-slate-950/80 backdrop-blur-md border-y border-white/5 overflow-hidden py-2.5 relative z-40">
+      <div className="flex whitespace-nowrap animate-ticker">
+        {tickerItems.map((item, i) => (
+          <div key={i} className="flex items-center gap-4 mx-8">
+            <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded bg-white/5 ${item.color}`}>
+              {item.label}
+            </span>
+            <span className="text-[11px] font-black text-foreground/90 uppercase tracking-widest">
+              {item.value}
+            </span>
+            <div className="w-1 h-1 rounded-full bg-white/10" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function AgentActivityFeed({ activities, onTrigger, isTriggering }: { activities: AgentActivity[], onTrigger: () => void, isTriggering: boolean }) {
+  const getAgentConfig = (agent: string) => {
+    switch (agent) {
+      case 'Scout':
+        return { name: 'Pulse Scout', icon: <Search className="w-3.5 h-3.5" />, color: 'text-amber-400', bg: 'bg-amber-400/10' };
+      case 'Analyst':
+        return { name: 'Arena Analyst', icon: <Activity className="w-3.5 h-3.5" />, color: 'text-emerald-400', bg: 'bg-emerald-400/10' };
+      case 'Journalist':
+        return { name: 'Arena Journalist', icon: <ExternalLink className="w-3.5 h-3.5" />, color: 'text-blue-400', bg: 'bg-blue-400/10' };
+      default:
+        return { name: 'Assistant', icon: <Shield className="w-3.5 h-3.5" />, color: 'text-primary', bg: 'bg-primary/10' };
+    }
+  };
+
+  const humanizeAction = (action: string) => {
+    return action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
   return (
     <section>
       <div className="flex items-center justify-between mb-4 px-1">
         <h3 className="text-[13px] font-black uppercase tracking-wider text-primary flex items-center gap-2">
-          <Shield className="w-4 h-4" />
-          The Brain (Autonomous)
+          <Activity className="w-4 h-4" />
+          Arena Intelligence
         </h3>
-        <button 
-          onClick={onTrigger}
-          disabled={isTriggering}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/20 hover:bg-primary hover:text-black transition-all active:scale-95 disabled:opacity-50"
-        >
-          {isTriggering ? (
-            <>
-              <RefreshCw className="w-3 h-3 animate-spin" />
-              Processing
-            </>
-          ) : (
-            <>
-              <Zap className="w-3 h-3 fill-primary" />
-              Trigger
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/60">Autonomous</span>
+        </div>
       </div>
-      <div className="glass-card shadow-xl overflow-hidden divide-y divide-border/50">
+      <div className="glass-card shadow-xl overflow-hidden divide-y divide-border/30">
         {activities.length === 0 ? (
-          <div className="p-8 text-center opacity-30">
-            <Search className="w-5 h-5 mx-auto mb-2" />
-            <p className="text-[10px] font-bold uppercase tracking-widest">Scanning Arena...</p>
+          <div className="p-10 text-center opacity-30">
+            <Search className="w-6 h-6 mx-auto mb-3" />
+            <p className="text-[11px] font-black uppercase tracking-[0.2em]">Scanning Arena...</p>
           </div>
         ) : (
-          activities.map((activity) => (
-            <div key={activity.id} className="p-4 bg-muted/5 hover:bg-muted/10 transition-colors group">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className={`text-[9px] font-black uppercase tracking-widest ${
-                  activity.agent === 'Scout' ? 'text-amber-400' : 'text-emerald-400'
-                }`}>
-                  {activity.agent} Agent
-                </span>
-                <span className="text-[8px] font-medium text-muted-foreground/40 tabular-nums uppercase">
-                  {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+          activities.map((activity) => {
+            const config = getAgentConfig(activity.agent);
+            return (
+              <div key={activity.id} className="p-5 hover:bg-muted/10 transition-all group relative">
+                <div className="flex items-center justify-between mb-3">
+                  <div className={`flex items-center gap-2 px-2 py-0.5 rounded-full ${config.bg} ${config.color}`}>
+                    {config.icon}
+                    <span className="text-[9px] font-black uppercase tracking-wider">
+                      {config.name}
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-bold text-muted-foreground/30 tabular-nums uppercase tracking-tighter">
+                    {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[13px] font-black text-foreground leading-none tracking-tight">
+                    {activity.target}
+                  </p>
+                  <p className="text-[11px] font-black text-muted-foreground/60 uppercase tracking-[0.1em] italic">
+                    {humanizeAction(activity.action)}
+                  </p>
+                </div>
+                {activity.message && (
+                  <div className="mt-3 relative">
+                    <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary/20 rounded-full" />
+                    <p className="text-[11px] text-muted-foreground/80 pl-3 leading-relaxed font-medium">
+                      {activity.message}
+                    </p>
+                  </div>
+                )}
               </div>
-              <p className="text-[12px] font-bold text-foreground leading-tight italic">
-                {activity.action.replace(/_/g, ' ')}: {activity.target.length > 20 ? activity.target.substring(0, 20) + '...' : activity.target}
-              </p>
-              {activity.message && (
-                <p className="text-[10px] text-muted-foreground/60 mt-1.5 line-clamp-2 leading-relaxed">
-                  {activity.message}
-                </p>
-              )}
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </section>
@@ -272,10 +346,67 @@ export default function FanPulseDemo() {
   const [loading, setLoading] = useState(true);
   const [isFetchingQuotes, setIsFetchingQuotes] = useState(false);
   const [isTriggeringAgent, setIsTriggeringAgent] = useState(false);
-  const [quotes, setQuotes] = useState<{team: string, handle: string, text: string, likes: string, retweets: string, pulse: string}[]>([]);
+  const [quotes, setQuotes] = useState<{team: string, handle: string, text: string, likes: string, retweets: string, pulse: string, tweetId?: string}[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [myClub, setMyClub] = useState<string | null>(null);
+  const [showClubSelect, setShowClubSelect] = useState(false);
   const { t } = useLanguage();
+
+  useEffect(() => {
+    const saved = localStorage.getItem('myClub');
+    if (saved) {
+      setMyClub(saved);
+      applyClubTheme(saved);
+    } else {
+      setTimeout(() => setShowClubSelect(true), 1500);
+    }
+  }, []);
+
+  const hexToHsl = (hex: string): { h: number; s: number; l: number } => {
+    let r = 0, g = 0, b = 0;
+    if (hex.length === 4) {
+      r = parseInt(hex[1] + hex[1], 16);
+      g = parseInt(hex[2] + hex[2], 16);
+      b = parseInt(hex[3] + hex[3], 16);
+    } else if (hex.length === 7) {
+      r = parseInt(hex.substring(1, 3), 16);
+      g = parseInt(hex.substring(3, 5), 16);
+      b = parseInt(hex.substring(5, 7), 16);
+    }
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch(max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+    return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+  };
+
+  const applyClubTheme = (clubId: string) => {
+    const club = CLUBS.find(c => c.id === clubId);
+    if (!club) return;
+    const { h, s, l } = hexToHsl(club.primaryColor);
+    // Guard: clamp lightness to max 55% so white/light clubs don't break dark UI
+    // Guard: enforce min 40% saturation so grey clubs stay vibrant
+    const safeLightness = Math.min(l, 55);
+    const safeSaturation = Math.max(s, 40);
+    document.documentElement.style.setProperty('--primary', `${h} ${safeSaturation}% ${safeLightness}%`);
+  };
+
+  const selectMyClub = (clubId: string) => {
+    localStorage.setItem('myClub', clubId);
+    setMyClub(clubId);
+    applyClubTheme(clubId);
+    setShowClubSelect(false);
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -334,60 +465,31 @@ export default function FanPulseDemo() {
     }
   }, [matches, quotes.length]);
 
-  const handleFetchQuotes = async () => {
+  const fetchSignals = async () => {
     setIsFetchingQuotes(true);
-    
-    if (matches.length > 0) {
-      try {
-        const match = matches[Math.floor(Math.random() * matches.length)];
-        const response = await fetch('/api/scrape', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'match',
-            homeTeam: match.homeTeam,
-            awayTeam: match.awayTeam,
-            hashtag: `ucl`,
-            matchId: match.id
-          })
-        });
-
-        if (!response.ok) throw new Error("Scrape failed");
-        
-        const data = await response.json();
-        
-        if (data.analysis && data.analysis.representativeQuotes && data.analysis.representativeQuotes.length > 0) {
-          const freshQuotes = data.analysis.representativeQuotes.map((q: any) => ({
-            team: match.homeTeam,
-            handle: q.handle || `@FootballGlobal`,
-            text: q.text,
-            likes: (Math.random() * 20000).toLocaleString(undefined, {maximumFractionDigits: 0}),
-            retweets: (Math.random() * 5000).toLocaleString(undefined, {maximumFractionDigits: 0}),
-            pulse: `${data.analysis.sentiment}%`
-          }));
-          setQuotes(freshQuotes);
-          
-          const [matchesRes, playersRes] = await Promise.all([
-            fetch('/api/matches'),
-            fetch('/api/players')
-          ]);
-          
-          if (matchesRes.ok) {
-            const mData = await matchesRes.json();
-            setMatches(mData.matches || []);
-          }
-          if (playersRes.ok) {
-            const pData = await playersRes.json();
-            setPlayers(Array.isArray(pData) ? pData : pData.players || []);
-          }
+    try {
+      // Just fetch the cached signals from the database
+      const res = await fetch('/api/signals');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.signals && data.signals.length > 0) {
+          setQuotes(data.signals.slice(0, 4));
         }
-      } catch (err) {
-        console.error("Fetch Live Quotes Failed", err);
-      } finally {
-        setIsFetchingQuotes(false);
       }
+    } catch (err) {
+      console.error("Failed to fetch signals:", err);
+    } finally {
+      setIsFetchingQuotes(false);
     }
   };
+
+  // Poll for new signals every 2 minutes
+  useEffect(() => {
+    fetchSignals(); // Initial fetch
+    const interval = setInterval(fetchSignals, 120000);
+    return () => clearInterval(interval);
+  }, []);
+
 
   const handleTriggerBrain = async () => {
     setIsTriggeringAgent(true);
@@ -412,9 +514,23 @@ export default function FanPulseDemo() {
 
   // ── Derived Data ───────────────────────────────────────────────────────────
   const featuredMatch = useMemo(() => {
-    const finished = matches.filter(m => m.status === 'finished');
-    return finished.length > 0 ? finished[0] : matches[0];
-  }, [matches]);
+    let sortedMatches = [...matches];
+    if (myClub) {
+      const clubObj = CLUBS.find(c => c.id === myClub);
+      if (clubObj) {
+         const clubName = clubObj.shortName;
+         sortedMatches.sort((a, b) => {
+           const aIsMyClub = a.homeTeam === clubName || a.awayTeam === clubName;
+           const bIsMyClub = b.homeTeam === clubName || b.awayTeam === clubName;
+           if (aIsMyClub && !bIsMyClub) return -1;
+           if (!aIsMyClub && bIsMyClub) return 1;
+           return 0;
+         });
+      }
+    }
+    const finished = sortedMatches.filter(m => m.status === 'finished');
+    return finished.length > 0 ? finished[0] : sortedMatches[0];
+  }, [matches, myClub]);
 
   const upcomingMatches = useMemo(() => {
     return matches
@@ -440,20 +556,7 @@ export default function FanPulseDemo() {
 
   // ── Loading State ──────────────────────────────────────────────────────────
   if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6">
-        <div className="relative flex items-center justify-center">
-          <div className="absolute inset-0 w-20 h-20 bg-primary/30 blur-[40px] rounded-full animate-pulse" />
-          <Activity className="w-10 h-10 text-primary animate-spin relative z-10" />
-        </div>
-        <p className="text-white text-lg font-black tracking-tight animate-pulse">
-          Loading Fan Pulse…
-        </p>
-        <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.3em]">
-          Connecting to the Electric Arena
-        </p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // ── Derived Data ───────────────────────────────────────────────────────────
@@ -462,9 +565,12 @@ export default function FanPulseDemo() {
     .slice(0, 6);
 
   return (
-    <div className="px-4 md:px-8 py-5 max-w-md md:max-w-full mx-auto min-h-screen pb-24 md:pb-12 space-y-6 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
-      {/* ── LEFT COLUMN ──────────────────────────────────────────────── */}
-      <div className="lg:col-span-8 space-y-6">
+    <div className="flex flex-col min-h-screen bg-arena">
+      <PulseTicker matches={matches} players={players} />
+      
+      <div className="px-4 md:px-8 py-8 max-w-md md:max-w-full mx-auto pb-24 md:pb-12 space-y-6 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
+        {/* ── LEFT COLUMN ──────────────────────────────────────────────── */}
+        <div className="lg:col-span-8 space-y-6">
       
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="relative">
@@ -504,7 +610,7 @@ export default function FanPulseDemo() {
 
       {/* ── 1. Dynamic Club Mood Card ────────────────────────────────────── */}
       {featuredMatch && (
-        <div className="glass-card flex flex-col sm:flex-row items-center justify-between p-6 relative overflow-hidden bg-gradient-to-br from-card/80 to-muted/30 border-primary/20 shadow-xl group hover:border-primary/40 transition-all min-h-[160px] gap-8">
+        <Link href={`/match/${featuredMatch.id}`} className="block glass-card flex flex-col sm:flex-row items-center justify-between p-6 relative overflow-hidden bg-gradient-to-br from-card/80 to-muted/30 border-primary/20 shadow-xl group hover:border-primary/40 transition-all min-h-[160px] gap-8">
           <div className="absolute top-0 left-0 w-2 h-full bg-primary rounded-l-2xl shadow-[0_0_20px_rgba(var(--primary),0.6)] z-20" />
           <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-7 relative z-10 flex-1 w-full sm:w-auto">
             <div className="relative shrink-0 flex justify-center">
@@ -541,7 +647,7 @@ export default function FanPulseDemo() {
             </span>
             <div className="flex flex-col items-center">
               <span className="text-foreground font-black text-3xl leading-tight tabular-nums tracking-tight">
-                {featuredMatch.homeSentiment}%
+                <AnimatedCounter value={featuredMatch.homeSentiment} />
               </span>
               <span className="text-[10px] font-bold mt-1" style={{ color: getSentimentColor(featuredMatch.homeSentiment) }}>
                 {getSentimentLabel(featuredMatch.homeSentiment)}
@@ -575,7 +681,7 @@ export default function FanPulseDemo() {
               </div>
             )}
           </div>
-        </div>
+        </Link>
       )}
 
       {/* ── 2. Trending Pulse (Live Momentum) ────────────────────────────── */}
@@ -594,9 +700,10 @@ export default function FanPulseDemo() {
         </div>
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none snap-x">
           {matches.slice(0, 6).map((match, i) => (
-            <div
+            <Link
               key={match.id}
-              className="glass-card flex items-center gap-3 px-5 py-4 min-w-[200px] animate-fade-up snap-center bg-muted/20 hover:bg-muted/40 transition-colors"
+              href={`/match/${match.id}`}
+              className="block glass-card flex items-center gap-3 px-5 py-4 min-w-[200px] animate-fade-up snap-center bg-muted/20 hover:bg-muted/40 transition-colors"
               style={{ animationDelay: `${i * 100}ms` }}
             >
               <div className="relative">
@@ -630,7 +737,7 @@ export default function FanPulseDemo() {
                   </span>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>
@@ -688,6 +795,82 @@ export default function FanPulseDemo() {
         onTrigger={handleTriggerBrain}
         isTriggering={isTriggeringAgent}
       />
+
+      {/* ── Tactical Signal Cards (AI Intercepts) ─────────────────────── */}
+      <section>
+        <div className="flex items-center justify-between mb-4 px-1">
+          <h3 className="text-[15px] font-black uppercase tracking-wider text-primary flex items-center gap-2">
+            <Wifi className="w-5 h-5 text-primary animate-pulse" />
+            Intercepted Signals
+          </h3>
+        </div>
+        
+        <div className="space-y-4">
+          {quotes.length === 0 ? (
+            <div className="glass-card p-6 flex flex-col items-center justify-center text-center opacity-50">
+              <Wifi className="w-8 h-8 text-muted-foreground mb-2" />
+              <p className="text-[12px] font-bold text-muted-foreground uppercase tracking-widest">Awaiting Signals</p>
+            </div>
+          ) : (
+            quotes.map((quote, idx) => (
+              <div key={idx} className="glass-card relative overflow-hidden group hover:border-primary/30 transition-all">
+                {/* Background Glow */}
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 blur-[40px] rounded-full pointer-events-none group-hover:bg-primary/10 transition-colors" />
+                
+                <div className="p-5 pb-2">
+                  <div className="flex justify-between items-start mb-3 relative z-10">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px]">
+                        🤖
+                      </div>
+                      <div>
+                        <a 
+                          href={`https://x.com/${quote.handle.replace('@', '')}`}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-[12px] font-black text-foreground hover:text-primary transition-colors flex items-center gap-1 group/link"
+                        >
+                          {quote.handle}
+                          <ExternalLink className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                        </a>
+                        <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{quote.team} Intel</p>
+                      </div>
+                    </div>
+                    <div className="px-2 py-0.5 rounded text-[10px] font-black bg-primary/20 text-primary uppercase tracking-widest border border-primary/20">
+                      Pulse: {quote.pulse}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="px-5 pb-5">
+                  <div className="relative mb-4">
+                    <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary/40 rounded-full" />
+                    <p className="pl-4 text-[13px] font-medium leading-relaxed text-foreground/90 italic">
+                      "{quote.text}"
+                    </p>
+                  </div>
+
+                  {quote.tweetId && (
+                    <div className="mt-2 pt-4 border-t border-border/10 dark-tweet-container">
+                      <div className="flex items-center gap-2 mb-3 px-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Verified Signal Source</span>
+                      </div>
+                      <Tweet id={quote.tweetId} />
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest border-t border-border/40 pt-3 relative z-10">
+                    <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> {quote.likes}</span>
+                    <span className="flex items-center gap-1"><RefreshCw className="w-3 h-3" /> {quote.retweets}</span>
+                  </div>
+                </div>
+
+              </div>
+            ))
+          )}
+        </div>
+      </section>
 
       {/* ── 4. Player Pulse Rankings ──────────────────────────────────────── */}
       {players.length > 0 && (
@@ -879,118 +1062,122 @@ export default function FanPulseDemo() {
                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-1 block">Live 𝕏 Intelligence</span>
              </div>
            </div>
-           <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleFetchQuotes}
-              disabled={isFetchingQuotes}
-              className="h-8 rounded-xl font-black text-[10px] uppercase tracking-widest border-primary/20 text-primary hover:bg-primary/10 transition-colors active:scale-95 disabled:opacity-50"
-            >
-              {isFetchingQuotes ? 'Syncing...' : 'Fetch Quotes'}
-            </Button>
          </div>
 
-         <div className="w-full max-h-[500px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent pb-4">
-           {featuredMatch ? (
-             [
-                 {
-                   team: featuredMatch.homeTeam,
-                   handle: "@ArenaAnalyst",
-                   sentiment: featuredMatch.homeSentiment,
-                   isHome: true,
-                   text: `The energy around ${featuredMatch.homeTeam} right now is incredible! Tactics are spot on and the stadium is shaking. We are witnessing an absolute masterclass. ⚽️🔥 #${featuredMatch.homeTeam.replace(/\s+/g, '')}`
-                 },
-                 {
-                   team: featuredMatch.awayTeam,
-                   handle: "@AwayDaysUltra",
-                   sentiment: featuredMatch.awaySentiment,
-                   isHome: false,
-                   text: `Tough match for ${featuredMatch.awayTeam}, but the away end is still bouncing! We need to push forward and get back into this game. Believe! 🛡️⚔️ #${featuredMatch.awayTeam.replace(/\s+/g, '')}`
-                 },
-                 {
-                   team: "Pulse Arena",
-                   handle: "@FanPulseOfficial",
-                   sentiment: Math.round((featuredMatch.homeSentiment + featuredMatch.awaySentiment) / 2),
-                   isHome: true,
-                   text: `What a match this is turning out to be. ${featuredMatch.homeTeam} vs ${featuredMatch.awayTeam} never disappoints. Absolute cinema! 📽️🍿 #UCL`
-                 }
-             ].map((quote, idx) => {
-                 const matchDate = new Date(featuredMatch.date);
-                 const since = matchDate.toISOString().split('T')[0];
-                 const untilDate = new Date(matchDate.getTime() + (2 * 24 * 60 * 60 * 1000));
-                 const until = untilDate.toISOString().split('T')[0];
-                 
-                 let query = `${quote.team === "Pulse Arena" ? featuredMatch.homeTeam : quote.team} since:${since} until:${until}`;
-                 if (idx === 2) {
-                   query = `"${featuredMatch.homeTeam}" "${featuredMatch.awayTeam}" since:${since} until:${until}`;
-                 }
-                 const searchUrl = `https://twitter.com/search?q=${encodeURIComponent(query)}&f=live`;
+         <div className="w-full max-h-[600px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent pb-4">
+            {quotes.length > 0 ? (
+              quotes.map((quote, idx) => (
+                <div key={idx} className="glass-card relative overflow-hidden group hover:border-primary/30 transition-all">
+                  <div className="p-4 pb-2 border-b border-white/5 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                       <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Verified Source</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="px-2 py-0.5 rounded-full text-[9px] font-black bg-primary/20 text-primary uppercase tracking-widest border border-primary/20">
+                        {quote.pulse}
+                      </div>
+                    </div>
+                  </div>
 
-                 return (
-                   <a 
-                     href={searchUrl}
-                     target="_blank"
-                     rel="noopener noreferrer"
-                     key={idx}
-                     className="glass-card p-0 overflow-hidden relative group border-border/60 hover:border-primary/40 transition-all shadow-xl hover:-translate-y-1 block"
-                   >
-                     <div className="p-3 bg-muted/40 border-b border-border/50 flex items-center justify-between">
+                  {quote.tweetId ? (
+                    <div className="px-2 py-2 dark-tweet-container">
+                      <Tweet id={quote.tweetId} />
+                    </div>
+                  ) : (
+                    <div className="p-5">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center text-lg border border-white/10 shadow-inner">
+                             ⚽
+                           </div>
+                           <div>
+                             <h4 className="text-[13px] font-black text-foreground uppercase tracking-tight leading-none mb-1">{quote.team} Intel</h4>
+                             <p className="text-[11px] text-muted-foreground font-bold">{quote.handle}</p>
+                           </div>
+                        </div>
+                      </div>
+                      <p className="text-[14px] text-foreground/90 font-medium leading-relaxed italic mb-4">
+                        "{quote.text}"
+                      </p>
+                      <div className="flex items-center gap-4 pt-3 border-t border-white/5 text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">
+                        <span className="flex items-center gap-1.5"><Zap className="w-3 h-3 text-primary" /> {quote.likes}</span>
+                        <span className="flex items-center gap-1.5"><RefreshCw className="w-3 h-3 text-secondary" /> {quote.retweets}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : featuredMatch ? (
+             [
+                  {
+                    team: featuredMatch.homeTeam,
+                    handle: "@ArenaAnalyst",
+                    sentiment: featuredMatch.homeSentiment,
+                    isHome: true,
+                    text: `The energy around ${featuredMatch.homeTeam} right now is incredible! Tactics are spot on and the stadium is shaking. We are witnessing an absolute masterclass. ⚽️🔥 #${featuredMatch.homeTeam.replace(/\s+/g, '')}`
+                  },
+                  {
+                    team: featuredMatch.awayTeam,
+                    handle: "@AwayDaysUltra",
+                    sentiment: featuredMatch.awaySentiment,
+                    isHome: false,
+                    text: `Tough match for ${featuredMatch.awayTeam}, but the away end is still bouncing! We need to push forward and get back into this game. Believe! 🛡️⚔️ #${featuredMatch.awayTeam.replace(/\s+/g, '')}`
+                  }
+              ].map((quote, idx) => {
+                  const matchDate = new Date(featuredMatch.date);
+                  const since = matchDate.toISOString().split('T')[0];
+                  const untilDate = new Date(matchDate.getTime() + (2 * 24 * 60 * 60 * 1000));
+                  const until = untilDate.toISOString().split('T')[0];
+                  
+                  const query = `${quote.team} since:${since} until:${until}`;
+                  const searchUrl = `https://twitter.com/search?q=${encodeURIComponent(query)}&f=live`;
+
+                  return (
+                    <div key={idx} className="glass-card relative overflow-hidden group hover:border-primary/30 transition-all">
+                       <div className="p-4 pb-2 border-b border-white/5 flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                           <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Verified Source</span>
+                           <div className="w-2 h-2 rounded-full bg-primary/40" />
+                           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Historical Intel</span>
                         </div>
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary group-hover:bg-primary group-hover:text-black transition-colors">
-                           <span className="text-[9px] font-black uppercase tracking-wider">𝕏 LIVE FEED</span>
-                           <ExternalLink className="w-3 h-3" />
+                        <a href={searchUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[9px] font-black text-primary uppercase hover:underline">
+                           X Source <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                      
+                      <div className="p-5">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center gap-3">
+                             <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-lg border border-white/10">
+                               <ClubLogo club={quote.team} size={28} showName={false} />
+                             </div>
+                             <div>
+                               <h4 className="text-[13px] font-black text-foreground uppercase tracking-tight leading-none mb-1">{quote.team}</h4>
+                               <p className="text-[11px] text-muted-foreground font-bold">{quote.handle}</p>
+                             </div>
+                          </div>
+                          <div className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
+                            {quote.sentiment}% Pulse
+                          </div>
                         </div>
-                     </div>
-                     <div className="p-5 relative">
-                        <div className="flex items-center justify-between mb-3">
-                           <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center font-black shadow-md border border-border overflow-hidden">
-                                <ClubLogo club={quote.team === "Pulse Arena" ? featuredMatch.homeTeam : quote.team} size={28} showName={false} />
-                              </div>
-                              <div>
-                                 <p className="text-[13px] font-bold text-foreground leading-none">{quote.team} Ultras</p>
-                                 <p className="text-[10px] font-medium text-muted-foreground mt-0.5">{quote.handle}</p>
-                              </div>
-                           </div>
-                           <div className="w-5 h-5 rounded-full bg-foreground flex items-center justify-center text-background text-[11px] font-black">
-                             𝕏
-                           </div>
-                        </div>
-                        <p className="text-[15px] font-medium text-foreground leading-snug mb-4 tracking-tight border-l-2 border-primary/40 pl-4 py-1">
-                          {quote.text}
+                        <p className="text-[14px] text-foreground/90 font-medium leading-relaxed italic mb-4">
+                          "{quote.text}"
                         </p>
-                        <div className="flex items-center justify-between opacity-60">
-                           <p className="text-[10px] uppercase font-bold text-muted-foreground">
-                             MATCH DAY · Live Report
-                           </p>
-                           <div className="flex gap-4">
-                              <div className="flex items-center gap-1.5">
-                                 <ThumbsUp className="w-3.5 h-3.5 hover:text-primary transition-colors cursor-pointer" />
-                                 <span className="text-[10px] font-black tabular-nums">{(quote.sentiment * 142).toLocaleString()}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                 <Share2 className="w-3.5 h-3.5 hover:text-primary transition-colors cursor-pointer" />
-                                 <span className="text-[10px] font-black tabular-nums">{(quote.sentiment * 31).toLocaleString()}</span>
-                              </div>
-                           </div>
+                        <div className="flex items-center gap-4 pt-3 border-t border-white/5 text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">
+                          <span className="flex items-center gap-1.5"><Zap className="w-3 h-3 text-primary" /> 14.2K</span>
+                          <span className="flex items-center gap-1.5"><RefreshCw className="w-3 h-3 text-secondary" /> 3.1K</span>
                         </div>
-                     </div>
-                     <div className="px-5 py-3 bg-muted/20 border-t border-border/50 flex items-center justify-between">
-                       <SentimentBadge score={Math.min(99, quote.sentiment + 5)} />
-                       <span className="text-[8px] font-black uppercase tracking-[0.4em] opacity-40">Arena Verified</span>
-                     </div>
-                   </a>
-                 );
-             })
-           ) : (
-             <div className="p-8 text-center bg-muted/10 rounded-2xl border border-dashed border-border flex flex-col items-center">
-                <Zap className="w-6 h-6 text-muted-foreground opacity-30 mb-2" />
-                <span className="text-[11px] font-black uppercase text-muted-foreground">Scanning for pulses...</span>
-             </div>
-           )}
+                      </div>
+                    </div>
+                  );
+              })
+            ) : (
+              <div className="glass-card p-10 flex flex-col items-center justify-center text-center opacity-50 border-dashed">
+                <Wifi className="w-10 h-10 text-muted-foreground mb-4 animate-pulse" />
+                <p className="text-[12px] font-black text-muted-foreground uppercase tracking-[0.3em]">Scanners Active</p>
+                <p className="text-[10px] text-muted-foreground/60 uppercase font-bold mt-2">Awaiting social intercepts...</p>
+              </div>
+            )}
          </div>
       </section>
 
@@ -1036,11 +1223,22 @@ export default function FanPulseDemo() {
                     </div>
                   </div>
                 </div>
-                <div className="text-right shrink-0 border-l-2 border-border/20 pl-8 h-full flex flex-col justify-center gap-1">
+                <div className="text-right shrink-0 border-l-2 border-border/20 pl-8 h-full flex flex-col justify-center gap-1.5">
                   <div className="text-[18px] font-black tabular-nums leading-none" style={{ color: getSentimentColor(match.homeSentiment) }}>
                     {getSentimentEmoji(match.homeSentiment)}{" "}
-                    {match.homeSentiment}%
+                    <AnimatedCounter value={match.homeSentiment} />
                   </div>
+                  <Sparkline
+                    data={[
+                      Math.max(20, match.homeSentiment - 15 + Math.floor(match.homeTeam.length * 2)),
+                      Math.max(20, match.homeSentiment - 8),
+                      Math.max(20, match.homeSentiment - 3 + Math.floor(match.awayTeam.length)),
+                      Math.max(20, match.homeSentiment + 5),
+                      match.homeSentiment
+                    ]}
+                    width={50}
+                    height={16}
+                  />
                   <div className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/20">
                     Home Pulse
                   </div>
@@ -1064,7 +1262,38 @@ export default function FanPulseDemo() {
         </div>
       )}
 
+      {/* ── My Club Selection Modal ── */}
+      {showClubSelect && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-background/90 backdrop-blur-xl animate-in fade-in duration-500">
+          <div className="glass-card max-w-lg w-full p-8 shadow-2xl border-primary/30 flex flex-col items-center text-center max-h-[90vh] overflow-y-auto custom-scrollbar">
+             <Shield className="w-12 h-12 text-primary mb-4 animate-pulse shrink-0" />
+             <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-2">Select Your Arena</h2>
+             <p className="text-muted-foreground text-sm font-medium mb-8">Personalize your Fan Pulse experience. We'll prioritize your club's signals and theme your dashboard.</p>
+             
+             <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 w-full mb-8">
+               {CLUBS.map(club => (
+                 <button 
+                   key={club.id}
+                   onClick={() => selectMyClub(club.id)}
+                   className="flex flex-col items-center gap-3 p-4 rounded-2xl hover:bg-white/5 border border-transparent hover:border-white/10 transition-all group"
+                 >
+                   <div className="w-14 h-14 rounded-full bg-background border border-border shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform p-2">
+                     <ClubLogo club={club.name} size={40} showName={false} />
+                   </div>
+                   <span className="text-[10px] font-black uppercase tracking-widest">{club.shortName}</span>
+                 </button>
+               ))}
+             </div>
+             
+             <button onClick={() => setShowClubSelect(false)} className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground">
+               Skip for now
+             </button>
+          </div>
+        </div>
+      )}
+
       </div>
     </div>
-  );
+  </div>
+);
 }

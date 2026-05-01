@@ -82,20 +82,51 @@ function buildMultiLanguageQuery(playerName: string, teamName: string): string {
 /**
  * Scrapes player sentiment from X.com with optional date filtering.
  */
-export async function scrapePlayerSentiment(playerName: string, teamName: string, date?: string) {
+export async function scrapePlayerSentiment(
+  playerName: string, 
+  teamName: string, 
+  date?: string,
+  sources?: any[]
+) {
   try {
-    let query = buildMultiLanguageQuery(playerName, teamName);
+    let baseQuery = buildMultiLanguageQuery(playerName, teamName);
+    let query = baseQuery;
     
+    // Override default query if specific sources are provided
+    if (sources && sources.length > 0) {
+      const sourceQueries = sources.map(source => {
+        if (source.type === 'ACCOUNT' && source.account) {
+          const handle = source.account.startsWith('@') ? source.account.slice(1) : source.account;
+          return `from:${handle}`;
+        }
+        if (source.type === 'HASHTAG' && source.hashtag) {
+          return source.hashtag.startsWith('#') ? source.hashtag : `#${source.hashtag}`;
+        }
+        return '';
+      }).filter(Boolean);
+      
+      if (sourceQueries.length > 0) {
+        query = `(${sourceQueries.join(' OR ')}) AND (${baseQuery})`;
+      }
+    }
+
     if (date) {
       const matchDate = new Date(date);
-      const since = matchDate.toISOString().split('T')[0];
+      
+      const sinceDate = new Date(matchDate);
+      sinceDate.setDate(sinceDate.getDate() - 2); 
+      const since = sinceDate.toISOString().split('T')[0];
+      
       const untilDate = new Date(matchDate);
       untilDate.setDate(untilDate.getDate() + 1);
       const until = untilDate.toISOString().split('T')[0];
+      
       query = `(${query}) since:${since} until:${until}`;
     }
 
-    const searchUrl = `https://x.com/search?q=${encodeURIComponent(query)}&f=live`;
+    query += ` min_faves:50 min_retweets:5`;
+
+    const searchUrl = `https://x.com/search?q=${encodeURIComponent(query)}`;
     console.log('Scraping URL:', searchUrl);
     
     const result = await firecrawl.v1.search(query, {
@@ -118,7 +149,6 @@ export async function scrapePlayerSentiment(playerName: string, teamName: string
       timestamp: new Date().toISOString()
     };
   } catch (error) {
-    console.error('Firecrawl error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -126,23 +156,115 @@ export async function scrapePlayerSentiment(playerName: string, teamName: string
   }
 }
 
+
+
+/**
+ * Scrapes broad club sentiment and top tweets of the day.
+ */
+export async function scrapeClubSentiment(clubName: string, sources?: any[]) {
+  try {
+    let query = `"${clubName}"`;
+    
+    // Add trusted sources if provided
+    if (sources && sources.length > 0) {
+      const sourceQueries = sources.map(source => {
+        if (source.type === 'ACCOUNT' && source.account) {
+          const handle = source.account.startsWith('@') ? source.account.slice(1) : source.account;
+          return `from:${handle}`;
+        }
+        return '';
+      }).filter(Boolean);
+      
+      if (sourceQueries.length > 0) {
+        query = `(${sourceQueries.join(' OR ')}) AND "${clubName}"`;
+      }
+    }
+
+    // Target the last 24-48 hours
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const since = yesterday.toISOString().split('T')[0];
+    query += ` since:${since}`;
+
+    // Engagement filters for "Top Tweets"
+    query += ` min_faves:200 min_retweets:20`;
+
+    const searchUrl = `https://x.com/search?q=${encodeURIComponent(query)}`;
+    console.log('Scraping Club URL:', searchUrl);
+    
+    const result = await firecrawl.v1.search(query, {
+      limit: 8,
+      scrapeOptions: { formats: ['markdown'] }
+    });
+
+    const combinedContent = result.data
+      .map((d: any) => `[TWEET_URL: ${d.url || ''}]\n${d.markdown || d.content || ''}`)
+      .join('\n\n---\n\n');
+
+    return {
+      success: true,
+      content: combinedContent,
+      url: searchUrl,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('Firecrawl Club Error:', error);
+    return { success: false, error: String(error) };
+  }
+}
+
 /**
  * Scrapes match sentiment from X.com with optional date filtering.
  */
-export async function scrapeMatchSentiment(homeTeam: string, awayTeam: string, hashtag: string, date?: string) {
+export async function scrapeMatchSentiment(
+  homeTeam: string, 
+  awayTeam: string, 
+  hashtag: string, 
+  date?: string,
+  sources?: any[]
+) {
   try {
     let query = `("${homeTeam}" AND "${awayTeam}") OR "${hashtag}" OR #${homeTeam.replace(/\s+/g, '')} OR #${awayTeam.replace(/\s+/g, '')}`;
     
+    // Override default query if specific sources are provided
+    if (sources && sources.length > 0) {
+      const sourceQueries = sources.map(source => {
+        if (source.type === 'ACCOUNT' && source.account) {
+          const handle = source.account.startsWith('@') ? source.account.slice(1) : source.account;
+          return `from:${handle}`;
+        }
+        if (source.type === 'HASHTAG' && source.hashtag) {
+          return source.hashtag.startsWith('#') ? source.hashtag : `#${source.hashtag}`;
+        }
+        return '';
+      }).filter(Boolean);
+      
+      if (sourceQueries.length > 0) {
+        // Find tweets from trusted sources that mention the match teams or hashtag
+        query = `(${sourceQueries.join(' OR ')}) AND ("${homeTeam}" OR "${awayTeam}" OR "${hashtag}")`;
+      }
+    }
+
     if (date) {
       const matchDate = new Date(date);
-      const since = matchDate.toISOString().split('T')[0];
+      
+      // Look back 48 hours from the match date for a broader context of popular tweets
+      const sinceDate = new Date(matchDate);
+      sinceDate.setDate(sinceDate.getDate() - 2); 
+      const since = sinceDate.toISOString().split('T')[0];
+      
       const untilDate = new Date(matchDate);
-      untilDate.setDate(untilDate.getDate() + 1);
+      untilDate.setDate(untilDate.getDate() + 1); // Up to the day after the match
       const until = untilDate.toISOString().split('T')[0];
+      
       query += ` since:${since} until:${until}`;
     }
 
-    const searchUrl = `https://x.com/search?q=${encodeURIComponent(query)}&f=live`;
+    // Add engagement filters to guarantee high-interaction tweets from popular accounts
+    query += ` min_faves:100 min_retweets:10`;
+
+    // Remove &f=live to target the 'Top' algorithm instead of 'Latest'
+    const searchUrl = `https://x.com/search?q=${encodeURIComponent(query)}`;
     console.log('Scraping URL:', searchUrl);
     
     const result = await firecrawl.v1.search(query, {

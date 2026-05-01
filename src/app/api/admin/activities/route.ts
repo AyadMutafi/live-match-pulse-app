@@ -3,8 +3,15 @@ import { db } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+
     const activities = await db.agentActivity.findMany({
-      take: 10,
+      where: {
+        timestamp: {
+          gte: fortyEightHoursAgo
+        }
+      },
+      take: 15,
       orderBy: { timestamp: 'desc' }
     });
 

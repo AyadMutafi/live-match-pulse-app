@@ -375,6 +375,15 @@
   box-shadow: 0 0 24px hsl(var(--primary) / 0.25), 0 0 8px hsl(var(--primary) / 0.15);
 }
 
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-ticker {
+  animation: ticker 30s linear infinite;
+}
+
 .glow-gold {
   box-shadow: 0 0 24px #fcc02540, 0 0 8px #fcc02520;
 }

@@ -9,6 +9,7 @@ import { ShareButton } from '@/components/ShareButton'
 import { Button } from '@/components/ui/button'
 import { CLUBS, findClub } from '@/lib/clubs'
 import { getRoundContext, type RoundContext } from '@/lib/competition-rounds'
+import { Tweet } from 'react-tweet'
 
 // ── Constants ──────────────────────────────────────────────────
 const CORE_CLUBS = CLUBS.map(c => c.name).concat(
@@ -374,6 +375,107 @@ function RoundContextPanel({ ctx }: { ctx: RoundContext }) {
   )
 }
 
+// ── Club Daily Pulse ──────────────────────────────────────────
+function ClubDailyPulse() {
+  const [activeClub, setActiveClub] = useState<string>('PSG')
+  const [signals, setSignals] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const priorityClubs = [
+    { id: 'psg', name: 'PSG' },
+    { id: 'arsenal', name: 'Arsenal' },
+    { id: 'atletico-madrid', name: 'Atlético' },
+    { id: 'bayern-munich', name: 'Bayern' },
+    { id: 'barcelona', name: 'Barcelona' },
+    { id: 'real-madrid', name: 'Madrid' },
+    { id: 'man-city', name: 'Man City' }
+  ]
+
+  useEffect(() => {
+    setLoading(true)
+    fetch(`/api/signals/clubs?clubId=${activeClub}`)
+      .then(res => res.json())
+      .then(data => {
+        setSignals(data.signals || [])
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [activeClub])
+
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-2">
+        {priorityClubs.map(c => (
+          <button
+            key={c.id}
+            onClick={() => setActiveClub(c.name)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all shrink-0 ${
+              activeClub === c.name 
+                ? 'bg-foreground text-background border-foreground shadow-lg scale-105' 
+                : 'bg-muted/10 text-muted-foreground border-border/40 hover:bg-muted/20'
+            }`}
+          >
+            <ClubLogo club={c.name} size={20} showName={false} />
+            <span className="text-[10px] font-black uppercase tracking-widest">{c.name}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {loading ? (
+          Array(3).fill(0).map((_, i) => (
+            <div key={i} className="glass-card h-[400px] animate-pulse flex flex-col p-6 space-y-4">
+              <div className="h-4 w-1/2 bg-muted/40 rounded-full" />
+              <div className="flex-1 bg-muted/20 rounded-2xl" />
+            </div>
+          ))
+        ) : signals.length === 0 ? (
+          <div className="col-span-full py-12 text-center glass-card border-dashed">
+            <Activity className="w-8 h-8 mx-auto mb-2 opacity-20" />
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-40">No priority signals captured yet</p>
+          </div>
+        ) : (
+          signals.map(s => (
+            <div key={s.id} className="glass-card p-4 hover:shadow-2xl transition-all border-primary/10 hover:border-primary/30">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs">⭐</div>
+                  <div>
+                    <p className="text-[10px] font-black text-foreground uppercase tracking-tight">{s.handle}</p>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase">{activeClub} High Impact</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">
+                  <Flame className="w-3 h-3" />
+                  <span className="text-[9px] font-black tracking-tighter">{s.pulse}%</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 p-4 bg-background/50 border border-border/30 rounded-2xl">
+                <div className="relative">
+                  <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary/40 rounded-full" />
+                  <p className="pl-4 text-[13px] font-medium leading-relaxed text-foreground/90 italic">
+                    "{s.text}"
+                  </p>
+                </div>
+                {s.tweetId && (
+                  <div className="mt-2 pt-4 border-t border-border/10 light-tweet-theme">
+                    <div className="flex items-center gap-2 mb-2 px-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Verified Signal Source</span>
+                    </div>
+                    <Tweet id={s.tweetId} />
+                  </div>
+                )}
+              </div>
+
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main Content ───────────────────────────────────────────────
 function SentimentsContent() {
   const searchParams = useSearchParams()
@@ -397,10 +499,16 @@ function SentimentsContent() {
       .then(data => {
         const matchesArray = data.matches || []
         // Only keep matches for CORE_CLUBS, or matches where findClub returns a valid mapping
-        const filtered = matchesArray.map((m: any) => ({
-          ...m,
-          round: m.round || "Champions League" // Fallback since round was removed from schema
-        }))
+        const filtered = matchesArray.map((m: any) => {
+          let assignedRound = "Matchday 33";
+          if (m.league.includes('Champions') || m.league.includes('UCL')) {
+            assignedRound = "Semi-Finals";
+          }
+          return {
+            ...m,
+            round: m.round || assignedRound
+          };
+        })
         setAllMatches(filtered)
         setLoading(false)
       })
@@ -636,6 +744,21 @@ function SentimentsContent() {
           ))
         )}
       </div>
+
+      {/* ─── Club Daily Pulse (Top 7 Clubs) ─── */}
+      <section className="relative z-10 pt-8 border-t border-border/40">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-2xl font-black tracking-tighter uppercase italic">Club Daily <span className="text-primary">Pulse</span></h3>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Top signals for elite partners</p>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20">
+            <span className="text-primary text-xs">⭐</span>
+            <span className="text-[9px] font-black text-primary uppercase tracking-wider">Priority Feed</span>
+          </div>
+        </div>
+        <ClubDailyPulse />
+      </section>
 
       {/* Footer */}
       <div className="flex items-center justify-center gap-2 py-6 opacity-40 relative z-10">

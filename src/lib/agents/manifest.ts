@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { scrapePlayerSentiment, scrapeMatchSentiment, scrapeFromSource } from '@/lib/firecrawl';
+import { scrapePlayerSentiment, scrapeMatchSentiment, scrapeFromSource, scrapeClubSentiment } from '@/lib/firecrawl';
 import { analyzeSentimentWithAI } from '@/lib/ai-analysis';
 import { extractThemes } from '@/lib/theme-extractor';
 import { scrapeWithGrok } from '@/lib/grok-scraper';
@@ -54,10 +54,16 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
         select: { id: true, name: true, team: true, lastUpdated: true, sentiment: true }
       });
 
+      const top7Clubs = [
+        'PSG', 'Arsenal', 'Atlético Madrid', 'Bayern Munich', 
+        'FC Barcelona', 'Real Madrid', 'Manchester City'
+      ];
+
       return {
         liveMatches,
         upcomingMatches,
         trendingPlayers,
+        top7Clubs,
         timestamp: new Date().toISOString()
       };
     }
@@ -68,46 +74,32 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
    */
   scrape_social_data: {
     name: 'scrape_social_data',
-    description: 'Fetches raw social media content for a player or match from X.com.',
+    description: 'Fetches raw social media content for a player, match, or club from X.com.',
     parameters: {
       type: 'object',
       properties: {
-        entityType: { type: 'string', enum: ['player', 'match'] },
-        entityId: { type: 'string', description: 'DB ID for persistence check.' },
+        entityType: { type: 'string', enum: ['player', 'match', 'club'] },
+        entityId: { type: 'string', description: 'DB ID or Name for persistence check.' },
         query: { type: 'string', description: 'Override query (e.g. hashtag).' }
       },
       required: ['entityType', 'entityId']
     },
     execute: async ({ entityType, entityId, query: overrideQuery }) => {
+      const activeSources = await db.dataSource.findMany({ where: { isActive: true } });
+
       if (entityType === 'player') {
         const player = await db.player.findUnique({ where: { id: entityId } });
         if (!player) return { error: 'Player not found' };
-
-        let result;
-        if (process.env.XAI_API_KEY) {
-          result = await scrapeWithGrok(player.name, player.team);
-          if (result.success) return result;
-        }
-
-        result = await scrapePlayerSentiment(player.name, player.team);
-        if (result.success) return result;
-
-        return await mineLocalSentiment(`${player.name} ${player.team}`, player.name);
-      } else {
+        return await scrapePlayerSentiment(player.name, player.team, undefined, activeSources);
+      } else if (entityType === 'match') {
         const match = await db.match.findUnique({ where: { id: entityId } });
         if (!match) return { error: 'Match not found' };
-
-        let result;
-        if (process.env.XAI_API_KEY) {
-          result = await scrapeWithGrok(`${match.homeTeam} vs ${match.awayTeam}`, overrideQuery || 'live match');
-          if (result.success) return result;
-        }
-
-        result = await scrapeMatchSentiment(match.homeTeam, match.awayTeam, overrideQuery || '#FanPulse');
-        if (result.success) return result;
-
-        return await mineLocalSentiment(`${match.homeTeam} vs ${match.awayTeam}`, `${match.homeTeam} vs ${match.awayTeam}`);
+        return await scrapeMatchSentiment(match.homeTeam, match.awayTeam, overrideQuery || '#FanPulse', undefined, activeSources);
+      } else if (entityType === 'club') {
+        // entityId is the club name for now
+        return await scrapeClubSentiment(entityId, activeSources);
       }
+      return { error: 'Invalid entity type' };
     }
   },
 

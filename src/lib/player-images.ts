@@ -14,6 +14,12 @@ const PLAYER_IMAGES: Record<string, string> = {
   'Bruno Fernandes': 'https://img.a.transfermarkt.technology/portrait/header/240306-1696604481.jpg',
   'Robert Lewandowski': 'https://img.a.transfermarkt.technology/portrait/header/38253-1696604706.jpg',
   'Luka Modrić': 'https://img.a.transfermarkt.technology/portrait/header/27992-1696604762.jpg',
+  'Khvicha Kvaratskhelia': 'https://img.a.transfermarkt.technology/portrait/header/502670-1663065416.jpg',
+  'Joao Neves': 'https://img.a.transfermarkt.technology/portrait/header/1033333-1701334567.jpg',
+  'Michael Olise': 'https://img.a.transfermarkt.technology/portrait/header/566141-1682683695.jpg',
+  'Harry Kane': 'https://img.a.transfermarkt.technology/portrait/header/132098-1700213123.jpg',
+  'Ousmane Dembélé': 'https://img.a.transfermarkt.technology/portrait/header/288230-1681986475.jpg',
+
 }
 
 export function getPlayerImage(name: string): string | undefined {

@@ -8,47 +8,48 @@ datasource db {
 }
 
 model Player {
-  id              String    @id @default(cuid())
+  id              String      @id @default(cuid())
   name            String
   team            String
   position        String
-  sentiment       Int       @default(0)
-  tweets          Int       @default(0)
-  aiConfidence    Int       @default(0)
+  sentiment       Int         @default(0)
+  tweets          Int         @default(0)
+  aiConfidence    Int         @default(0)
   form            String?
   imageUrl        String?
   country         String?
   shirtNumber     Int?
-  weekNumber      Int       @default(0)
-  season          String    @default("2024-25")
-  positiveTheme   String?
-  negativeTheme   String?
+  weekNumber      Int         @default(0)
+  season          String      @default("2024-25")
+  lastUpdated     DateTime    @default(now())
   lastThemeUpdate DateTime?
-  lastUpdated     DateTime  @default(now())
+  negativeTheme   String?
+  positiveTheme   String?
   sentiments      Sentiment[]
 
   @@index([weekNumber, season])
 }
 
 model Match {
-  id             String   @id @default(cuid())
-  homeTeam       String
-  awayTeam       String
-  homeScore      Int      @default(0)
-  awayScore      Int      @default(0)
-  status         String   @default("upcoming")
-  league         String
-  date           DateTime
-  aggregateHome  Int      @default(0)
-  aggregateAway  Int      @default(0)
-  homeSentiment  Int      @default(0)
-  awaySentiment  Int      @default(0)
-  volatility     Float    @default(0.0)
-  momentum       Float    @default(0.0)
-  predictedScore Int      @default(0)
-  psycheJSON     String?
-  lastUpdated    DateTime @default(now())
-  sentiments     Sentiment[]
+  id                 String              @id @default(cuid())
+  homeTeam           String
+  awayTeam           String
+  homeScore          Int                 @default(0)
+  awayScore          Int                 @default(0)
+  status             String              @default("upcoming")
+  league             String
+  date               DateTime
+  aggregateHome      Int                 @default(0)
+  aggregateAway      Int                 @default(0)
+  homeSentiment      Int                 @default(0)
+  awaySentiment      Int                 @default(0)
+  volatility         Float               @default(0.0)
+  momentum           Float               @default(0.0)
+  predictedScore     Int                 @default(0)
+  psycheJSON         String?
+  lastUpdated        DateTime            @default(now())
+  interceptedSignals InterceptedSignal[]
+  sentiments         Sentiment[]
 
   @@index([date])
 }
@@ -62,34 +63,53 @@ model Sentiment {
   timestamp DateTime @default(now())
   playerId  String?
   matchId   String?
-  player    Player?  @relation(fields: [playerId], references: [id])
   match     Match?   @relation(fields: [matchId], references: [id])
+  player    Player?  @relation(fields: [playerId], references: [id])
 
   @@index([playerId])
   @@index([matchId])
   @@index([timestamp])
 }
 
+model InterceptedSignal {
+  id        String   @id @default(cuid())
+  team      String
+  handle    String
+  text      String
+  likes     String
+  retweets  String
+  pulse     String
+  matchId   String?
+  clubId    String?
+  createdAt DateTime @default(now())
+  tweetId   String?
+  match     Match?   @relation(fields: [matchId], references: [id])
+
+  @@index([matchId])
+  @@index([clubId])
+  @@index([createdAt])
+}
+
 model DataSource {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
   type        String
   url         String
-  isActive    Boolean  @default(true)
+  isActive    Boolean   @default(true)
   lastScraped DateTime?
   account     String?
-  hashtag     String?
   clubId      String?
+  hashtag     String?
 }
 
 model AgentActivity {
-  id          String   @id @default(cuid())
-  agent       String   // "Scout", "Analyst", "Journalist"
-  action      String   // e.g., "scrape_match", "scrape_source", "publish_intel"
-  target      String   // e.g., "Barcelona vs Newcastle", "@FabrizioRomano"
-  status      String   // "success", "failed"
-  message     String?
-  timestamp   DateTime @default(now())
+  id        String   @id @default(cuid())
+  agent     String
+  action    String
+  target    String
+  status    String
+  message   String?
+  timestamp DateTime @default(now())
 
   @@index([timestamp])
 }
@@ -108,12 +128,9 @@ model Goal {
   date         String
   tags         String
   accentColor  String
-  
-  // Video support
   videoUrl     String?
   thumbnailUrl String?
   videoSource  String?
-
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

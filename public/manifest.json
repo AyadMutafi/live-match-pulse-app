@@ -1,16 +1,20 @@
 {
-  "name": "Fan Pulse",
+  "name": "Fan Pulse — Live Football Sentiment",
   "short_name": "Fan Pulse",
-  "description": "Live AI-powered football fan sentiment tracking.",
+  "description": "Real-time AI-powered fan sentiment tracking for Champions League and elite football.",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#04050f",
   "theme_color": "#04050f",
+  "categories": ["sports", "entertainment", "news"],
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64",
-      "type": "image/x-icon"
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

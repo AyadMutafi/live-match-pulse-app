@@ -420,20 +420,63 @@ async function main() {
   ])
 
   // ─── AGENT ACTIVITY LOG ──────────────────────────────────────────────────────
-  // Seed some realistic recent agent activity
+  // Seed some realistic recent agent activity for TODAY (April 27, 2026)
   await Promise.all([
-    prisma.agentActivity.create({ data: { agent: 'Scout', action: 'scrape_source', target: '@ChampionsLeague', status: 'success', message: 'Scraped 47 posts — UCL semi-final draw confirmed coverage', timestamp: new Date('2026-04-23T08:30:00') } }),
-    prisma.agentActivity.create({ data: { agent: 'Scout', action: 'scrape_source', target: '@FabrizioRomano', status: 'success', message: 'Scraped 12 posts — Kane injury update (training normal), Dembélé fitness cleared', timestamp: new Date('2026-04-23T08:15:00') } }),
-    prisma.agentActivity.create({ data: { agent: 'Scout', action: 'scrape_source', target: '#PSGBayern', status: 'success', message: 'Scraped 238 posts — fan sentiment trending positive for PSG home advantage', timestamp: new Date('2026-04-23T07:45:00') } }),
-    prisma.agentActivity.create({ data: { agent: 'Scout', action: 'scrape_source', target: '#AtletiArsenal', status: 'success', message: 'Scraped 195 posts — Saka fitness rated "key storyline" by fans', timestamp: new Date('2026-04-23T07:30:00') } }),
-    prisma.agentActivity.create({ data: { agent: 'Analyst', action: 'analyze_sentiment', target: 'PSG vs Bayern Munich', status: 'success', message: 'Sentiment scores updated. PSG 71%, Bayern 68%. High volatility pre-match.', timestamp: new Date('2026-04-23T08:00:00') } }),
-    prisma.agentActivity.create({ data: { agent: 'Analyst', action: 'analyze_sentiment', target: 'Atlético Madrid vs Arsenal', status: 'success', message: 'Sentiment scores updated. Atlético 64%, Arsenal 73%. Arsenal fan optimism high.', timestamp: new Date('2026-04-23T08:05:00') } }),
-    prisma.agentActivity.create({ data: { agent: 'Journalist', action: 'publish_intel', target: 'UCL Semi-Final Preview', status: 'success', message: 'Two SF preview reports published. Covers PSG-Bayern tactical edge & Atleti defensive setup.', timestamp: new Date('2026-04-23T09:00:00') } }),
+    prisma.agentActivity.create({ 
+      data: { 
+        agent: 'Scout', 
+        action: 'mission_plotted', 
+        target: 'PSG vs Bayern Munich', 
+        status: 'success', 
+        message: 'Scanned 1.2k signals. Paris is buzzing. Fans are gathering at Parc des Princes for the open training session.', 
+        timestamp: new Date('2026-04-27T08:30:00') 
+      } 
+    }),
+    prisma.agentActivity.create({ 
+      data: { 
+        agent: 'Scout', 
+        action: 'mission_plotted', 
+        target: 'Atlético Madrid vs Arsenal', 
+        status: 'success', 
+        message: 'Intelligence scan: Arsenal squad has landed in Madrid. Fan mood is "Cautious Optimism" ahead of the Metropolitano cauldron.', 
+        timestamp: new Date('2026-04-27T08:15:00') 
+      } 
+    }),
+    prisma.agentActivity.create({ 
+      data: { 
+        agent: 'Analyst', 
+        action: 'pulse_distilled', 
+        target: 'Ousmane Dembélé', 
+        status: 'success', 
+        message: 'Deep dive complete. Dembélé is the focal point of fan tactical debates. Momentum is +15% after today\'s press conference.', 
+        timestamp: new Date('2026-04-27T09:00:00') 
+      } 
+    }),
+    prisma.agentActivity.create({ 
+      data: { 
+        agent: 'Analyst', 
+        action: 'pulse_distilled', 
+        target: 'PSG vs Bayern Munich', 
+        status: 'success', 
+        message: 'Psychological profile: PSG supporters are showing 92% confidence. Bayern fans are highlighting Kimmich as the key tactical pivot.', 
+        timestamp: new Date('2026-04-27T09:45:00') 
+      } 
+    }),
+    prisma.agentActivity.create({ 
+      data: { 
+        agent: 'Journalist', 
+        action: 'publish_intel', 
+        target: 'UCL Semi-Final Live Hub', 
+        status: 'success', 
+        message: 'Tactical Briefing: Published "The Simeone Trap" vs "Arteta\'s High Press". Engagement spikes detected in London and Madrid.', 
+        timestamp: new Date('2026-04-27T10:15:00') 
+      } 
+    }),
   ])
 
   console.log(`✅ Seeded ${players.length} players and ${matches.length} matches`)
   console.log('🏆 UCL 2025-26: Semi-finalists — PSG, Bayern Munich, Arsenal, Atlético Madrid')
-  console.log('📅 Today: April 23, 2026 | Next up: PSG vs Bayern (Apr 28), Atlético vs Arsenal (Apr 29)')
+  console.log('📅 Today: April 27, 2026 | Tomorrow: PSG vs Bayern | Day After: Atlético vs Arsenal')
 }
 
 main()

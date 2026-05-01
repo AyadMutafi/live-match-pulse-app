@@ -45,44 +45,157 @@ export type GoalHighlight = {
 
 export const GOALS_FEED: GoalHighlight[] = [
   // ═══════════════════════════════════════════════════════════
-  //  MATCHDAY 33 (LATEST - April 2026)
+  //  UEFA CHAMPIONS LEAGUE SEMI-FINALS (April 2026)
   // ═══════════════════════════════════════════════════════════
   {
-    id: 'md33-mbappe-1',
-    player: 'Kylian Mbappé',
-    club: 'Real Madrid',
-    opponent: 'Alavés',
-    minute: 30,
+    id: 'ucl-semi-kvara-1',
+    player: 'Khvicha Kvaratskhelia',
+    club: 'PSG',
+    opponent: 'Bayern Munich',
+    minute: 12,
     goalType: 'solo-run',
-    caption: 'Mbappé leaves three defenders behind! ⚡️ Relentless pace at the Bernabéu.',
+    caption: 'KVARADONA! 🇬🇪 He weaves through three Bayern defenders to open the scoring in Paris!',
+    league: 'La Liga', // Reusing field for competition context or keeping schema
+    matchScore: '1-0',
+    sources: [
+      {
+        platform: 'x',
+        handle: '@PSG_English',
+        displayName: 'PSG English',
+        verified: true,
+        url: 'https://x.com/PSG_English',
+        label: 'PSG Official',
+      },
+      {
+        platform: 'youtube',
+        handle: '@beINSPORTS',
+        displayName: 'beIN SPORTS',
+        verified: true,
+        url: 'https://youtube.com/beinsports',
+        label: 'Match Highlights',
+      }
+    ],
+    matchday: 'UCL Semi-Finals',
+    date: '2026-04-28',
+    tags: ['ucl', 'kvara', 'solo', 'magic'],
+    accentColor: '#004170',
+    videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', // Still a placeholder but updated caption/tags
+    thumbnailUrl: 'https://img.a.transfermarkt.technology/portrait/header/502670-1663065416.jpg',
+    videoSource: 'mp4'
+  },
+  {
+    id: 'ucl-semi-kane-1',
+    player: 'Harry Kane',
+    club: 'Bayern Munich',
+    opponent: 'PSG',
+    minute: 44,
+    goalType: 'long-range',
+    caption: 'KANE FROM DISTANCE! 💣 A thunderbolt into the top corner. Donnarumma had no chance.',
+    league: 'La Liga',
+    matchScore: '1-1',
+    sources: [
+      {
+        platform: 'x',
+        handle: '@FCBayernEN',
+        displayName: 'FC Bayern EN',
+        verified: true,
+        url: 'https://x.com/FCBayernEN',
+        label: 'Bayern Official',
+      }
+    ],
+    matchday: 'UCL Semi-Finals',
+    date: '2026-04-28',
+    tags: ['kane', 'ucl', 'screamer'],
+    accentColor: '#DC052D',
+    videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    thumbnailUrl: 'https://img.a.transfermarkt.technology/portrait/header/132098-1700213123.jpg',
+    videoSource: 'mp4'
+  },
+  {
+    id: 'ucl-semi-dembele-1',
+    player: 'Ousmane Dembélé',
+    club: 'PSG',
+    opponent: 'Bayern Munich',
+    minute: 58,
+    goalType: 'curler',
+    caption: 'Dembele cuts inside and finds the far corner! 🇫🇷 The Parc des Princes is rocking!',
+    league: 'La Liga',
+    matchScore: '3-2',
+    sources: [
+      {
+        platform: 'x',
+        handle: '@PSG_English',
+        displayName: 'PSG English',
+        verified: true,
+        url: 'https://x.com/PSG_English',
+        label: 'PSG Official',
+      }
+    ],
+    matchday: 'UCL Semi-Finals',
+    date: '2026-04-28',
+    tags: ['dembele', 'ucl', 'curler'],
+    accentColor: '#004170',
+    videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    thumbnailUrl: 'https://img.a.transfermarkt.technology/portrait/header/288230-1681986475.jpg',
+    videoSource: 'mp4'
+  },
+  {
+    id: 'ucl-semi-olise-1',
+    player: 'Michael Olise',
+    club: 'Bayern Munich',
+    opponent: 'PSG',
+    minute: 82,
+    goalType: 'volley',
+    caption: 'OLISE VOLLEY! ⚡️ Bayern claw it back to 4-4 in an absolute thriller!',
+    league: 'La Liga',
+    matchScore: '4-4',
+    sources: [
+      {
+        platform: 'x',
+        handle: '@FCBayernEN',
+        displayName: 'FC Bayern EN',
+        verified: true,
+        url: 'https://x.com/FCBayernEN',
+        label: 'Bayern Official',
+      }
+    ],
+    matchday: 'UCL Semi-Finals',
+    date: '2026-04-28',
+    tags: ['olise', 'ucl', 'volley', 'clutch'],
+    accentColor: '#DC052D',
+    videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    thumbnailUrl: 'https://img.a.transfermarkt.technology/portrait/header/566141-1682683695.jpg',
+    videoSource: 'mp4'
+  },
+  {
+    id: 'ucl-semi-griezmann-1',
+    player: 'Antoine Griezmann',
+    club: 'Atlético Madrid',
+    opponent: 'Arsenal',
+    minute: 76,
+    goalType: 'curler',
+    caption: 'GRIEZMANN MAGNIFIQUE! 🇫🇷 The Frenchman bends it past Raya to give Atleti the lead in the tie!',
     league: 'La Liga',
     matchScore: '2-1',
     sources: [
       {
         platform: 'x',
-        handle: '@LaLigaEN',
-        displayName: 'LaLiga English',
+        handle: '@Atleti',
+        displayName: 'Atlético de Madrid',
         verified: true,
-        url: 'https://x.com/LaLigaEN',
-        label: 'La Liga',
-      },
-      {
-        platform: 'x',
-        handle: '@realmadrid',
-        displayName: 'Real Madrid C.F.',
-        verified: true,
-        url: 'https://x.com/realmadrid',
-        label: 'Real Madrid',
+        url: 'https://x.com/Atleti',
+        label: 'Atleti Official',
       }
     ],
-    matchday: 'Matchday 33',
-    date: '2026-04-21',
-    tags: ['pace', 'mbappe', 'solo'],
-    accentColor: '#FEBE10',
+    matchday: 'UCL Semi-Finals',
+    date: '2026-04-29',
+    tags: ['griezmann', 'ucl', 'curler', 'clutch'],
+    accentColor: '#CB3524',
     videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
-    thumbnailUrl: 'https://img.a.transfermarkt.technology/portrait/header/342229-1682683695.jpg',
+    thumbnailUrl: 'https://img.a.transfermarkt.technology/portrait/header/125781-1692962137.jpg',
     videoSource: 'mp4'
   },
+
   {
     id: 'md33-haaland-1',
     player: 'Erling Haaland',

@@ -250,6 +250,29 @@ const LA_LIGA_ROUNDS: RoundContext[] = [
 
 const UCL_ROUNDS: RoundContext[] = [
   {
+    roundKey: 'Semi-Finals',
+    label: 'Semi-Finals',
+    shortLabel: 'SF',
+    dateRange: 'Apr 28 – May 6, 2026',
+    narrative: 'A historic night in Paris as PSG edge Bayern 5-4 in a 9-goal thriller. Arsenal head to Madrid for a tactical war.',
+    storylines: [
+      'PSG 5-4 Bayern: Kvaratskhelia brace and Joao Neves masterclass stun the Bavarians',
+      'Harry Kane\'s long-range strike gives Bayern hope for the second leg',
+      'Arsenal vs Atlético Madrid: Tonight\'s clash at the Metropolitano is the focus of the digital arena',
+      'Arteta vs Simeone — the ultimate tactical showdown in Madrid',
+    ],
+    keyPlayers: [
+      { name: 'Khvicha Kvaratskhelia', club: 'PSG', moment: 'Two stunning goals to sink Bayern in the 5-4 thriller' },
+      { name: 'Joao Neves', club: 'PSG', moment: 'Controlled the midfield with 98% pass accuracy in a high-pressure tie' },
+      { name: 'Harry Kane', club: 'Bayern Munich', moment: 'Kept the tie alive with a world-class long-range effort' },
+    ],
+    fanMoodSummary: 'PSG fans in a state of euphoria. Bayern supporters tense but hopeful. Arsenal fans anxious ahead of the Madrid trip.',
+    moodEmoji: '🌋',
+    accent: '#1a56db',
+    isLive: true,
+  },
+
+  {
     roundKey: 'Quarter-Finals',
     label: 'Quarter-Finals',
     shortLabel: 'QF',
@@ -267,7 +290,7 @@ const UCL_ROUNDS: RoundContext[] = [
     fanMoodSummary: 'English fans dreaming of an all-English final. European football on edge.',
     moodEmoji: '🏆',
     accent: '#1a56db',
-    isLive: true,
+    isLive: false,
   },
   {
     roundKey: 'Round of 16',
