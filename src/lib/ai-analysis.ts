@@ -4,7 +4,7 @@ import { findPlayerMentions } from '@/lib/player-names-multilingual';
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+export const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 /**
  * Robust AI Sentiment Analysis (Shared Library)
@@ -80,5 +80,39 @@ IMPORTANT: For each quote, you MUST find the "Source: [URL]" line in the raw con
   } catch (error) {
     console.error('AI analysis shared lib error:', error);
     return { sentiment: 0, volatility: 0.1, momentum: 0, predictedScore: 0, positiveThemes: [], negativeThemes: [], detectedPlayers: [] };
+  }
+}
+
+/**
+ * Detect Player Status (Shared Library)
+ */
+export async function detectPlayerStatus(content: string, playerName: string, teamName: string) {
+  try {
+    const prompt = `Analyze the following news content and determine if ${playerName} (${teamName}) is ACTIVE, INJURED, BANNED, or SUSPENDED.
+    Return ONLY JSON: { "status": "...", "note": "..." }`;
+    
+    const result = await model.generateContent([prompt, content.substring(0, 3000)]);
+    let response = result.response.text();
+    if (response.includes('```')) {
+      response = response.replace(/```json/g, '').replace(/```/g, '').trim();
+    }
+    return JSON.parse(response);
+  } catch (error) {
+    console.error('Status detection AI failed, using heuristics:', error);
+    
+    // HEURISTIC FALLBACK
+    const lowerContent = content.toLowerCase();
+    let status = 'ACTIVE';
+    let note = 'No status-changing news detected.';
+
+    if (lowerContent.includes('injury') || lowerContent.includes('injured') || lowerContent.includes('acl') || lowerContent.includes('surgery') || lowerContent.includes('hamstring')) {
+      status = 'INJURED';
+      note = 'Possible injury detected via pulse scout.';
+    } else if (lowerContent.includes('ban') || lowerContent.includes('banned') || lowerContent.includes('suspension') || lowerContent.includes('suspended')) {
+      status = 'BANNED';
+      note = 'Suspension or ban detected via pulse scout.';
+    }
+
+    return { status, note };
   }
 }

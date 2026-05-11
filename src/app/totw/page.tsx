@@ -342,6 +342,16 @@ export default function TeamOfTheWeek() {
                 <span className="text-[10px] font-black uppercase tracking-[0.4em]">{isCrisis ? 'Flops of the Week' : 'Stars of the Week'}</span>
                 <span className={`w-12 h-1 rounded-full ${isCrisis ? 'bg-rose-500' : 'bg-primary'}`}></span>
             </div>
+            <div className="pt-2">
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="rounded-full px-6 font-black text-[9px] uppercase tracking-widest border-white/10 bg-white/5 hover:bg-white/10"
+                    onClick={() => window.open('/campaign/totw', '_blank')}
+                >
+                    <Share2 className="w-3 h-3 mr-2" /> Generate Social Assets
+                </Button>
+            </div>
         </div>
       </div>
 

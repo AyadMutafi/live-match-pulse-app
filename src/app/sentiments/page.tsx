@@ -30,6 +30,7 @@ type Match = {
   homeSentiment: number
   awaySentiment: number
   psycheJSON?: string | null
+  status: string
 }
 
 const NOW = new Date()
@@ -191,11 +192,13 @@ function MatchCard({ match }: { match: Match }) {
         </div>
 
         <div className="flex flex-col items-center gap-1">
-          {match.homeScore === null ? (
+          {match.status === 'upcoming' ? (
             <>
-              <span className="text-[20px] font-black text-muted-foreground/30 tracking-tighter italic">VS</span>
-              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-muted/30 border border-border/30 text-muted-foreground/60">
-                {new Date(match.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              <span className="text-[24px] font-black text-muted-foreground/40 tracking-widest leading-none mt-1">
+                - <span className="text-muted-foreground/20 text-[18px] mx-1">vs</span> -
+              </span>
+              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary mt-1">
+                {new Date(match.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
             </>
           ) : (
@@ -484,10 +487,6 @@ function SentimentsContent() {
   // Filter state
   const [activeCompetition, setActiveCompetition] = useState('All')
   const [activeClub, setActiveClub] = useState<string | null>(null)
-  const [activeRound, setActiveRound] = useState<string>('')
-
-  // Ref for the round scroller
-  const roundScrollerRef = useRef<HTMLDivElement>(null)
 
   // 1. Fetch matches from API dynamically
   const [allMatches, setAllMatches] = useState<Match[]>([])
@@ -498,17 +497,21 @@ function SentimentsContent() {
       .then(res => res.json())
       .then(data => {
         const matchesArray = data.matches || []
-        // Only keep matches for CORE_CLUBS, or matches where findClub returns a valid mapping
-        const filtered = matchesArray.map((m: any) => {
-          let assignedRound = "Matchday 33";
-          if (m.league.includes('Champions') || m.league.includes('UCL')) {
-            assignedRound = "Semi-Finals";
-          }
-          return {
-            ...m,
-            round: m.round || assignedRound
-          };
-        })
+        const fourteenDaysAgo = new Date()
+        fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
+        
+        const filtered = matchesArray
+          .filter((m: any) => new Date(m.date) >= fourteenDaysAgo)
+          .map((m: any) => {
+            let assignedRound = "Matchday 33";
+            if (m.league.includes('Champions') || m.league.includes('UCL')) {
+              assignedRound = "Semi-Finals";
+            }
+            return {
+              ...m,
+              round: m.round || assignedRound
+            };
+          })
         setAllMatches(filtered)
         setLoading(false)
       })
@@ -526,34 +529,9 @@ function SentimentsContent() {
     return allMatches
   }, [allMatches, activeCompetition])
 
-  // 3. Extract unique rounds, sorted naturally, and find closest
-  const { rounds, closestRound } = useMemo(() => {
-    const unique = [...new Set(competitionMatches.map(m => m.round || "Unspecified"))]
-    unique.sort((a, b) => {
-      const aNum = parseInt(a?.replace(/\D/g, '') || "0")
-      const bNum = parseInt(b?.replace(/\D/g, '') || "0")
-      if (!isNaN(aNum) && !isNaN(bNum) && aNum !== bNum) return aNum - bNum
-      return (a || "").localeCompare(b || "")
-    })
-
-    // Find the round closest to today
-    let best = unique[0] || ''
-    let minDiff = Infinity
-    for (const m of competitionMatches) {
-      const d = Math.abs(new Date(m.date).getTime() - NOW.getTime())
-      if (d < minDiff) { minDiff = d; best = m.round }
-    }
-    return { rounds: unique, closestRound: best }
-  }, [competitionMatches])
-
-  // Reset round when competition changes
-  useEffect(() => {
-    setActiveRound(closestRound)
-  }, [closestRound])
-
-  // 4. Final matches for display
+  // 3. Final matches for display
   const displayMatches = useMemo(() => {
-    let result = competitionMatches.filter(m => m.round === activeRound)
+    let result = competitionMatches
     if (activeClub) {
       result = result.filter(m => {
         const homeCLub = findClub(m.homeTeam)
@@ -565,30 +543,26 @@ function SentimentsContent() {
       })
     }
     return result
-  }, [competitionMatches, activeRound, activeClub])
+  }, [competitionMatches, activeClub])
+
+  // Group matches by Competition & Round
+  const groupedMatches = useMemo(() => {
+    const groups: Record<string, Match[]> = {}
+    displayMatches.forEach(m => {
+      const key = `${m.league.replace('Champions League', 'UCL')} • ${m.round}`
+      if (!groups[key]) groups[key] = []
+      groups[key].push(m)
+    })
+    return groups
+  }, [displayMatches])
 
   // Mount
   useEffect(() => { setMounted(true) }, [])
-
-  // Scroll active round pill into view
-  useEffect(() => {
-    if (!mounted || !activeRound) return
-    const idx = rounds.indexOf(activeRound)
-    const el = document.getElementById(`round-pill-${idx}`)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
-    }
-  }, [mounted, activeRound, rounds])
 
   // Handler for competition change
   const handleCompetitionChange = useCallback((comp: string) => {
     setActiveCompetition(comp)
     setActiveClub(null)
-  }, [])
-
-  // Handler for round change
-  const handleRoundChange = useCallback((round: string) => {
-    setActiveRound(round)
   }, [])
 
   if (!mounted) return null
@@ -689,49 +663,14 @@ function SentimentsContent() {
         ))}
       </div>
 
-      {/* ─── Round / Matchday Scroller ─── */}
-      <div ref={roundScrollerRef} className="flex gap-2 overflow-x-auto scrollbar-none pb-3 relative z-10" role="tablist">
-        {rounds.map((round, idx) => {
-          const isActive = activeRound === round
-          const leagueForRound = allMatches.find(m => m.round === round)?.league || ''
-          const hasCtx = !!getRoundContext(round, activeCompetition === 'All' ? leagueForRound : activeCompetition)
-          return (
-            <button
-              key={round}
-              id={`round-pill-${idx}`}
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => handleRoundChange(round)}
-              className={`relative px-4 py-2 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all flex-shrink-0 border whitespace-nowrap cursor-pointer select-none ${
-                isActive
-                  ? 'bg-foreground text-background border-foreground shadow-xl scale-[1.04]'
-                  : 'bg-muted/20 text-muted-foreground border-border/10 hover:bg-muted/40 hover:border-border/30'
-              }`}
-            >
-              {round}
-              {hasCtx && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 border border-background" />}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* ─── Round Context Panel ─── */}
-      {(() => {
-        const leagueName = activeCompetition === 'All'
-          ? (allMatches.find(m => m.round === activeRound)?.league || '')
-          : activeCompetition
-        const ctx = activeRound ? getRoundContext(activeRound, leagueName) : null
-        return ctx ? <RoundContextPanel ctx={ctx} /> : null
-      })()}
-
-      {/* ─── Match Cards ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 relative z-10">
+      {/* ─── Match Groups ─── */}
+      <div className="space-y-10 relative z-10 mt-6">
         {loading ? (
-          <div className="text-center py-16 bg-muted/5 rounded-3xl border-2 border-dashed border-border/50 animate-pulse md:col-span-full">
+          <div className="text-center py-16 bg-muted/5 rounded-3xl border-2 border-dashed border-border/50 animate-pulse">
              <p className="text-foreground font-black text-lg tracking-tight">Syncing Live Pulses...</p>
           </div>
         ) : displayMatches.length === 0 ? (
-          <div className="text-center py-16 bg-muted/5 rounded-3xl border-2 border-dashed border-border/50 md:col-span-full">
+          <div className="text-center py-16 bg-muted/5 rounded-3xl border-2 border-dashed border-border/50">
             <Zap className="w-10 h-10 mx-auto mb-3 text-muted-foreground/20" />
             <p className="text-foreground font-black text-lg tracking-tight">No Signals Detected</p>
             <p className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest mt-1">
@@ -739,8 +678,18 @@ function SentimentsContent() {
             </p>
           </div>
         ) : (
-          displayMatches.map((m, idx) => (
-            <MatchCard key={`${m.homeTeam}-${m.awayTeam}-${m.date}`} match={m} />
+          Object.entries(groupedMatches).map(([groupTitle, matches]) => (
+            <div key={groupTitle} className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex items-center gap-3 pl-2 border-l-4 border-primary/50">
+                <h3 className="text-[14px] font-black uppercase tracking-widest text-foreground/80">{groupTitle}</h3>
+                <div className="flex-1 h-px bg-border/40" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                {matches.map(m => (
+                  <MatchCard key={`${m.homeTeam}-${m.awayTeam}-${m.date}`} match={m} />
+                ))}
+              </div>
+            </div>
           ))
         )}
       </div>

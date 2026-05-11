@@ -129,10 +129,21 @@ export async function scrapePlayerSentiment(
     const searchUrl = `https://x.com/search?q=${encodeURIComponent(query)}`;
     console.log('Scraping URL:', searchUrl);
     
-    const result = await firecrawl.v1.search(query, {
-      limit: 5,
-      scrapeOptions: { formats: ['markdown'] }
+    // Direct API call to Firecrawl Search
+    const response = await fetch('https://api.firecrawl.dev/v1/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.FIRECRAWL_API_KEY}`
+      },
+      body: JSON.stringify({
+        query: query,
+        limit: 5,
+        scrapeOptions: { formats: ['markdown'] }
+      })
     });
+
+    const result = await response.json();
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to search');
@@ -192,12 +203,21 @@ export async function scrapeClubSentiment(clubName: string, sources?: any[]) {
     const searchUrl = `https://x.com/search?q=${encodeURIComponent(query)}`;
     console.log('Scraping Club URL:', searchUrl);
     
-    const result = await firecrawl.v1.search(query, {
-      limit: 8,
-      scrapeOptions: { formats: ['markdown'] }
+    const response = await fetch('https://api.firecrawl.dev/v1/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.FIRECRAWL_API_KEY}`
+      },
+      body: JSON.stringify({
+        query: query,
+        limit: 8,
+        scrapeOptions: { formats: ['markdown'] }
+      })
     });
 
-    const combinedContent = result.data
+    const result = await response.json();
+    const combinedContent = (result.data || [])
       .map((d: any) => `[TWEET_URL: ${d.url || ''}]\n${d.markdown || d.content || ''}`)
       .join('\n\n---\n\n');
 
@@ -267,10 +287,21 @@ export async function scrapeMatchSentiment(
     const searchUrl = `https://x.com/search?q=${encodeURIComponent(query)}`;
     console.log('Scraping URL:', searchUrl);
     
-    const result = await firecrawl.v1.search(query, {
-      limit: 5,
-      scrapeOptions: { formats: ['markdown'] }
+    // Direct API call to Firecrawl Search
+    const response = await fetch('https://api.firecrawl.dev/v1/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.FIRECRAWL_API_KEY}`
+      },
+      body: JSON.stringify({
+        query: query,
+        limit: 5,
+        scrapeOptions: { formats: ['markdown'] }
+      })
     });
+
+    const result = await response.json();
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to search');
@@ -322,10 +353,20 @@ export async function scrapeFromSource(
     }
 
     console.log(`[scrapeFromSource] Searching: "${searchQuery}"`);
-    const result = await firecrawl.v1.search(searchQuery, {
-      limit: 5,
-      scrapeOptions: { formats: ['markdown'] }
+    const response = await fetch('https://api.firecrawl.dev/v1/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.FIRECRAWL_API_KEY}`
+      },
+      body: JSON.stringify({
+        query: searchQuery,
+        limit: 5,
+        scrapeOptions: { formats: ['markdown'] }
+      })
     });
+
+    const result = await response.json();
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to search');

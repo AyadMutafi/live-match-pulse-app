@@ -1,10 +1,6 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { model, detectPlayerStatus } from '@/lib/ai-analysis';
 import { db } from '@/lib/db';
 import { AGENT_TOOLS } from './manifest';
-
-// Initialize Gemini with the key from environment
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { timeout: 60000 });
 
 /**
  * THE BRAIN: Autonomous Orchestrator
@@ -23,6 +19,12 @@ export interface AgentResult {
  */
 export async function runScoutAgent(): Promise<AgentResult> {
   try {
+    // 0. Global Check: Is the agent engine enabled?
+    const config = await db.systemConfig.findUnique({ where: { id: 'global' } });
+    if (config && !config.isAgentEnabled) {
+      return { success: false, message: 'Agent engine is currently DISABLED via Nexus.' };
+    }
+
     // 1. Get current status via tool
     const status = await AGENT_TOOLS.get_app_status.execute({});
     
@@ -165,19 +167,27 @@ export async function runAnalystAgent(type: 'player' | 'match' | 'club', id: str
       })
     ]);
 
-    // 3. Update Database
+    // 3. Update Database (Respecting Manual Overrides)
     if (type === 'player') {
-      await db.player.update({
-        where: { id },
-        data: {
-          sentiment: Math.max(0, Math.min(100, sentiment.sentiment)),
-          positiveTheme: themes.positiveThemes.join(','),
-          negativeTheme: themes.negativeThemes.join(','),
-          lastThemeUpdate: new Date(),
-          lastUpdated: new Date()
-        }
-      });
+      const player = await db.player.findUnique({ where: { id } });
+      if (player?.isManual) {
+        console.log(`[Analyst] Skipping update for ${entityLabel} (Manual Override Active)`);
+      } else {
+        await db.player.update({
+          where: { id },
+          data: {
+            sentiment: Math.max(0, Math.min(100, sentiment.sentiment)),
+            positiveTheme: themes.positiveThemes.join(','),
+            negativeTheme: themes.negativeThemes.join(','),
+            lastThemeUpdate: new Date(),
+            lastUpdated: new Date()
+          }
+        });
+      }
     } else if (type === 'match') {
+      const match = await db.match.findUnique({ where: { id } });
+      
+      // Save signals even if manual (curation is separate from score)
       if (sentiment.representativeQuotes && sentiment.representativeQuotes.length > 0) {
         const signalsToSave = sentiment.representativeQuotes.map((q: any) => ({
           team: entityLabel,
@@ -189,24 +199,28 @@ export async function runAnalystAgent(type: 'player' | 'match' | 'club', id: str
           pulse: `${sentiment.sentiment}%`,
           matchId: id
         }));
-        await db.interceptedSignal.deleteMany({ where: { matchId: id } });
+        await db.interceptedSignal.deleteMany({ where: { matchId: id, isPinned: false } });
         await db.interceptedSignal.createMany({ data: signalsToSave });
       }
 
-      await db.match.update({
-        where: { id },
-        data: {
-          homeSentiment: sentiment.sentiment, // Simplified for now
-          volatility: sentiment.volatility,
-          momentum: sentiment.momentum,
-          predictedScore: sentiment.predictedScore,
-          psycheJSON: JSON.stringify({
-            preMatch: sentiment.tacticalNarrative?.preMatch || {},
-            postMatch: sentiment.tacticalNarrative?.postMatch || {}
-          }),
-          lastUpdated: new Date()
-        }
-      });
+      if (match?.isManual) {
+        console.log(`[Analyst] Skipping score update for ${entityLabel} (Manual Override Active)`);
+      } else {
+        await db.match.update({
+          where: { id },
+          data: {
+            homeSentiment: sentiment.sentiment,
+            volatility: sentiment.volatility,
+            momentum: sentiment.momentum,
+            predictedScore: sentiment.predictedScore,
+            psycheJSON: JSON.stringify({
+              preMatch: sentiment.tacticalNarrative?.preMatch || {},
+              postMatch: sentiment.tacticalNarrative?.postMatch || {}
+            }),
+            lastUpdated: new Date()
+          }
+        });
+      }
     } else if (type === 'club') {
       // For clubs, we just save the signals
       if (sentiment.representativeQuotes && sentiment.representativeQuotes.length > 0) {
@@ -254,5 +268,77 @@ export async function runAnalystAgent(type: 'player' | 'match' | 'club', id: str
       }
     });
     return { success: false, message: 'Analysis failed.' };
+  }
+}
+
+/**
+ * MATCHDAY SCOUT AGENT: Detects player availability (Injuries, Bans, Suspensions)
+ */
+export async function runMatchdayScoutAgent(): Promise<AgentResult> {
+  try {
+    // 1. Get high-priority players (those with extreme sentiment or recently updated)
+    const players = await db.player.findMany({
+      where: {
+        OR: [
+          { sentiment: { gt: 80 } },
+          { sentiment: { lt: 30 } },
+          { lastUpdated: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } }
+        ]
+      },
+      take: 5,
+      orderBy: { lastUpdated: 'desc' }
+    });
+
+    let updatedCount = 0;
+
+    for (const player of players) {
+      console.log(`[Matchday Scout] Investigating ${player.name}...`);
+      
+      // 2. Scrape latest news
+      const newsResult = await AGENT_TOOLS.scout_player_availability.execute({
+        playerName: player.name,
+        teamName: player.team
+      });
+
+      if (!newsResult.success || !newsResult.content) continue;
+
+      // 3. Ask AI to determine status (Using shared library)
+      const parsed = await detectPlayerStatus(newsResult.content, player.name, player.team);
+      
+      // 4. Update Database
+      try {
+        await db.player.update({
+          where: { id: player.id },
+          data: {
+            status: parsed.status || 'ACTIVE',
+            statusNote: parsed.note || null,
+            availability: (parsed.status === 'ACTIVE') ? 100 : 0,
+            lastUpdated: new Date()
+          }
+        });
+        
+        await db.agentActivity.create({
+          data: {
+            agent: 'Matchday Scout',
+            action: 'status_detected',
+            target: player.name,
+            status: 'success',
+            message: `${parsed.status}: ${parsed.note}`
+          }
+        });
+
+        updatedCount++;
+      } catch (e) {
+        console.error(`[Matchday Scout] Failed to update player ${player.name}:`, e);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Matchday Scout processed ${players.length} players. Updated ${updatedCount} statuses.`
+    };
+  } catch (error) {
+    console.error('[Matchday Scout] Error:', error);
+    return { success: false, message: 'Matchday Scout failed.' };
   }
 }

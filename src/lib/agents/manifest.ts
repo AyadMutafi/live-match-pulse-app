@@ -71,6 +71,7 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
 
   /**
    * Scrape Tool: Orchestrates the raw scraping.
+   * Promoted Grok to primary layer for real-time X/Twitter resonance.
    */
   scrape_social_data: {
     name: 'scrape_social_data',
@@ -86,7 +87,30 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
     },
     execute: async ({ entityType, entityId, query: overrideQuery }) => {
       const activeSources = await db.dataSource.findMany({ where: { isActive: true } });
+      
+      // Build the search label
+      let label = '';
+      if (entityType === 'player') {
+        const player = await db.player.findUnique({ where: { id: entityId } });
+        label = player ? `${player.name} (${player.team})` : entityId;
+      } else if (entityType === 'match') {
+        const match = await db.match.findUnique({ where: { id: entityId } });
+        label = match ? `${match.homeTeam} vs ${match.awayTeam}` : entityId;
+      } else {
+        label = entityId;
+      }
 
+      const searchQuery = overrideQuery || label;
+
+      // 1. Primary: xAI (Grok) for real-time resonance
+      if (process.env.XAI_API_KEY) {
+        console.log(`[Agent Manifest] Using xAI Grok for primary pulse: ${searchQuery}`);
+        const grokResult = await scrapeWithGrok(searchQuery, label);
+        if (grokResult.success) return grokResult;
+        console.warn(`[Agent Manifest] Grok failed, falling back to Firecrawl: ${grokResult.error}`);
+      }
+
+      // 2. Fallback: Firecrawl / Web Scraping
       if (entityType === 'player') {
         const player = await db.player.findUnique({ where: { id: entityId } });
         if (!player) return { error: 'Player not found' };
@@ -96,7 +120,6 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
         if (!match) return { error: 'Match not found' };
         return await scrapeMatchSentiment(match.homeTeam, match.awayTeam, overrideQuery || '#FanPulse', undefined, activeSources);
       } else if (entityType === 'club') {
-        // entityId is the club name for now
         return await scrapeClubSentiment(entityId, activeSources);
       }
       return { error: 'Invalid entity type' };
@@ -197,6 +220,32 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
 
       // Ultimate fallback: zero-cost local miner
       return await mineLocalSentiment(query, source.name || source.type);
+    }
+  },
+
+  /**
+   * Availability Tool: Detects injuries, bans, and tactical status.
+   */
+  scout_player_availability: {
+    name: 'scout_player_availability',
+    description: 'Searches for news about a player to determine their current injury, ban, or match-fitness status.',
+    parameters: {
+      type: 'object',
+      properties: {
+        playerName: { type: 'string' },
+        teamName: { type: 'string' }
+      },
+      required: ['playerName', 'teamName']
+    },
+    execute: async ({ playerName, teamName }) => {
+      // We'll use Firecrawl to search Google/News for the status
+      // Then use AI to distill the status.
+      const query = `${playerName} ${teamName} injury ban status 2026 news`;
+      console.log(`[Scout Manifest] Searching for availability: ${query}`);
+      
+      const searchResult = await scrapeFromSource('HASHTAG', query, `https://www.google.com/search?q=${encodeURIComponent(query)}`);
+      
+      return searchResult;
     }
   }
 };

@@ -29,7 +29,7 @@ export async function GET(request: Request) {
       if (!isNaN(parsed)) targetWeekNumber = parsed
     }
 
-    // 1. Fetch players, filtering by weekNumber if a historical week was requested
+    // 1. Fetch players
     const players = await prisma.player.findMany({
       where: targetWeekNumber !== null
         ? { weekNumber: targetWeekNumber, season: '2024-25' }
@@ -42,17 +42,26 @@ export async function GET(request: Request) {
       }
     })
 
-    // 2. Fetch all matches to correlate players to their team's recent matches
+    // 2. Fetch all matches
     const matches = await prisma.match.findMany({
       orderBy: { date: 'desc' }
     })
 
-    // 3. Process each player to apply the 70/30 matchday weighting rule
+    // 3. Process each player
     const processedPlayers = players.map(player => {
       // Find the most recent match for this player's team
       const teamMatch = matches.find(m => m.homeTeam === player.team || m.awayTeam === player.team)
       
       let finalSentiment = player.sentiment
+      
+      // Availability Check:
+      // If a player is BANNED or INJURED, they might still have high/low sentiment
+      // but they are "In Crisis" tactically.
+      if (player.status !== 'ACTIVE' && player.sentiment > 40) {
+          // If they are inactive but have high sentiment, we might want to dampen it 
+          // to reflect they aren't helping the team.
+          finalSentiment = Math.min(finalSentiment, 45); 
+      }
       
       if (teamMatch) {
         const matchStart = new Date(teamMatch.date).getTime()
@@ -81,10 +90,13 @@ export async function GET(request: Request) {
       }
     })
 
-    // 4. Sort by weighted sentiment descending
+    // 4. Sort by weighted sentiment descending and strip raw sentiments to save memory
     processedPlayers.sort((a, b) => b.sentiment - a.sentiment)
 
-    return NextResponse.json(processedPlayers)
+    // Remove the raw sentiments array from the response to the client to prevent massive memory usage
+    const cleanPlayers = processedPlayers.map(({ sentiments, ...player }) => player)
+
+    return NextResponse.json(cleanPlayers)
   } catch (error) {
     console.error('Error fetching players:', error)
     return NextResponse.json({ error: 'Failed to load players' }, { status: 500 })

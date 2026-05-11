@@ -8,24 +8,34 @@ datasource db {
 }
 
 model Player {
-  id              String      @id @default(cuid())
-  name            String
-  team            String
-  position        String
-  sentiment       Int         @default(0)
-  tweets          Int         @default(0)
-  aiConfidence    Int         @default(0)
-  form            String?
-  imageUrl        String?
-  country         String?
-  shirtNumber     Int?
-  weekNumber      Int         @default(0)
-  season          String      @default("2024-25")
-  lastUpdated     DateTime    @default(now())
-  lastThemeUpdate DateTime?
-  negativeTheme   String?
-  positiveTheme   String?
-  sentiments      Sentiment[]
+  id               String      @id @default(cuid())
+  name             String
+  team             String
+  position         String
+  sentiment        Int         @default(0)
+  tweets           Int         @default(0)
+  aiConfidence     Int         @default(0)
+  form             String?
+  imageUrl         String?
+  country          String?
+  shirtNumber      Int?
+  weekNumber       Int         @default(0)
+  season           String      @default("2024-25")
+  lastUpdated      DateTime    @default(now())
+  lastThemeUpdate  DateTime?
+  negativeTheme    String?
+  positiveTheme    String?
+  
+  // Tactical Availability
+  status           String      @default("ACTIVE") // ACTIVE, INJURED, BANNED, SUSPENDED
+  statusNote       String?     // e.g., "Out until June 2026", "2-year ban"
+  availability     Int         @default(100)      // 0 to 100 percentage
+  
+  // Admin Overrides
+  isManual         Boolean     @default(false)
+  manualSentiment  Int?
+  
+  sentiments       Sentiment[]
 
   @@index([weekNumber, season])
 }
@@ -48,6 +58,12 @@ model Match {
   predictedScore     Int                 @default(0)
   psycheJSON         String?
   lastUpdated        DateTime            @default(now())
+  
+  // Admin Overrides
+  isManual           Boolean             @default(false)
+  manualHomeSentiment Int?
+  manualAwaySentiment Int?
+  
   interceptedSignals InterceptedSignal[]
   sentiments         Sentiment[]
 
@@ -83,6 +99,11 @@ model InterceptedSignal {
   clubId    String?
   createdAt DateTime @default(now())
   tweetId   String?
+  
+  // Admin Curation
+  isPinned  Boolean  @default(false)
+  isHidden  Boolean  @default(false)
+  
   match     Match?   @relation(fields: [matchId], references: [id])
 
   @@index([matchId])
@@ -112,6 +133,24 @@ model AgentActivity {
   timestamp DateTime @default(now())
 
   @@index([timestamp])
+}
+
+model User {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  password      String   // Hashed in production
+  role          String   @default("EDITOR") // ADMIN, EDITOR
+  assignedTeam  String?
+  lastLogin     DateTime?
+  createdAt     DateTime @default(now())
+}
+
+model SystemConfig {
+  id               String   @id @default("global")
+  isAgentEnabled   Boolean  @default(true)
+  matchDayMode     Boolean  @default(false)
+  maintenanceMode  Boolean  @default(false)
+  updatedAt        DateTime @updatedAt
 }
 
 model Goal {
