@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { getRoundContext, type RoundContext } from "@/lib/competition-rounds";
 import { CLUBS } from "@/lib/clubs";
 import { AnimatedCounter, Sparkline, DashboardSkeleton } from "@/components/PulsePolish";
+import { useLiveMatches } from "@/lib/hooks/useLiveMatches";
 
 declare global {
   interface Window {
@@ -339,16 +340,19 @@ function AgentActivityFeed({ activities, onTrigger, isTriggering }: { activities
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function FanPulseDemo() {
-  const [matches, setMatches] = useState<Match[]>([]);
+  const { matches, isLoading: isMatchesLoading, isError, hasLiveMatch } = useLiveMatches();
   const [players, setPlayers] = useState<Player[]>([]);
-  const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [agentActivities, setAgentActivities] = useState<AgentActivity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  
   const [isFetchingQuotes, setIsFetchingQuotes] = useState(false);
   const [isTriggeringAgent, setIsTriggeringAgent] = useState(false);
   const [quotes, setQuotes] = useState<{team: string, handle: string, text: string, likes: string, retweets: string, pulse: string, tweetId?: string}[]>([]);
   const [error, setError] = useState<string | null>(null);
+  
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [timeAgo, setTimeAgo] = useState<string>("just now");
+  
   const [myClub, setMyClub] = useState<string | null>(null);
   const [showClubSelect, setShowClubSelect] = useState(false);
   const { t } = useLanguage();
@@ -394,8 +398,6 @@ export default function FanPulseDemo() {
     const club = CLUBS.find(c => c.id === clubId);
     if (!club) return;
     const { h, s, l } = hexToHsl(club.primaryColor);
-    // Guard: clamp lightness to max 55% so white/light clubs don't break dark UI
-    // Guard: enforce min 40% saturation so grey clubs stay vibrant
     const safeLightness = Math.min(l, 55);
     const safeSaturation = Math.max(s, 40);
     document.documentElement.style.setProperty('--primary', `${h} ${safeSaturation}% ${safeLightness}%`);
@@ -408,35 +410,56 @@ export default function FanPulseDemo() {
     setShowClubSelect(false);
   };
 
+  // Sync matches update time
   useEffect(() => {
-    async function fetchData() {
+    if (matches && matches.length > 0) {
+      setLastUpdated(new Date());
+    }
+  }, [matches]);
+
+  // Update freshness indicator
+  useEffect(() => {
+    if (!lastUpdated) return;
+    const interval = setInterval(() => {
+      const seconds = Math.floor((new Date().getTime() - lastUpdated.getTime()) / 1000);
+      if (seconds < 60) setTimeAgo(`${seconds} seconds ago`);
+      else setTimeAgo(`${Math.floor(seconds / 60)} minutes ago`);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lastUpdated]);
+
+  // Handle errors from SWR
+  useEffect(() => {
+    if (isError) {
+      setError("Could not connect to Fan Pulse data. Retrying…");
+    } else {
+      setError(null);
+    }
+  }, [isError]);
+
+  useEffect(() => {
+    async function fetchStaticData() {
       try {
-        const [pRes, mRes, aRes] = await Promise.all([
+        const [pRes, aRes] = await Promise.all([
           fetch("/api/players"),
-          fetch("/api/matches"),
           fetch("/api/admin/activities")
         ]);
 
-        if (!pRes.ok || !mRes.ok) throw new Error("Critical frequency disconnect");
+        if (!pRes.ok) throw new Error("Critical frequency disconnect");
 
         const pData = await pRes.json();
-        const mData = await mRes.json();
         const aData = aRes.ok ? await aRes.json() : { activities: [] };
 
         setPlayers(pData.players || []);
         setAgentActivities(aData.activities || []);
-        const matches = mData.matches || [];
-        setMatches(matches);
-        setAllMatches(matches);
-        setLastUpdated(new Date());
       } catch (err) {
-        console.error("Failed to fetch data:", err);
+        console.error("Failed to fetch static data:", err);
         setError("Could not connect to Fan Pulse data. Retrying…");
       } finally {
-        setLoading(false);
+        setLoadingInitial(false);
       }
     }
-    fetchData();
+    fetchStaticData();
   }, []);
 
 
@@ -555,7 +578,7 @@ export default function FanPulseDemo() {
   }, []);
 
   // ── Loading State ──────────────────────────────────────────────────────────
-  if (loading) {
+  if (loadingInitial || (isMatchesLoading && matches.length === 0)) {
     return <DashboardSkeleton />;
   }
 
@@ -566,6 +589,12 @@ export default function FanPulseDemo() {
 
   return (
     <div className="flex flex-col min-h-screen bg-arena">
+      {hasLiveMatch && (
+        <div className="bg-red-500/10 border-b border-red-500/20 text-red-500 text-[11px] font-black uppercase tracking-widest py-1.5 px-4 flex items-center justify-center gap-2 z-50 relative">
+          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          LIVE — Auto-refreshing every 15s
+        </div>
+      )}
       <PulseTicker matches={matches} players={players} />
       
       <div className="px-4 md:px-8 py-8 max-w-md md:max-w-full mx-auto pb-24 md:pb-12 space-y-6 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
@@ -587,11 +616,7 @@ export default function FanPulseDemo() {
           <div className="flex items-center gap-2 mt-2.5">
             <span className="live-dot" />
             <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.25em] opacity-60">
-              Synced:{" "}
-              {lastUpdated.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              Last updated {timeAgo}
             </span>
           </div>
         )}
