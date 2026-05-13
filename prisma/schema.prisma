@@ -58,6 +58,8 @@ model Match {
   predictedScore     Int                 @default(0)
   psycheJSON         String?
   lastUpdated        DateTime            @default(now())
+  dataStatus         String              @default("FRESH") // FRESH, STALE, NO_DATA
+  staleAt            DateTime?
   
   // Admin Overrides
   isManual           Boolean             @default(false)

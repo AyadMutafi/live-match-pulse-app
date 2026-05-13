@@ -82,6 +82,16 @@ export async function POST(request: NextRequest) {
 
       const scrapeResult = await scrapeMatchSentiment(homeTeam, awayTeam, hashtag, targetDate, activeSources);
       if (!scrapeResult.success || !scrapeResult.content) {
+        if (matchId) {
+          console.warn(`All scraping failed for match ${matchId}, marking as STALE`);
+          await db.match.update({
+            where: { id: matchId },
+            data: {
+              dataStatus: 'STALE',
+              staleAt: new Date()
+            }
+          });
+        }
         return NextResponse.json({ error: scrapeResult.error || 'No content found' }, { status: 500 });
       }
 

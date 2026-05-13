@@ -131,17 +131,19 @@ export async function runAnalystAgent(type: 'player' | 'match' | 'club', id: str
     }
 
     if (!scrapeResult.success || !scrapeResult.content) {
-      // One final attempt if specifically a 402 (payment required/credits)
-      if (scrapeResult.error?.includes('402')) {
-        console.log('[Analyst] Credits exhausted. Mining local intelligence...');
-        scrapeResult = {
-          success: true,
-          content: `Synthetic intelligence for ${id}. Fan sentiment is rising. #PulseCheck #Football`,
-          url: 'local://pulse-miner'
-        };
-      } else {
-        throw new Error(scrapeResult.error || 'Scrape yielded no content');
+      console.warn(`[Analyst] All scraping failed for match ${id}, marking as STALE`);
+      
+      if (type === 'match') {
+        await db.match.update({
+          where: { id },
+          data: {
+            dataStatus: 'STALE',
+            staleAt: new Date()
+          }
+        });
       }
+      
+      return { success: false, message: `Scraping failed for ${type} ${id}` };
     }
 
     let entityLabel = 'Target';
