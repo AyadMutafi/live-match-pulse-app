@@ -21,7 +21,9 @@ import { ClubLogo } from "@/components/ClubLogo";
 import { Tweet } from "react-tweet";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
-import { getRoundContext, type RoundContext } from "@/lib/competition-rounds";
+import useSWR from 'swr';
+// Removed: import { getRoundContext, type RoundContext } from "@/lib/competition-rounds";
+
 import { CLUBS } from "@/lib/clubs";
 import { AnimatedCounter, Sparkline, DashboardSkeleton } from "@/components/PulsePolish";
 import { useLiveMatches } from "@/lib/hooks/useLiveMatches";
@@ -46,6 +48,10 @@ interface Player {
   positiveTheme: string | null;
   negativeTheme: string | null;
   lastThemeUpdate: string | null;
+  status: string;
+  statusNote: string | null;
+  lastUpdated: string | null;
+  isStale: boolean;
 }
 
 interface Match {
@@ -119,37 +125,22 @@ function SentimentBadge({ score }: { score: number }) {
 
 // ── Matchday Intelligence ───────────────────────────────────────────────────
 
-function MatchdayIntelligence({ matches }: { matches: Match[] }) {
-  const activeRound = useMemo(() => {
-    if (matches.length === 0) return null;
-    // Find closest match to now
-    const now = Date.now();
-    let best = matches[0].status || "";
-    let minDiff = Infinity;
-    for (const m of matches) {
-      const d = Math.abs(new Date(m.date).getTime() - now);
-      if (d < minDiff) {
-        minDiff = d;
-        // Logic to extract round name if available or use league name
-        // On home page, we'll try to find a UCL or PL round
-      }
-    }
-    
-    // For home page, let's just default to a few known ones for the "active" view
-    // or try to match against matches[0].league
-    const sampleMatch = matches.find(m => m.league.includes('Champions')) || matches[0];
-    if (!sampleMatch) return null;
-    
-    const league = sampleMatch.league.includes('Champions') ? 'UCL' : 
-                   sampleMatch.league.includes('Premier') ? 'Premier League' : 'La Liga';
-    
-    // Return context for the first round that has it for this league
-    return getRoundContext("Quarter-Finals", "UCL") || 
-           getRoundContext("GW33", "Premier League") || 
-           getRoundContext("J33", "La Liga");
-  }, [matches]);
+const fetcher = (url: string) => fetch(url).then(r => r.json());
 
-  if (!activeRound) return null;
+function MatchdayIntelligence({ matches }: { matches: Match[] }) {
+  const { data: activeRound, isLoading } = useSWR('/api/competition-context?compId=premier-league', fetcher, {
+    refreshInterval: 3600000 // 1 hour
+  });
+
+  if (isLoading || !activeRound) {
+    return (
+      <div className="relative rounded-[32px] overflow-hidden border border-border/40 bg-muted/10 animate-pulse p-10 mb-8 shadow-2xl">
+         <div className="h-4 w-1/3 bg-muted/40 rounded mb-4" />
+         <div className="h-8 w-3/4 bg-muted/40 rounded mb-4" />
+         <div className="h-4 w-1/2 bg-muted/40 rounded" />
+      </div>
+    );
+  }
 
   return (
     <div className="relative rounded-[32px] overflow-hidden border border-border/40 bg-gradient-to-br from-background/40 to-muted/10 backdrop-blur-xl p-5 mb-8 shadow-2xl group">
@@ -182,7 +173,7 @@ function MatchdayIntelligence({ matches }: { matches: Match[] }) {
           <p className="text-[12px] font-medium text-foreground/80 leading-relaxed">{activeRound.fanMoodSummary}</p>
         </div>
         
-        {activeRound.keyPlayers.length > 0 && (
+        {activeRound.keyPlayers && activeRound.keyPlayers.length > 0 && (
           <div className="p-3 rounded-2xl bg-muted/20 border border-border/30">
             <p className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-40">Featured Performer</p>
             <div className="flex items-center gap-3">
@@ -198,6 +189,7 @@ function MatchdayIntelligence({ matches }: { matches: Match[] }) {
     </div>
   );
 }
+
 
 
 
@@ -222,7 +214,7 @@ function PulseTicker({ matches, players }: { matches: Match[], players: Player[]
     players.slice(0, 3).forEach(p => {
       items.push({
         label: 'PLAYER SPIKE',
-        value: `${p.name} (+${Math.floor(Math.random() * 10) + 5}% Surge)`,
+        value: `${p.name} (${p.sentiment}% Pulse)`,
         color: 'text-primary'
       });
     });
@@ -347,7 +339,7 @@ export default function FanPulseDemo() {
   
   const [isFetchingQuotes, setIsFetchingQuotes] = useState(false);
   const [isTriggeringAgent, setIsTriggeringAgent] = useState(false);
-  const [quotes, setQuotes] = useState<{team: string, handle: string, text: string, likes: string, retweets: string, pulse: string, tweetId?: string}[]>([]);
+  const [quotes, setQuotes] = useState<{team: string, handle: string, text: string, likes: number | string | null, retweets: number | string | null, pulse: string, tweetId?: string}[]>([]);
   const [error, setError] = useState<string | null>(null);
   
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -583,9 +575,16 @@ export default function FanPulseDemo() {
   }
 
   // ── Derived Data ───────────────────────────────────────────────────────────
-  const topPlayers = [...players]
+  const availablePlayers = useMemo(() => players.filter(p => p.status === 'ACTIVE'), [players]);
+  const unavailablePlayers = useMemo(() => players.filter(p => p.status !== 'ACTIVE'), [players]);
+
+  const topPlayers = [...availablePlayers]
     .sort((a, b) => b.sentiment - a.sentiment)
-    .slice(0, 6);
+    .slice(0, 3);
+
+  const worstPlayers = [...availablePlayers]
+    .sort((a, b) => a.sentiment - b.sentiment)
+    .slice(0, 3);
 
   return (
     <div className="flex flex-col min-h-screen bg-arena">
@@ -912,10 +911,7 @@ export default function FanPulseDemo() {
               </span>
             </div>
             <div className="glass-card shadow-xl divide-y divide-border/50 overflow-hidden border-emerald-500/10">
-              {[...players]
-                .sort((a, b) => b.sentiment - a.sentiment)
-                .slice(0, 3)
-                .map((player, idx) => (
+              {topPlayers.map((player, idx) => (
                   <div
                     key={player.id}
                     className="flex items-center justify-between px-4 py-4 hover:bg-emerald-500/5 transition-all group"
@@ -960,10 +956,7 @@ export default function FanPulseDemo() {
               </span>
             </div>
             <div className="glass-card shadow-xl divide-y divide-border/50 overflow-hidden border-red-500/10">
-              {[...players]
-                .sort((a, b) => a.sentiment - b.sentiment)
-                .slice(0, 3)
-                .map((player, idx) => (
+              {worstPlayers.map((player, idx) => (
                   <div
                     key={player.id}
                     className="flex items-center justify-between px-4 py-4 hover:bg-red-500/5 transition-all group"
@@ -995,6 +988,49 @@ export default function FanPulseDemo() {
                 ))}
             </div>
           </section>
+
+          {/* Unavailable Players */}
+          {unavailablePlayers.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-4 px-1">
+                <h3 className="text-[15px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Skull className="w-5 h-5" />
+                  Unavailable Section
+                </h3>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-40">
+                  Tactical Void
+                </span>
+              </div>
+              <div className="glass-card shadow-xl divide-y divide-border/50 overflow-hidden opacity-80 grayscale-[0.5]">
+                {unavailablePlayers.map((player) => (
+                  <div key={player.id} className="flex items-center justify-between px-4 py-4 hover:bg-white/5 transition-all">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black shrink-0 mr-3 bg-muted/20 text-muted-foreground border border-border/40">
+                      ❌
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[14px] font-black text-foreground/70 leading-tight">{player.name}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <ClubLogo club={player.team} size={14} />
+                        <span className="text-[10px] font-bold text-muted-foreground/40">{player.position}</span>
+                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md bg-red-500/10 text-red-500/70 uppercase tracking-wider">
+                          {player.status}
+                        </span>
+                      </div>
+                      {player.statusNote && (
+                        <p className="text-[9px] font-medium text-muted-foreground/60 mt-1 italic line-clamp-1">
+                          {player.statusNote}
+                        </p>
+                      )}
+                    </div>
+                    <div className="shrink-0 ml-3 text-right opacity-40">
+                      <div className="text-[15px] font-black tabular-nums">{player.sentiment}%</div>
+                      <div className="text-[9px] font-black uppercase tracking-[0.15em] mt-1">Dampened</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
 

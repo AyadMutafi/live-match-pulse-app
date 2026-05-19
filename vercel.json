@@ -15,6 +15,14 @@
     {
       "path": "/api/agents/run",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/sync-rosters",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/scout-matchday",
+      "schedule": "0 */4 * * *"
     }
   ]
 }

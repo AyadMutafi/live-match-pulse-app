@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import FirecrawlApp from '@mendable/firecrawl-js'
 
 async function test() {

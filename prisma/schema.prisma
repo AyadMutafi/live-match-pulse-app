@@ -94,9 +94,10 @@ model InterceptedSignal {
   team      String
   handle    String
   text      String
-  likes     String
-  retweets  String
+  likes     Int?
+  retweets  Int?
   pulse     String
+  source    String?
   matchId   String?
   clubId    String?
   createdAt DateTime @default(now())

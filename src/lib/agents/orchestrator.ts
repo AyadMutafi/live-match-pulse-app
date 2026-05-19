@@ -1,6 +1,7 @@
 import { model, detectPlayerStatus } from '@/lib/ai-analysis';
 import { db } from '@/lib/db';
 import { AGENT_TOOLS } from './manifest';
+import { namesMatch } from '@/lib/name-utils';
 
 /**
  * THE BRAIN: Autonomous Orchestrator
@@ -196,9 +197,10 @@ export async function runAnalystAgent(type: 'player' | 'match' | 'club', id: str
           handle: q.handle || '@FootballGlobal',
           text: q.text,
           tweetId: q.tweetId,
-          likes: (Math.random() * 20000).toFixed(0),
-          retweets: (Math.random() * 5000).toFixed(0),
+          likes: q.likes ? parseInt(q.likes, 10) : null,
+          retweets: q.retweets ? parseInt(q.retweets, 10) : null,
           pulse: `${sentiment.sentiment}%`,
+          source: scrapeResult.url?.includes('grok') ? 'grok' : scrapeResult.source || 'agent',
           matchId: id
         }));
         await db.interceptedSignal.deleteMany({ where: { matchId: id, isPinned: false } });
@@ -231,9 +233,10 @@ export async function runAnalystAgent(type: 'player' | 'match' | 'club', id: str
           handle: q.handle || '@FootballGlobal',
           text: q.text,
           tweetId: q.tweetId,
-          likes: (Math.random() * 20000).toFixed(0),
-          retweets: (Math.random() * 5000).toFixed(0),
+          likes: q.likes ? parseInt(q.likes, 10) : null,
+          retweets: q.retweets ? parseInt(q.retweets, 10) : null,
           pulse: `${sentiment.sentiment}%`,
+          source: scrapeResult.url?.includes('grok') ? 'grok' : scrapeResult.source || 'agent',
           clubId: id
         }));
         // Clean up old signals for this club
@@ -275,72 +278,130 @@ export async function runAnalystAgent(type: 'player' | 'match' | 'club', id: str
 
 /**
  * MATCHDAY SCOUT AGENT: Detects player availability (Injuries, Bans, Suspensions)
+ * Process all players, prioritizing the stalest ones, in batches.
  */
-export async function runMatchdayScoutAgent(): Promise<AgentResult> {
+export async function runMatchdayScoutAgent(playerName?: string): Promise<AgentResult> {
   try {
-    // 1. Get high-priority players (those with extreme sentiment or recently updated)
-    const players = await db.player.findMany({
-      where: {
-        OR: [
-          { sentiment: { gt: 80 } },
-          { sentiment: { lt: 30 } },
-          { lastUpdated: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } }
-        ]
-      },
-      take: 5,
-      orderBy: { lastUpdated: 'desc' }
-    });
-
-    let updatedCount = 0;
-
-    for (const player of players) {
-      console.log(`[Matchday Scout] Investigating ${player.name}...`);
+    let players;
+    
+    if (playerName) {
+      // Fetch all and match in-memory for robust name matching (accents, etc)
+      const allPlayers = await db.player.findMany();
+      players = allPlayers.filter(p => namesMatch(p.name, playerName));
       
-      // 2. Scrape latest news
-      const newsResult = await AGENT_TOOLS.scout_player_availability.execute({
-        playerName: player.name,
-        teamName: player.team
+      if (players.length === 0) {
+        return { success: false, message: `No player matching "${playerName}" found.` };
+      }
+    } else {
+      players = await db.player.findMany({
+        where: {
+          OR: [
+            { status: 'ACTIVE', lastUpdated: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+            { status: { not: 'ACTIVE' } }
+          ]
+        },
+        orderBy: { lastUpdated: 'asc' } // Stalest first
+      });
+    }
+
+    const summary = { checked: players.length, active: 0, injured: 0, banned: 0, suspended: 0, errors: 0 };
+    const BATCH_SIZE = 5;
+
+    for (let i = 0; i < players.length; i += BATCH_SIZE) {
+      const batch = players.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(batch.map(player => 
+        processPlayerAvailability(player).catch(err => {
+          console.error(`[Matchday Scout] Critical error processing ${player.name}:`, err);
+          return { status: 'ERROR' };
+        })
+      ));
+
+      results.forEach(res => {
+        if (res.status === 'ACTIVE') summary.active++;
+        else if (res.status === 'INJURED') summary.injured++;
+        else if (res.status === 'BANNED') summary.banned++;
+        else if (res.status === 'SUSPENDED') summary.suspended++;
+        else if (res.status === 'ERROR') summary.errors++;
       });
 
-      if (!newsResult.success || !newsResult.content) continue;
-
-      // 3. Ask AI to determine status (Using shared library)
-      const parsed = await detectPlayerStatus(newsResult.content, player.name, player.team);
-      
-      // 4. Update Database
-      try {
-        await db.player.update({
-          where: { id: player.id },
-          data: {
-            status: parsed.status || 'ACTIVE',
-            statusNote: parsed.note || null,
-            availability: (parsed.status === 'ACTIVE') ? 100 : 0,
-            lastUpdated: new Date()
-          }
-        });
-        
-        await db.agentActivity.create({
-          data: {
-            agent: 'Matchday Scout',
-            action: 'status_detected',
-            target: player.name,
-            status: 'success',
-            message: `${parsed.status}: ${parsed.note}`
-          }
-        });
-
-        updatedCount++;
-      } catch (e) {
-        console.error(`[Matchday Scout] Failed to update player ${player.name}:`, e);
+      if (i + BATCH_SIZE < players.length) {
+        await new Promise(r => setTimeout(r, 2000));
       }
     }
 
     return {
       success: true,
-      message: `Matchday Scout processed ${players.length} players. Updated ${updatedCount} statuses.`
+      message: `Matchday Scout processed ${players.length} players.`,
+      data: summary
     };
   } catch (error) {
-    console.error('[Matchday Scout] Error:', error);
-    return { success: false, message: 'Matchday Scout failed.' };
+    console.error('[Matchday Scout] Global Error:', error);
+    return { success: false, message: 'Matchday Scout failed to execute global run.' };
+  }
+}
+
+/**
+ * Helper to process a single player's availability
+ */
+async function processPlayerAvailability(player: any): Promise<{ status: string }> {
+  try {
+    console.log(`[Matchday Scout] Investigating ${player.name}...`);
+    
+    const newsResult = await AGENT_TOOLS.scout_player_availability.execute({
+      playerName: player.name,
+      teamName: player.team
+    });
+
+    if (!newsResult.success || !newsResult.content) {
+      throw new Error(`No news found for ${player.name}`);
+    }
+
+    const parsed = await detectPlayerStatus(newsResult.content, player.name, player.team);
+    
+    // Calculate availability based on status and proximity
+    let availability = 100;
+    const status = parsed.status || 'ACTIVE';
+    const note = (parsed.note || '').toLowerCase();
+
+    if (status === 'ACTIVE') {
+      availability = 100;
+    } else if (status === 'INJURED') {
+      if (note.includes('out for season') || note.includes('season over') || note.includes('long-term')) {
+        availability = 0;
+      } else if (note.includes('week')) {
+        availability = 50;
+      } else if (note.includes('month')) {
+        availability = 20;
+      } else {
+        availability = 10;
+      }
+    } else if (['SUSPENDED', 'BANNED'].includes(status)) {
+      availability = 0;
+    }
+
+    await db.player.update({
+      where: { id: player.id },
+      data: {
+        status: status,
+        statusNote: parsed.note || null,
+        availability: availability,
+        lastUpdated: new Date()
+      }
+    });
+    
+    await db.agentActivity.create({
+      data: {
+        agent: 'Matchday Scout',
+        action: 'status_detected',
+        target: player.name,
+        status: 'success',
+        message: `${status} (${availability}%): ${parsed.note}`
+      }
+    });
+
+    return { status };
+  } catch (e: any) {
+    console.warn(`[Matchday Scout] Failed for ${player.name}:`, e.message);
+    return { status: 'ERROR' };
   }
 }

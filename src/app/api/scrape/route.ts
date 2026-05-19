@@ -110,9 +110,10 @@ export async function POST(request: NextRequest) {
             team: homeTeam,
             handle: q.handle || '@FootballGlobal',
             text: q.text,
-            likes: (Math.random() * 20000).toFixed(0),
-            retweets: (Math.random() * 5000).toFixed(0),
+            likes: q.likes ? parseInt(q.likes, 10) : null,
+            retweets: q.retweets ? parseInt(q.retweets, 10) : null,
             pulse: `${homeAnalysis.sentiment}%`,
+            source: 'firecrawl',
             matchId: matchId
           })));
         }
@@ -122,9 +123,10 @@ export async function POST(request: NextRequest) {
             team: awayTeam,
             handle: q.handle || '@FootballGlobal',
             text: q.text,
-            likes: (Math.random() * 20000).toFixed(0),
-            retweets: (Math.random() * 5000).toFixed(0),
+            likes: q.likes ? parseInt(q.likes, 10) : null,
+            retweets: q.retweets ? parseInt(q.retweets, 10) : null,
             pulse: `${awayAnalysis.sentiment}%`,
+            source: 'firecrawl',
             matchId: matchId
           })));
         }

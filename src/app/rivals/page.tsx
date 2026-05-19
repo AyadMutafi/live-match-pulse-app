@@ -6,7 +6,9 @@ import { ClubLogo } from '@/components/ClubLogo'
 import { useLanguage } from '@/context/LanguageContext'
 import { ShareButton } from '@/components/ShareButton'
 import { Button } from '@/components/ui/button'
-import { getRoundContext, type RoundContext } from '@/lib/competition-rounds'
+import useSWR from 'swr';
+// Removed: import { getRoundContext, type RoundContext } from '@/lib/competition-rounds'
+
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -218,19 +220,14 @@ function FanWarCard({ match }: { match: Match }) {
   )
 }
 
-function RoundContextBanner({ matches }: { matches: Match[] }) {
-  const ctx = useMemo(() => {
-    if (matches.length === 0) return null;
-    const sample = matches.find(m => m.league.includes('Champions')) || matches[0];
-    const league = sample.league.includes('Champions') ? 'UCL' : 
-                   sample.league.includes('Premier') ? 'Premier League' : 'La Liga';
-    
-    return getRoundContext("Quarter-Finals", "UCL") || 
-           getRoundContext("GW33", "Premier League") || 
-           getRoundContext("J33", "La Liga");
-  }, [matches]);
+const fetcher = (url: string) => fetch(url).then(r => r.json());
 
-  if (!ctx) return null;
+function RoundContextBanner({ matches }: { matches: Match[] }) {
+  const { data: ctx, isLoading } = useSWR('/api/competition-context?compId=ucl', fetcher, {
+    refreshInterval: 3600000 // 1 hour
+  });
+
+  if (isLoading || !ctx) return null;
 
   return (
     <div className="relative rounded-[32px] overflow-hidden border-2 p-5 mb-6 shadow-xl" style={{ borderColor: `${ctx.accent}30`, background: `${ctx.accent}05` }}>
@@ -245,6 +242,7 @@ function RoundContextBanner({ matches }: { matches: Match[] }) {
     </div>
   );
 }
+
 
 // ── Main page ────────────────────────────────────────────────────────────────
 

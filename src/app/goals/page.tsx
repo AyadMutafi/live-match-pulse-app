@@ -1,19 +1,71 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { Play, Flame, ExternalLink } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import useSWR from 'swr'
+import { Play, Flame, Search } from 'lucide-react'
 import { ClubLogo } from '@/components/ClubLogo'
 import { ShareButton } from '@/components/ShareButton'
-import {
-  GOALS_FEED,
-  OFFICIAL_SOURCES,
-  getGoalMatchdays,
-  getGoalsByMatchday,
-  GOAL_TYPE_EMOJI,
-  GOAL_TYPE_LABEL,
-  type GoalHighlight,
-  type GoalSource,
-} from '@/lib/goals-data'
+
+// ── Types & Constants (Moved from goals-data.ts) ────────────────
+export type GoalSource = {
+  platform: 'x' | 'tiktok' | 'instagram' | 'youtube'
+  handle: string
+  displayName: string
+  verified: boolean
+  url: string
+  label: string
+}
+
+export type GoalHighlight = {
+  id: string
+  player: string
+  club: string
+  opponent: string
+  minute: number
+  goalType: string
+  caption: string
+  league: string
+  matchScore: string
+  sources: GoalSource[]
+  matchday: string
+  date: string
+  tags: string[]
+  accentColor: string
+}
+
+const GOAL_TYPE_EMOJI: Record<string, string> = {
+  'tap-in': '👆',
+  'header': '🤕',
+  'free-kick': '🎯',
+  'penalty': '🎲',
+  'long-range': '💣',
+  'volley': '⚡',
+  'solo-run': '🏃',
+  'bicycle-kick': '🤸',
+  'curler': '🌀',
+  'counter-attack': '💨',
+}
+
+const GOAL_TYPE_LABEL: Record<string, string> = {
+  'tap-in': 'TAP IN',
+  'header': 'HEADER',
+  'free-kick': 'FREE KICK',
+  'penalty': 'PENALTY',
+  'long-range': 'LONG RANGE',
+  'volley': 'VOLLEY',
+  'solo-run': 'SOLO RUN',
+  'bicycle-kick': 'BICYCLE KICK',
+  'curler': 'CURLER',
+  'counter-attack': 'COUNTER',
+}
+
+const OFFICIAL_SOURCES = {
+  leagues: ['@premierleague', '@LaLiga', '@LaLigaEN'],
+  broadcasters: ['@beINSPORTS_EN', '@ESPNFC', '@NBCSportsSoccer', '@tntsports', '@SkySportsPL'],
+  clubs: ['@ManCity', '@LFC', '@Arsenal', '@ChelseaFC', '@ManUtd', '@realmadrid', '@FCBarcelona'],
+}
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 // ── Platform icons ────────────────────────────────────────────
 function XIcon({ size = 14 }: { size?: number }) {
@@ -54,6 +106,26 @@ const PLATFORM_COLORS: Record<string, string> = {
   youtube: '#FF0000',
 }
 
+// ── Skeleton Loader ───────────────────────────────────────────
+function GoalSkeleton() {
+  return (
+    <div className="rounded-[28px] border border-border/40 bg-background/50 backdrop-blur-md overflow-hidden shadow-xl animate-pulse p-5 space-y-4">
+      <div className="flex justify-between items-center">
+        <div className="h-6 w-24 bg-muted/40 rounded-lg" />
+        <div className="h-6 w-12 bg-muted/40 rounded-lg" />
+      </div>
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-muted/40" />
+        <div className="flex-1 space-y-2">
+          <div className="h-5 w-3/4 bg-muted/40 rounded" />
+          <div className="h-3 w-1/2 bg-muted/40 rounded" />
+        </div>
+      </div>
+      <div className="h-12 bg-muted/20 rounded-2xl" />
+    </div>
+  )
+}
+
 // ── Source button ──────────────────────────────────────────────
 function SourceButton({ source }: { source: GoalSource }) {
   const Icon = PLATFORM_ICON[source.platform] || XIcon
@@ -82,50 +154,8 @@ function SourceButton({ source }: { source: GoalSource }) {
   )
 }
 
-// ── Goal Type Filter Pill ─────────────────────────────────────
-function GoalTypeFilter({
-  types,
-  active,
-  onToggle,
-}: {
-  types: string[]
-  active: string | null
-  onToggle: (type: string | null) => void
-}) {
-  return (
-    <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
-      <button
-        onClick={() => onToggle(null)}
-        className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all flex-shrink-0 border whitespace-nowrap ${
-          active === null
-            ? 'bg-foreground text-background border-foreground shadow-lg'
-            : 'bg-muted/20 text-muted-foreground border-border/10 hover:bg-muted/40'
-        }`}
-      >
-        🔥 ALL
-      </button>
-      {types.map((type) => (
-        <button
-          key={type}
-          onClick={() => onToggle(active === type ? null : type)}
-          className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all flex-shrink-0 border whitespace-nowrap ${
-            active === type
-              ? 'bg-foreground text-background border-foreground shadow-lg'
-              : 'bg-muted/20 text-muted-foreground border-border/10 hover:bg-muted/40'
-          }`}
-        >
-          {GOAL_TYPE_EMOJI[type as GoalHighlight['goalType']] || '⚽'}{' '}
-          {GOAL_TYPE_LABEL[type as GoalHighlight['goalType']] || type}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 // ── Goal Card ─────────────────────────────────────────────────
 function GoalCard({ goal, index }: { goal: GoalHighlight; index: number }) {
-
-  // Map club name to the internal slug used by ClubLogo
   const clubSlug =
     goal.club === 'Manchester City' ? 'Manchester City FC' :
     goal.club === 'Manchester United' ? 'Manchester United FC' :
@@ -144,7 +174,6 @@ function GoalCard({ goal, index }: { goal: GoalHighlight; index: number }) {
         animation: 'fadeInUp 0.5s ease-out backwards',
       }}
     >
-      {/* Accent gradient top bar */}
       <div
         className="h-1.5 w-full"
         style={{
@@ -152,12 +181,11 @@ function GoalCard({ goal, index }: { goal: GoalHighlight; index: number }) {
         }}
       />
 
-      {/* Header row: Goal type badge + minute */}
       <div className="flex items-center justify-between px-5 pt-4 pb-2">
         <div className="flex items-center gap-2">
-          <span className="text-xl">{GOAL_TYPE_EMOJI[goal.goalType]}</span>
+          <span className="text-xl">{GOAL_TYPE_EMOJI[goal.goalType] || '⚽'}</span>
           <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg bg-foreground/5 border border-border/30 text-foreground/70">
-            {GOAL_TYPE_LABEL[goal.goalType]}
+            {GOAL_TYPE_LABEL[goal.goalType] || goal.goalType}
           </span>
         </div>
         <span
@@ -172,7 +200,6 @@ function GoalCard({ goal, index }: { goal: GoalHighlight; index: number }) {
         </span>
       </div>
 
-      {/* Player + Club Row */}
       <div className="px-5 pb-3 flex items-center gap-4">
         <ClubLogo club={clubSlug} size={48} />
         <div className="flex-1 min-w-0">
@@ -196,14 +223,12 @@ function GoalCard({ goal, index }: { goal: GoalHighlight; index: number }) {
         </div>
       </div>
 
-      {/* Caption */}
-      <div className="mx-5 mb-4 p-3.5 rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/30">
+      <div className="mx-5 mb-4 p-3.5 rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/30 text-center">
         <p className="text-[13px] font-semibold text-foreground/85 leading-relaxed">
           {goal.caption}
         </p>
       </div>
 
-      {/* Tags */}
       <div className="px-5 pb-3 flex flex-wrap gap-1.5">
         {goal.tags.map((tag) => (
           <span
@@ -215,45 +240,9 @@ function GoalCard({ goal, index }: { goal: GoalHighlight; index: number }) {
         ))}
       </div>
 
-      {/* ── Inline Video Player ── */}
-      {goal.videoUrl && (
-        <div className="mx-5 mb-4 relative rounded-[20px] overflow-hidden bg-black/80 aspect-video border border-border/40 group/video shadow-inner">
-          {goal.videoSource === 'mp4' ? (
-            <video 
-              src={goal.videoUrl} 
-              poster={goal.thumbnailUrl}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover/video:scale-[1.02]"
-              controls
-              controlsList="nodownload"
-            />
-          ) : goal.videoSource === 'youtube' ? (
-            <iframe
-              src={goal.videoUrl}
-              className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          ) : (
-            <div className="w-full h-full relative cursor-pointer">
-              <img 
-                src={goal.thumbnailUrl || 'https://images.unsplash.com/photo-1518605368461-1ee0677c3e55?q=80&w=1000'} 
-                className="w-full h-full object-cover opacity-80 group-hover/video:opacity-100 transition-opacity duration-500" 
-                alt={`${goal.player} goal`} 
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-14 h-14 rounded-full bg-background/60 backdrop-blur-md flex items-center justify-center border border-border/50 text-foreground group-hover/video:scale-110 group-hover/video:bg-background/80 shadow-xl transition-all duration-300">
-                  <Play className="w-6 h-6 ml-1.5" />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Watch section — multiple source buttons ── */}
       <div className="px-5 pb-3 space-y-2">
         <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 flex items-center gap-1.5">
-          <Play className="w-3 h-3" /> WATCH FROM OFFICIAL SOURCES
+          <Play className="w-3 h-3" /> TRACK GOAL SOURCE
         </p>
         <div className="flex flex-wrap gap-2">
           {goal.sources.map((source, i) => (
@@ -262,14 +251,13 @@ function GoalCard({ goal, index }: { goal: GoalHighlight; index: number }) {
         </div>
       </div>
 
-      {/* Share */}
       <div className="px-5 pb-4 pt-1">
         <ShareButton
           variant="glass"
           size="sm"
           className="w-full h-10"
           title={`${goal.player} Goal vs ${goal.opponent}`}
-          text={`⚽ ${goal.player} ${goal.minute}' — ${goal.caption} 🔥 Watch on FanPulse!`}
+          text={`⚽ ${goal.player} ${goal.minute}' — ${goal.caption} 🔥 Check live updates on FanPulse!`}
         />
       </div>
     </div>
@@ -297,7 +285,7 @@ function StatBanner({ goals }: { goals: GoalHighlight[] }) {
         { icon: '🏆', value: leagues.size, label: 'LEAGUES' },
         { icon: '📡', value: totalSources, label: 'SOURCES' },
         {
-          icon: GOAL_TYPE_EMOJI[bestType?.[0] as GoalHighlight['goalType']] || '🎯',
+          icon: GOAL_TYPE_EMOJI[bestType?.[0] as string] || '🎯',
           value: bestType?.[1] || 0,
           label: 'TOP TYPE',
         },
@@ -319,41 +307,41 @@ function StatBanner({ goals }: { goals: GoalHighlight[] }) {
 
 // ── Main Page ─────────────────────────────────────────────────
 export default function GoalsPage() {
-  const [mounted, setMounted] = useState(false)
-  const [activeMatchday, setActiveMatchday] = useState<string>('')
+  const { data: goals = [], error, isLoading } = useSWR<GoalHighlight[]>('/api/goals', fetcher, {
+    refreshInterval: 5 * 60 * 1000 // 5 minutes
+  })
+
+  const [activeMatchday, setActiveMatchday] = useState<string>('All')
   const [activeType, setActiveType] = useState<string | null>(null)
   const [activeLeague, setActiveLeague] = useState<string>('All')
 
-  const matchdays = useMemo(() => getGoalMatchdays(), [])
-
-  useEffect(() => {
-    setMounted(true)
-    if (matchdays.length > 0) setActiveMatchday(matchdays[0])
-  }, [matchdays])
+  const matchdays = useMemo(() => {
+    const unique = [...new Set(goals.map(g => g.matchday))]
+    return ['All', ...unique]
+  }, [goals])
 
   const filteredGoals = useMemo(() => {
-    let goals = activeMatchday ? getGoalsByMatchday(activeMatchday) : GOALS_FEED
+    let result = goals
+    if (activeMatchday !== 'All') {
+      result = result.filter(g => g.matchday === activeMatchday)
+    }
     if (activeLeague !== 'All') {
-      goals = goals.filter((g) => g.league === activeLeague)
+      result = result.filter((g) => g.league === activeLeague)
     }
     if (activeType) {
-      goals = goals.filter((g) => g.goalType === activeType)
+      result = result.filter((g) => g.goalType === activeType)
     }
-    return goals
-  }, [activeMatchday, activeLeague, activeType])
+    return result
+  }, [goals, activeMatchday, activeLeague, activeType])
 
   const goalTypes = useMemo(() => {
-    return [...new Set(GOALS_FEED.map((g) => g.goalType))]
-  }, [])
-
-  if (!mounted) return null
+    return [...new Set(goals.map((g) => g.goalType))]
+  }, [goals])
 
   return (
     <div className="px-4 py-6 space-y-5 max-w-md mx-auto min-h-screen pb-32 relative">
-      {/* Animated background accent */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full blur-[200px] opacity-5 pointer-events-none bg-gradient-to-br from-red-500 via-amber-500 to-green-500" />
 
-      {/* Header */}
       <div className="text-center space-y-2 relative z-10 mb-2">
         <div className="flex items-center justify-center gap-2 mb-1">
           <span className="text-3xl">⚽</span>
@@ -363,20 +351,16 @@ export default function GoalsPage() {
           Goals
         </h2>
         <p className="text-[11px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">
-          Official highlights from verified accounts only ✅
+          Official summaries from real matches ✅
         </p>
       </div>
 
-      {/* Stats banner */}
-      <StatBanner goals={GOALS_FEED} />
+      {!isLoading && goals.length > 0 && <StatBanner goals={goals} />}
 
-      {/* League filter */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 relative z-10" role="tablist">
-        {['All', 'Premier League', 'La Liga'].map((league) => (
+      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 relative z-10">
+        {['All', 'Premier League', 'La Liga', 'Champions League'].map((league) => (
           <button
             key={league}
-            role="tab"
-            aria-selected={activeLeague === league}
             onClick={() => setActiveLeague(league)}
             className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex-shrink-0 border whitespace-nowrap ${
               activeLeague === league
@@ -384,20 +368,17 @@ export default function GoalsPage() {
                 : 'bg-muted/20 text-muted-foreground border-border/20 hover:bg-muted/40'
             }`}
           >
-            {league === 'All' ? '🌍 ALL' : league === 'Premier League' ? '🏴󠁧󠁢󠁥󠁮󠁧󠁿 PL' : '🇪🇸 LA LIGA'}
+             {league === 'All' ? '🌍 ALL' : league === 'Premier League' ? '🏴󠁧󠁢󠁥󠁮󠁧󠁿 PL' : league === 'La Liga' ? '🇪🇸 LA LIGA' : '⭐ UCL'}
           </button>
         ))}
       </div>
 
-      {/* Matchday scroller */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 relative z-10" role="tablist">
+      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 relative z-10">
         {matchdays.map((md) => {
           const isActive = activeMatchday === md
           return (
             <button
               key={md}
-              role="tab"
-              aria-selected={isActive}
               onClick={() => setActiveMatchday(md)}
               className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all flex-shrink-0 border whitespace-nowrap cursor-pointer select-none ${
                 isActive
@@ -411,17 +392,46 @@ export default function GoalsPage() {
         })}
       </div>
 
-      {/* Goal type filter */}
-      <GoalTypeFilter types={goalTypes} active={activeType} onToggle={setActiveType} />
+      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+        <button
+          onClick={() => setActiveType(null)}
+          className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all flex-shrink-0 border whitespace-nowrap ${
+            activeType === null
+              ? 'bg-foreground text-background border-foreground shadow-lg'
+              : 'bg-muted/20 text-muted-foreground border-border/10 hover:bg-muted/40'
+          }`}
+        >
+          🔥 ALL TYPES
+        </button>
+        {goalTypes.map((type) => (
+          <button
+            key={type}
+            onClick={() => setActiveType(activeType === type ? null : type)}
+            className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all flex-shrink-0 border whitespace-nowrap ${
+              activeType === type
+                ? 'bg-foreground text-background border-foreground shadow-lg'
+                : 'bg-muted/20 text-muted-foreground border-border/10 hover:bg-muted/40'
+            }`}
+          >
+            {GOAL_TYPE_EMOJI[type] || '⚽'}{' '}
+            {GOAL_TYPE_LABEL[type] || type}
+          </button>
+        ))}
+      </div>
 
-      {/* Goal Cards */}
       <div className="space-y-5 relative z-10">
-        {filteredGoals.length === 0 ? (
+        {isLoading ? (
+          <>
+            <GoalSkeleton />
+            <GoalSkeleton />
+            <GoalSkeleton />
+          </>
+        ) : filteredGoals.length === 0 ? (
           <div className="text-center py-16 bg-muted/5 rounded-3xl border-2 border-dashed border-border/50">
-            <span className="text-4xl mb-3 block">🔍</span>
-            <p className="text-foreground font-black text-lg tracking-tight">No Goals Found</p>
+            <Search className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
+            <p className="text-foreground font-black text-lg tracking-tight">No goals data available</p>
             <p className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest mt-1">
-              Try a different filter or matchday
+              Check back after the next matchday
             </p>
           </div>
         ) : (
@@ -431,49 +441,24 @@ export default function GoalsPage() {
         )}
       </div>
 
-      {/* Official sources disclaimer */}
       <div className="relative z-10 mx-2 p-4 rounded-2xl bg-muted/10 border border-border/30 space-y-3">
         <div className="flex items-start gap-2">
           <span className="text-sm mt-0.5">✅</span>
-          <div>
-            <p className="text-[11px] font-black text-foreground/70 uppercase tracking-wider mb-2">
-              Official Sources Only
-            </p>
-          </div>
+          <p className="text-[11px] font-black text-foreground/70 uppercase tracking-wider">
+            Official Source Tracker
+          </p>
         </div>
-
-        {/* Source categories */}
-        <div className="space-y-2">
-          <div>
-            <p className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] mb-1">🏆 Leagues</p>
-            <p className="text-[10px] text-muted-foreground/70 leading-relaxed font-semibold">
-              {OFFICIAL_SOURCES.leagues.join(' · ')}
-            </p>
-          </div>
-          <div>
-            <p className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] mb-1">📺 Broadcasters</p>
-            <p className="text-[10px] text-muted-foreground/70 leading-relaxed font-semibold">
-              {OFFICIAL_SOURCES.broadcasters.join(' · ')}
-            </p>
-          </div>
-          <div>
-            <p className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] mb-1">⚽ Clubs</p>
-            <p className="text-[10px] text-muted-foreground/70 leading-relaxed font-semibold">
-              {OFFICIAL_SOURCES.clubs.join(' · ')}
-            </p>
-          </div>
-        </div>
+        <p className="text-[10px] text-muted-foreground/70 leading-relaxed font-semibold">
+          Sources tracked: {OFFICIAL_SOURCES.leagues.join(' · ')} · {OFFICIAL_SOURCES.broadcasters.join(' · ')} · {OFFICIAL_SOURCES.clubs.join(' · ')}
+        </p>
       </div>
 
-      {/* Footer */}
       <div className="flex items-center justify-center gap-2 py-6 opacity-40 relative z-10">
         <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
         <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-          Goal Feed • Updated Every Matchday
+          Goal Feed • Dynamic Sync
         </span>
       </div>
-
-      {/* fadeInUp animation is defined in globals.css */}
     </div>
   )
 }

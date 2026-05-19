@@ -26,7 +26,8 @@ Format the output as clear Markdown text so our sentiment analyzer can parse it 
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'grok-4.20', // updated to the latest 2026 stable flagship
+        // NOTE: Update this model name when xAI releases new versions (e.g., grok-3, grok-4)
+        model: 'grok-3',
         messages: [
           { role: 'system', content: 'You are an elite, real-time social media scraper specialized in global football culture.' },
           { role: 'user', content: prompt }
@@ -36,8 +37,16 @@ Format the output as clear Markdown text so our sentiment analyzer can parse it 
     });
 
     if (!response.ok) {
+      const status = response.status;
+      if (status === 404) {
+        console.error("Grok model not found — update the model name");
+      } else if (status === 401 || status === 403) {
+        console.error("Grok API key invalid or unauthorized");
+      } else if (status === 429) {
+        console.error("Grok API rate limit hit");
+      }
       const err = await response.text();
-      throw new Error(`xAI API Error: ${err}`);
+      throw new Error(`xAI API Error [${status}]: ${err}`);
     }
 
     const data = await response.json();
@@ -55,6 +64,7 @@ Format the output as clear Markdown text so our sentiment analyzer can parse it 
     };
   } catch (error: any) {
     console.error('[Grok Scraper Error]:', error);
-    return { success: false, error: error.message };
+    // Re-throw all errors so the scraping cascade can fall through to the next provider
+    throw error;
   }
 }

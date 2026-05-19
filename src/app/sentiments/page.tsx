@@ -8,7 +8,9 @@ import { useLanguage } from '@/context/LanguageContext'
 import { ShareButton } from '@/components/ShareButton'
 import { Button } from '@/components/ui/button'
 import { CLUBS, findClub } from '@/lib/clubs'
-import { getRoundContext, type RoundContext } from '@/lib/competition-rounds'
+import useSWR from 'swr';
+// Removed: import { getRoundContext, type RoundContext } from '@/lib/competition-rounds'
+
 import { Tweet } from 'react-tweet'
 
 // ── Constants ──────────────────────────────────────────────────
@@ -308,8 +310,17 @@ function MatchCard({ match }: { match: Match }) {
 
 
 // ── Round Context Panel ────────────────────────────────────────
-function RoundContextPanel({ ctx }: { ctx: RoundContext }) {
+const fetcher = (url: string) => fetch(url).then(r => r.json());
+
+function RoundContextPanel() {
+  const { data: ctx, isLoading } = useSWR('/api/competition-context?compId=premier-league', fetcher, {
+    refreshInterval: 3600000 // 1 hour
+  });
+
   const [open, setOpen] = useState(true)
+
+  if (isLoading || !ctx) return null;
+
   return (
     <div className="relative rounded-[28px] overflow-hidden border-2 shadow-2xl" style={{ borderColor: `${ctx.accent}40`, background: `${ctx.accent}08` }}>
       <div className="h-1.5 w-full" style={{ background: `linear-gradient(90deg, ${ctx.accent}, ${ctx.accent}50, transparent)` }} />
@@ -344,7 +355,7 @@ function RoundContextPanel({ ctx }: { ctx: RoundContext }) {
               <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: ctx.accent }}>Top Storylines</p>
             </div>
             <ul className="space-y-2">
-              {ctx.storylines.map((s, i) => (
+              {ctx.storylines.map((s: string, i: number) => (
                 <li key={i} className="flex items-start gap-2 text-[12px] font-medium text-foreground/80 leading-snug">
                   <span className="mt-[3px] shrink-0 w-1.5 h-1.5 rounded-full" style={{ background: ctx.accent }} />
                   {s}
@@ -352,14 +363,14 @@ function RoundContextPanel({ ctx }: { ctx: RoundContext }) {
               ))}
             </ul>
           </div>
-          {ctx.keyPlayers.length > 0 && (
+          {ctx.keyPlayers && ctx.keyPlayers.length > 0 && (
             <div>
               <div className="flex items-center gap-1.5 mb-2.5">
                 <Users className="w-3.5 h-3.5" style={{ color: ctx.accent }} />
                 <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: ctx.accent }}>Round Performers</p>
               </div>
               <div className="space-y-2">
-                {ctx.keyPlayers.map((kp, i) => (
+                {ctx.keyPlayers.map((kp: any, i: number) => (
                   <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-background/30 border border-border/30">
                     <ClubLogo club={kp.club} size={32} />
                     <div className="min-w-0">
@@ -377,6 +388,7 @@ function RoundContextPanel({ ctx }: { ctx: RoundContext }) {
     </div>
   )
 }
+
 
 // ── Club Daily Pulse ──────────────────────────────────────────
 function ClubDailyPulse() {
@@ -609,6 +621,10 @@ function SentimentsContent() {
           </div>
         </div>
       </div>
+
+      {/* Dynamic Competition Context */}
+      <RoundContextPanel />
+
 
       {/* ─── Competition Switcher ─── */}
       <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 relative z-10" role="tablist">

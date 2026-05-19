@@ -16,6 +16,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const weekParam = searchParams.get('week') || 'current'
+    const statusParam = searchParams.get('status')
     const currentWeek = getCurrentWeekNumber()
 
     // Resolve the week parameter to a number
@@ -30,10 +31,17 @@ export async function GET(request: Request) {
     }
 
     // 1. Fetch players
+    const where: any = {};
+    if (targetWeekNumber !== null) {
+      where.weekNumber = targetWeekNumber;
+      where.season = '2024-25';
+    }
+    if (statusParam) {
+      where.status = statusParam;
+    }
+
     const players = await prisma.player.findMany({
-      where: targetWeekNumber !== null
-        ? { weekNumber: targetWeekNumber, season: '2024-25' }
-        : {},
+      where,
       include: {
         sentiments: {
           orderBy: { timestamp: 'desc' },
@@ -83,10 +91,15 @@ export async function GET(request: Request) {
         }
       }
 
+      const isStale = player.lastUpdated 
+        ? (Date.now() - new Date(player.lastUpdated).getTime()) > 48 * 60 * 60 * 1000
+        : true;
+
       return {
         ...player,
         sentiment: finalSentiment,
-        historicalSentiment: player.sentiment
+        historicalSentiment: player.sentiment,
+        isStale
       }
     })
 

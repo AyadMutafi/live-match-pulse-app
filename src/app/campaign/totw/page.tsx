@@ -1,12 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Zap, Siren, Sparkles, Skull, Share2, TrendingUp, Activity } from 'lucide-react'
+import { Zap, Siren, Sparkles, Skull, Share2, TrendingUp, Activity, AlertCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { ClubLogo } from '@/components/ClubLogo'
 
 type Player = {
-  id: string; name: string; team: string; position: string; sentiment: number;
+  id: string; 
+  name: string; 
+  team: string; 
+  position: string; 
+  sentiment: number;
+  status: string;
+  lastUpdated: string | null;
+  statusNote: string | null;
 }
 
 export default function CampaignPage() {
@@ -27,8 +34,81 @@ export default function CampaignPage() {
 
   if (loading) return <div className="p-20 text-center font-black uppercase tracking-widest opacity-50">Generating Campaign Frames...</div>
 
-  const elite = [...players].sort((a,b) => b.sentiment - a.sentiment)[0]
-  const crisis = [...players].sort((a,b) => a.sentiment - b.sentiment)[0]
+  // 1. Filter out non-ACTIVE players and stale data (> 48h)
+  const eligiblePlayers = players.filter(p => 
+    p.status === 'ACTIVE' && 
+    p.lastUpdated && 
+    (Date.now() - new Date(p.lastUpdated).getTime()) < 48 * 60 * 60 * 1000
+  );
+
+  // 2. Selection algorithm for XI (4-3-3)
+  const selectXI = (pool: Player[], sortDir: 'desc' | 'asc') => {
+    const sorted = [...pool].sort((a, b) => sortDir === 'desc' ? b.sentiment - a.sentiment : a.sentiment - b.sentiment);
+    
+    const getTop = (pos: string, count: number) => {
+      const filtered = sorted.filter(p => p.position === pos);
+      const result: (Player | null)[] = filtered.slice(0, count);
+      while (result.length < count) {
+        result.push(null);
+      }
+      return result;
+    };
+
+    return [
+      ...getTop('GK', 1),
+      ...getTop('DEF', 4),
+      ...getTop('MID', 3),
+      ...getTop('FW', 3)
+    ];
+  };
+
+  const eliteXI = selectXI(eligiblePlayers, 'desc');
+  const crisisXI = selectXI(eligiblePlayers, 'asc');
+
+  // For the legacy frames, pick the absolute top of the XI
+  const elite = eliteXI.find(p => p !== null);
+  const crisis = crisisXI.find(p => p !== null);
+
+  const formatFreshness = (dateStr: string | null) => {
+    if (!dateStr) return 'STALE';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const mins = Math.floor(diff / (1000 * 60)) % 60;
+    return `${hours}H ${mins}M AGO`;
+  };
+
+  const SquadGrid = ({ title, squad, colorClass }: { title: string, squad: (Player | null)[], colorClass: string }) => (
+    <div className="w-full max-w-4xl space-y-4">
+      <h3 className={`text-xl font-black uppercase tracking-widest ${colorClass}`}>{title}</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {squad.map((player, idx) => (
+          <div key={idx} className={`relative p-4 rounded-2xl bg-white/5 border ${player ? 'border-white/10' : 'border-dashed border-white/5 opacity-50'} flex flex-col gap-2`}>
+            {player ? (
+              <>
+                <div className="flex justify-between items-start">
+                  <ClubLogo club={player.team} size={20} />
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${colorClass} bg-current/10`}>{player.sentiment}%</span>
+                </div>
+                <div className="min-h-[40px]">
+                  <p className="text-[12px] font-black uppercase text-white leading-tight truncate">{player.name}</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">{player.position}</p>
+                </div>
+                <div className="mt-auto pt-2 border-t border-white/5 flex items-center gap-1">
+                  <Activity className="w-2.5 h-2.5 text-white/20" />
+                  <span className="text-[8px] font-black text-white/30 uppercase">{formatFreshness(player.lastUpdated)}</span>
+                </div>
+              </>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center py-4">
+                <Skull className="w-6 h-6 text-white/5 mb-2" />
+                <p className="text-[9px] font-black uppercase text-white/20 tracking-widest">No eligible player</p>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#050505] p-8 flex flex-col items-center gap-12 pb-32">
@@ -56,23 +136,31 @@ export default function CampaignPage() {
                 <div className="flex-1 flex flex-col items-center justify-center text-center gap-6">
                     <div className="relative">
                         <div className="w-48 h-48 rounded-[3rem] bg-emerald-500/10 border-4 border-emerald-500 shadow-[0_0_60px_#10b98130] flex items-center justify-center text-8xl">
-                            {elite?.sentiment > 90 ? '👑' : '🔥'}
+                            {elite ? (elite.sentiment > 90 ? '👑' : '🔥') : '💀'}
                         </div>
-                        <div className="absolute -bottom-4 -right-4 bg-emerald-500 text-black font-black italic text-4xl px-6 py-2 rounded-2xl border-4 border-black rotate-6 shadow-2xl">
-                            {elite?.sentiment}%
+                        {elite && (
+                          <div className="absolute -bottom-4 -right-4 bg-emerald-500 text-black font-black italic text-4xl px-6 py-2 rounded-2xl border-4 border-black rotate-6 shadow-2xl">
+                              {elite.sentiment}%
+                          </div>
+                        )}
+                        <div className="absolute -top-4 -left-4 bg-black/60 backdrop-blur-md border border-white/10 rounded-full px-3 py-1 flex items-center gap-1.5">
+                          <Activity className="w-3 h-3 text-emerald-500" />
+                          <span className="text-[10px] font-black text-white">{elite ? formatFreshness(elite.lastUpdated) : 'N/A'}</span>
                         </div>
                     </div>
 
                     <div className="space-y-1">
-                        <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white leading-none">{elite?.name}</h2>
-                        <div className="flex items-center justify-center gap-2">
-                            <ClubLogo club={elite?.team} size={24} />
-                            <span className="text-sm font-bold uppercase tracking-widest text-emerald-400">{elite?.team}</span>
-                        </div>
+                        <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white leading-none">{elite?.name || 'No Elite Player'}</h2>
+                        {elite && (
+                          <div className="flex items-center justify-center gap-2">
+                              <ClubLogo club={elite.team} size={24} />
+                              <span className="text-sm font-bold uppercase tracking-widest text-emerald-400">{elite.team}</span>
+                          </div>
+                        )}
                     </div>
 
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/60 max-w-[200px]">
-                        Dominating the digital arena with peak fan resonance.
+                        {elite ? 'Dominating the digital arena with peak fan resonance.' : 'No players met the elite eligibility criteria this week.'}
                     </p>
                 </div>
 
@@ -105,21 +193,29 @@ export default function CampaignPage() {
                         <div className="w-48 h-48 rounded-[3rem] bg-rose-500/10 border-4 border-rose-500 shadow-[0_0_60px_#f43f5e30] flex items-center justify-center text-8xl">
                             💀
                         </div>
-                        <div className="absolute -bottom-4 -right-4 bg-rose-500 text-white font-black italic text-4xl px-6 py-2 rounded-2xl border-4 border-black -rotate-6 shadow-2xl">
-                            {crisis?.sentiment}%
+                        {crisis && (
+                          <div className="absolute -bottom-4 -right-4 bg-rose-500 text-white font-black italic text-4xl px-6 py-2 rounded-2xl border-4 border-black -rotate-6 shadow-2xl">
+                              {crisis.sentiment}%
+                          </div>
+                        )}
+                        <div className="absolute -top-4 -left-4 bg-black/60 backdrop-blur-md border border-white/10 rounded-full px-3 py-1 flex items-center gap-1.5">
+                          <Activity className="w-3 h-3 text-rose-500" />
+                          <span className="text-[10px] font-black text-white">{crisis ? formatFreshness(crisis.lastUpdated) : 'N/A'}</span>
                         </div>
                     </div>
 
                     <div className="space-y-1">
-                        <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white leading-none">{crisis?.name}</h2>
-                        <div className="flex items-center justify-center gap-2">
-                            <ClubLogo club={crisis?.team} size={24} />
-                            <span className="text-sm font-bold uppercase tracking-widest text-rose-400">{crisis?.team}</span>
-                        </div>
+                        <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white leading-none">{crisis?.name || 'No Crisis Player'}</h2>
+                        {crisis && (
+                          <div className="flex items-center justify-center gap-2">
+                              <ClubLogo club={crisis.team} size={24} />
+                              <span className="text-sm font-bold uppercase tracking-widest text-rose-400">{crisis.team}</span>
+                          </div>
+                        )}
                     </div>
 
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-500/60 max-w-[200px]">
-                        Intercepted signals indicate a complete digital meltdown.
+                        {crisis ? 'Intercepted signals indicate a complete digital meltdown.' : 'Stability detected. No players in the crisis zone.'}
                     </p>
                 </div>
 
@@ -132,11 +228,13 @@ export default function CampaignPage() {
         </div>
       </div>
 
+      <SquadGrid title="Elite XI Selection" squad={eliteXI} colorClass="text-emerald-500" />
+      <SquadGrid title="Crisis XI Selection" squad={crisisXI} colorClass="text-rose-500" />
+
       {/* Frame 4: Large Landscape Poster */}
       <div className="flex flex-col items-center gap-4">
         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Arena Landscape Poster (4:3)</span>
         <div className="w-[800px] h-[600px] bg-black rounded-[40px] border-[12px] border-[#111] shadow-2xl relative overflow-hidden flex flex-col p-12">
-            {/* Massive background glow */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#bd9dff15_0%,transparent_70%)]" />
             <div className="absolute -top-[20%] -left-[20%] w-[60%] h-[60%] bg-primary/10 blur-[120px] rounded-full" />
             <div className="absolute -bottom-[20%] -right-[20%] w-[60%] h-[60%] bg-amber-400/5 blur-[120px] rounded-full" />
@@ -167,13 +265,16 @@ export default function CampaignPage() {
                         <div className="relative z-10">
                             <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-4 block">PEAK RESONANCE</span>
                             <div className="flex items-center gap-4 mb-6">
-                                <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-3xl">🔥</div>
+                                <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-3xl">
+                                  {elite ? '🔥' : '💀'}
+                                </div>
                                 <div>
-                                    <h3 className="text-2xl font-black text-white uppercase italic leading-none">{elite?.name}</h3>
-                                    <span className="text-sm font-bold text-emerald-500/60 uppercase">{elite?.team}</span>
+                                    <h3 className="text-2xl font-black text-white uppercase italic leading-none">{elite?.name || 'No Elite Player'}</h3>
+                                    <span className="text-sm font-bold text-emerald-500/60 uppercase">{elite?.team || 'N/A'}</span>
+                                    {elite && <p className="text-[9px] font-black text-white/40 mt-1 uppercase">{formatFreshness(elite.lastUpdated)}</p>}
                                 </div>
                             </div>
-                            <div className="text-6xl font-black italic text-white">{elite?.sentiment}%</div>
+                            <div className="text-6xl font-black italic text-white">{elite?.sentiment || 0}%</div>
                         </div>
                     </div>
 
@@ -187,11 +288,12 @@ export default function CampaignPage() {
                             <div className="flex items-center gap-4 mb-6">
                                 <div className="w-16 h-16 rounded-2xl bg-rose-500/20 border border-rose-500 flex items-center justify-center text-3xl">💀</div>
                                 <div>
-                                    <h3 className="text-2xl font-black text-white uppercase italic leading-none">{crisis?.name}</h3>
-                                    <span className="text-sm font-bold text-rose-500/60 uppercase">{crisis?.team}</span>
+                                    <h3 className="text-2xl font-black text-white uppercase italic leading-none">{crisis?.name || 'No Crisis Player'}</h3>
+                                    <span className="text-sm font-bold text-rose-500/60 uppercase">{crisis?.team || 'N/A'}</span>
+                                    {crisis && <p className="text-[9px] font-black text-white/40 mt-1 uppercase">{formatFreshness(crisis.lastUpdated)}</p>}
                                 </div>
                             </div>
-                            <div className="text-6xl font-black italic text-white">{crisis?.sentiment}%</div>
+                            <div className="text-6xl font-black italic text-white">{crisis?.sentiment || 0}%</div>
                         </div>
                     </div>
                 </div>
