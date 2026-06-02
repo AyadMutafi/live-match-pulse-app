@@ -14,6 +14,7 @@ import {
   Shield,
   Search,
   Wifi,
+  Skull,
 } from "lucide-react";
 import Link from "next/link";
 import Script from "next/script";
@@ -549,15 +550,15 @@ export default function FanPulseDemo() {
 
   const upcomingMatches = useMemo(() => {
     return matches
-      .filter(m => m.status !== 'finished')
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .filter((m: Match) => m.status !== 'finished')
+      .sort((a: Match, b: Match) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .slice(0, 4);
   }, [matches]);
 
   const recentMatches = useMemo(() => {
     return matches
-      .filter(m => m.status === 'finished')
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .filter((m: Match) => m.status === 'finished')
+      .sort((a: Match, b: Match) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5);
   }, [matches]);
 
@@ -723,7 +724,7 @@ export default function FanPulseDemo() {
           </Link>
         </div>
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none snap-x">
-          {matches.slice(0, 6).map((match, i) => (
+          {matches.slice(0, 6).map((match: Match, i: number) => (
             <Link
               key={match.id}
               href={`/match/${match.id}`}
@@ -1047,7 +1048,7 @@ export default function FanPulseDemo() {
             </span>
           </div>
           <div className="glass-card shadow-xl divide-y divide-border border-primary/5">
-            {upcomingMatches.map((match) => (
+            {upcomingMatches.map((match: Match) => (
               <div
                 key={match.id}
                 className="flex items-center justify-between px-6 py-5 hover:bg-primary/5 transition-all group"
@@ -1258,7 +1259,7 @@ export default function FanPulseDemo() {
             </Link>
           </div>
           <div className="glass-card shadow-xl divide-y divide-border border-primary/5">
-            {recentMatches.map((match) => (
+            {recentMatches.map((match: Match) => (
               <Link
                 key={match.id}
                 href={`/sentiments?matchId=${match.id}`}
